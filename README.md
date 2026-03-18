@@ -1,50 +1,126 @@
-# Welcome to your Expo app 👋
+# Agora Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicacion frontend de Agora construida con Expo + React Native + Expo Router.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo SDK 54
+- React 19
+- React Native 0.81
+- TypeScript (modo estricto)
+- Expo Router (enrutamiento por archivos)
+- Jest + Testing Library React Native
+- ESLint + Prettier
+- Husky + lint-staged + commitlint
 
-   ```bash
-   npm install
-   ```
+## Requisitos
 
-2. Start the app
+- Node.js 20 o superior recomendado
+- npm 10 o superior
+- Xcode (para iOS Simulator en macOS)
+- Android Studio (para Android Emulator)
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Instalacion
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Ejecucion local
 
-## Learn more
+Inicia el servidor de desarrollo:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm run start
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Atajos principales:
 
-## Join the community
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
-Join our community of developers creating universal apps.
+Tambien puedes abrir con Expo Go desde el QR que aparece en consola.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Scripts disponibles
+
+| Script               | Descripcion                                 |
+| -------------------- | ------------------------------------------- |
+| `npm run start`      | Levanta Metro/Expo en modo desarrollo       |
+| `npm run android`    | Abre la app en emulador Android             |
+| `npm run ios`        | Abre la app en iOS Simulator                |
+| `npm run web`        | Ejecuta la app en navegador                 |
+| `npm run test`       | Ejecuta pruebas unitarias con Jest          |
+| `npm run test:watch` | Ejecuta pruebas en modo watch               |
+| `npm run lint`       | Ejecuta linter (Expo + reglas del proyecto) |
+| `npm run lint:fix`   | Corrige problemas de lint automaticamente   |
+| `npm run format`     | Formatea el codigo con Prettier             |
+
+## Calidad de codigo
+
+Este repositorio tiene automatizaciones de calidad con Husky:
+
+- `pre-commit`: corre `lint-staged`
+- `commit-msg`: valida el mensaje con commitlint (`@commitlint/config-conventional`)
+- `pre-push`: ejecuta `npm test`
+
+Esto significa que antes de subir cambios se verifican pruebas y convencion de commits.
+
+## Testing y cobertura
+
+Las pruebas usan `jest-expo` y `@testing-library/react-native`.
+
+Ejecutar pruebas:
+
+```bash
+npm run test
+```
+
+Cobertura minima configurada globalmente:
+
+- Branches: 70%
+- Functions: 70%
+- Lines: 80%
+- Statements: 70%
+
+El reporte de cobertura se genera en la carpeta `coverage`.
+
+## Estructura principal
+
+```text
+agora-frontend/
+├── app/                 # Pantallas y rutas (Expo Router)
+│   ├── _layout.tsx
+│   └── index.tsx
+├── __tests__/           # Pruebas unitarias
+├── assets/              # Imagenes e iconos
+├── app.json             # Configuracion Expo
+├── eslint.config.js     # Configuracion de ESLint
+├── commitlint.config.js # Reglas de commits
+├── tsconfig.json        # TypeScript + paths
+└── package.json         # Scripts y dependencias
+```
+
+## Convenciones del proyecto
+
+- Rutas basadas en archivos dentro de `app`
+- Alias de importacion `@/*` configurado en TypeScript
+- Formato y estilo forzados por ESLint + Prettier
+
+## Troubleshooting rapido
+
+Si Metro queda en estado inconsistente:
+
+```bash
+npx expo start -c
+```
+
+Si cambias dependencias nativas, reinicia simulador/emulador y vuelve a levantar Expo.
+
+## Referencias
+
+- Documentacion Expo: https://docs.expo.dev/
+- Documentacion Expo Router: https://docs.expo.dev/router/introduction/
+- React Native Testing Library: https://callstack.github.io/react-native-testing-library/
