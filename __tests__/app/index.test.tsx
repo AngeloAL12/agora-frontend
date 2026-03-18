@@ -1,10 +1,12 @@
-import { render } from "@testing-library/react-native";
-import Index from "../../app/index";
+import { render } from '@testing-library/react-native';
+import Index from '../../app/index';
 
-describe("Index Screen", () => {
-  it("renderiza el texto correctamente", () => {
+describe('Index Screen', () => {
+  it('renderiza el texto correctamente', () => {
     const { getByText } = render(<Index />);
 
-    expect(getByText("Edit app/index.tsx to edit this screen.")).toBeTruthy();
+    const x = { a: 1 };
+
+    expect(getByText('A chambear con Agora')).toBeTruthy();
   });
 });
