@@ -10,6 +10,7 @@ export default function Index() {
       }}
     >
       <Text>A chambear con Agora</Text>
+      <Text>Animo!</Text>
     </View>
   );
 }
