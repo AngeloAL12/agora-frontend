@@ -118,9 +118,3 @@ npx expo start -c
 ```
 
 Si cambias dependencias nativas, reinicia simulador/emulador y vuelve a levantar Expo.
-
-## Referencias
-
-- Documentacion Expo: https://docs.expo.dev/
-- Documentacion Expo Router: https://docs.expo.dev/router/introduction/
-- React Native Testing Library: https://callstack.github.io/react-native-testing-library/
