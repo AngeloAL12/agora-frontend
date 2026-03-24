@@ -6,5 +6,6 @@ describe('Index Screen', () => {
     const { getByText } = render(<Index />);
 
     expect(getByText('A chambear con Agora')).toBeTruthy();
+    expect(getByText('Animo!')).toBeTruthy();
   });
 });
