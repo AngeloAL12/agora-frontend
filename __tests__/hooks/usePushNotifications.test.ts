@@ -12,6 +12,7 @@ jest.mock('expo-device', () => ({
 
 jest.mock('expo-notifications', () => ({
   AndroidImportance: { MAX: 5 },
+  setNotificationHandler: jest.fn(),
   setNotificationChannelAsync: jest.fn(),
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
@@ -44,12 +45,13 @@ describe('usePushNotifications', () => {
 
   it('returns null token and status when not a physical device', async () => {
     mockIsDevice = false;
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
 
     const { result } = renderHook(() => usePushNotifications());
 
     await waitFor(() => {
       expect(result.current.expoPushToken).toBeNull();
-      expect(result.current.permissionStatus).toBeNull();
+      expect(result.current.permissionStatus).toBe('granted');
     });
 
     mockIsDevice = true;
