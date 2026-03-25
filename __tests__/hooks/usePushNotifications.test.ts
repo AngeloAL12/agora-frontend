@@ -20,12 +20,10 @@ jest.mock('expo-notifications', () => ({
 }));
 
 jest.mock('expo-constants', () => ({
+  __esModule: true,
   default: {
-    expoConfig: {
-      extra: {
-        eas: { projectId: 'test-project-id' },
-      },
-    },
+    expoConfig: { extra: { eas: { projectId: 'test-project-id' } } },
+    easConfig: undefined,
   },
 }));
 
@@ -102,5 +100,32 @@ describe('usePushNotifications', () => {
       );
       expect(result.current.permissionStatus).toBe('granted');
     });
+  });
+
+  it('falls back to easConfig.projectId when extra.eas.projectId is undefined', async () => {
+    const mockConstants = jest.requireMock('expo-constants').default;
+    mockConstants.expoConfig.extra.eas.projectId = undefined;
+    mockConstants.easConfig = { projectId: 'fallback-project-id' };
+
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken.mockResolvedValueOnce({
+      data: 'ExponentPushToken[fallback-token]',
+    });
+
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBe(
+        'ExponentPushToken[fallback-token]',
+      );
+      expect(result.current.permissionStatus).toBe('granted');
+    });
+
+    expect(mockGetToken).toHaveBeenCalledWith({
+      projectId: 'fallback-project-id',
+    });
+
+    mockConstants.expoConfig.extra.eas.projectId = 'test-project-id';
+    mockConstants.easConfig = undefined;
   });
 });
