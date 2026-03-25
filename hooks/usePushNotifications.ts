@@ -4,15 +4,46 @@ import * as Notifications from 'expo-notifications';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
-// Le dice a iOS cómo mostrar la notificación
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+function isExpoGoAndroid(): boolean {
+  const constantsValue = Constants as {
+    appOwnership?: string;
+    executionEnvironment?: string;
+    ExecutionEnvironment?: { StoreClient?: string };
+    default?: {
+      appOwnership?: string;
+      executionEnvironment?: string;
+      ExecutionEnvironment?: { StoreClient?: string };
+    };
+  };
+
+  const appOwnership =
+    constantsValue.appOwnership ?? constantsValue.default?.appOwnership;
+  const executionEnvironment =
+    constantsValue.executionEnvironment ??
+    constantsValue.default?.executionEnvironment;
+  const storeClientEnvironment =
+    constantsValue.ExecutionEnvironment?.StoreClient ??
+    constantsValue.default?.ExecutionEnvironment?.StoreClient;
+
+  const isExpoGo =
+    appOwnership === 'expo' ||
+    executionEnvironment === 'storeClient' ||
+    (storeClientEnvironment !== undefined &&
+      executionEnvironment === storeClientEnvironment);
+
+  return Platform.OS === 'android' && isExpoGo;
+}
+
+function setupNotificationHandler(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export type PushNotificationsState = {
   expoPushToken: string | null;
@@ -20,6 +51,15 @@ export type PushNotificationsState = {
 };
 
 async function registerForPushNotificationsAsync(): Promise<PushNotificationsState> {
+  if (isExpoGoAndroid()) {
+    console.warn(
+      'En Expo Go (Android) los push remotos no estan disponibles. Usa un development build.',
+    );
+    return { expoPushToken: null, permissionStatus: null };
+  }
+
+  setupNotificationHandler();
+
   // 1. Configuración exclusiva de Android
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -51,9 +91,9 @@ async function registerForPushNotificationsAsync(): Promise<PushNotificationsSta
 
   // 4. Generar el token (Solo llegará aquí si es un teléfono físico de verdad)
   try {
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId as
-      | string
-      | undefined;
+    const projectId =
+      (Constants.expoConfig?.extra?.eas?.projectId as string | undefined) ??
+      Constants.easConfig?.projectId;
     const { data: token } = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
