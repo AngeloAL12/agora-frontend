@@ -12,10 +12,7 @@ export const Badge = ({ label, variant = 'member' }: BadgeProps) => {
 
   return (
     <View
-      style={[
-        styles.badgeContainer,
-        isMember ? styles.memberBadge : styles.joinBadge,
-      ]}
+      style={[styles.container, isMember ? styles.memberBg : styles.joinBg]}
     >
       <Text
         style={[styles.text, isMember ? styles.memberText : styles.joinText]}
@@ -27,28 +24,28 @@ export const Badge = ({ label, variant = 'member' }: BadgeProps) => {
 };
 
 const styles = StyleSheet.create({
-  badgeContainer: {
+  container: {
+    paddingVertical: 4,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-  },
-  memberBadge: {
-    backgroundColor: theme.colors.whiteSoft,
-    borderColor: theme.palette.primary,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  joinBadge: {
-    backgroundColor: theme.palette.accent, // El amarillo
+  memberBg: {
+    backgroundColor: theme.colors.whiteSoft,
+    borderColor: theme.colors.gray700,
+  },
+  joinBg: {
+    backgroundColor: theme.palette.primary,
+    borderColor: theme.palette.primary,
   },
   text: {
-    fontFamily: theme.typography.fontFamily.interSemiBold,
+    fontFamily: theme.typography.fontFamily.interMedium,
     fontSize: 12,
   },
   memberText: {
-    color: theme.palette.primary,
+    color: theme.colors.gray900,
   },
   joinText: {
-    color: theme.colors.black,
+    color: theme.colors.white,
   },
 });

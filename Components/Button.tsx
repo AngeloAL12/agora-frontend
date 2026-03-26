@@ -2,15 +2,14 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { theme } from '../constants/theme';
 
-// Aquí definimos todas las "perillas" (props) que se podrá ajustarle al botón cuando lo usen
 interface ButtonProps {
   text: string;
-  onPress: () => void; // La acción al picarle
-  variant?: 'primary' | 'secondary' | 'danger'; // Colores (danger por si ocupas borrar una queja)
-  size?: 'small' | 'medium' | 'large'; // Tamaños
-  fullWidth?: boolean; // ¿Queremos que abarque todo el ancho de la pantalla?
-  disabled?: boolean; // ¿Está apagado/bloqueado?
-  style?: ViewStyle; // Por si se ocupa meterle un margen o estilo extra después
+  onPress: () => void;
+  variant?: 'primary' | 'secondary';
+  size?: 'small' | 'medium' | 'large';
+  fullWidth?: boolean;
+  disabled?: boolean;
+  style?: ViewStyle;
 }
 
 export const Button = ({
@@ -22,19 +21,18 @@ export const Button = ({
   disabled = false,
   style,
 }: ButtonProps) => {
-  // Configuramos el color según la variante
+  const isSecondary = variant === 'secondary';
+
   const getBackgroundColor = () => {
-    if (disabled) return theme.colors.gray700; // Un gris si está desactivado
-    if (variant === 'secondary') return 'transparent';
-    if (variant === 'danger') return '#EF4444'; // Un rojo para borrar
-    return theme.palette.primary; // El azul por defecto
+    if (disabled && !isSecondary) return theme.colors.gray700;
+    if (isSecondary) return 'transparent';
+    return theme.palette.primary;
   };
 
-  // Configuramos el tamaño del padding (los bordes del botón)
-  const getPadding = () => {
-    if (size === 'small') return { paddingVertical: 8, paddingHorizontal: 16 };
-    if (size === 'large') return { paddingVertical: 18, paddingHorizontal: 32 };
-    return { paddingVertical: 14, paddingHorizontal: 24 }; // medium por defecto
+  const getTextColor = () => {
+    if (disabled && isSecondary) return theme.colors.gray700;
+    if (isSecondary) return theme.palette.primary;
+    return theme.colors.white;
   };
 
   return (
@@ -44,19 +42,22 @@ export const Button = ({
       style={({ pressed }) => [
         styles.baseContainer,
         { backgroundColor: getBackgroundColor() },
-        getPadding(),
+        size === 'small' && { paddingVertical: 8, paddingHorizontal: 16 },
+        size === 'medium' && { paddingVertical: 14, paddingHorizontal: 24 },
+        size === 'large' && { paddingVertical: 18, paddingHorizontal: 32 },
         fullWidth && { width: '100%' },
-        variant === 'secondary' && styles.secondaryBorder,
-        pressed && !disabled && { opacity: 0.8 }, // Efecto al presionar
-        style, // Estilos extras que le manden
+        isSecondary && [
+          styles.secondaryBorder,
+          disabled && { borderColor: theme.colors.gray700 },
+        ],
+        pressed && !disabled && { opacity: 0.8 },
+        style,
       ]}
     >
       <Text
         style={[
           styles.baseText,
-          variant === 'secondary' && !disabled
-            ? { color: theme.palette.primary }
-            : { color: '#FFFFFF' },
+          { color: getTextColor() },
           size === 'large' && { fontSize: 18 },
           size === 'small' && { fontSize: 14 },
         ]}
