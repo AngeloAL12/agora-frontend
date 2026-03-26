@@ -7,4 +7,17 @@ describe('Button Component', () => {
     const { getByText } = render(<Button text="Submit" onPress={() => {}} />);
     expect(getByText('Submit')).toBeTruthy();
   });
+
+  it('renders different variants and sizes', () => {
+    render(
+      <Button
+        text="Secondary"
+        variant="secondary"
+        disabled
+        onPress={() => {}}
+      />,
+    );
+    render(<Button text="Small" size="small" onPress={() => {}} />);
+    render(<Button text="Large" size="large" fullWidth onPress={() => {}} />);
+  });
 });
