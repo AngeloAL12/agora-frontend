@@ -1,40 +1,19 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 
-function isExpoGoAndroid(): boolean {
-  const constantsValue = Constants as {
-    appOwnership?: string;
-    executionEnvironment?: string;
-    ExecutionEnvironment?: { StoreClient?: string };
-    default?: {
-      appOwnership?: string;
-      executionEnvironment?: string;
-      ExecutionEnvironment?: { StoreClient?: string };
-    };
-  };
+export type PushNotificationsState = {
+  expoPushToken: string | null;
+  permissionStatus: Notifications.PermissionStatus | null;
+};
 
-  const appOwnership =
-    constantsValue.appOwnership ?? constantsValue.default?.appOwnership;
-  const executionEnvironment =
-    constantsValue.executionEnvironment ??
-    constantsValue.default?.executionEnvironment;
-  const storeClientEnvironment =
-    constantsValue.ExecutionEnvironment?.StoreClient ??
-    constantsValue.default?.ExecutionEnvironment?.StoreClient;
-
-  const isExpoGo =
-    appOwnership === 'expo' ||
-    executionEnvironment === 'storeClient' ||
-    (storeClientEnvironment !== undefined &&
-      executionEnvironment === storeClientEnvironment);
-
-  return Platform.OS === 'android' && isExpoGo;
+function isRunningInExpoGo(): boolean {
+  return (Constants as { appOwnership?: string }).appOwnership === 'expo';
 }
 
-function setupNotificationHandler(): void {
+function configureNotificationHandler(): void {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: true,
@@ -45,63 +24,74 @@ function setupNotificationHandler(): void {
   });
 }
 
-export type PushNotificationsState = {
-  expoPushToken: string | null;
-  permissionStatus: Notifications.PermissionStatus | null;
-};
+async function configureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
 
-async function registerForPushNotificationsAsync(): Promise<PushNotificationsState> {
-  if (isExpoGoAndroid()) {
-    console.warn(
-      'En Expo Go (Android) los push remotos no estan disponibles. Usa un development build.',
-    );
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'default',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#FF231F7C',
+  });
+}
+
+async function resolvePermissionStatus(): Promise<Notifications.PermissionStatus> {
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  if (existingStatus === 'granted') return existingStatus;
+
+  const { status: requestedStatus } =
+    await Notifications.requestPermissionsAsync();
+  return requestedStatus;
+}
+
+function resolveProjectId(): string | undefined {
+  return (
+    (Constants.expoConfig?.extra?.eas?.projectId as string | undefined) ??
+    Constants.easConfig?.projectId
+  );
+}
+
+async function fetchExpoPushToken(): Promise<string | null> {
+  try {
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
+      projectId: resolveProjectId(),
+    });
+    return token;
+  } catch (error) {
+    console.error('[PushNotifications] Failed to generate token:', error);
+    return null;
+  }
+}
+
+async function registerForPushNotifications(): Promise<PushNotificationsState> {
+  if (Platform.OS === 'android' && isRunningInExpoGo()) {
+    if (__DEV__) {
+      console.warn(
+        '[PushNotifications] Remote push not available in Expo Go on Android. Use a development build.',
+      );
+    }
     return { expoPushToken: null, permissionStatus: null };
   }
 
-  setupNotificationHandler();
+  configureNotificationHandler();
+  await configureAndroidChannel();
 
-  // 1. Configuración exclusiva de Android
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
+  const permissionStatus = await resolvePermissionStatus();
+  if (permissionStatus !== 'granted') {
+    return { expoPushToken: null, permissionStatus };
   }
 
-  // 2. Pedir permisos (¡ESTO AHORA SÍ CORRE EN EL SIMULADOR!)
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    return { expoPushToken: null, permissionStatus: finalStatus };
-  }
-
-  // 3. AQUÍ detenemos al simulador. Ya nos dio permiso, pero no puede generar token real.
   if (!Device.isDevice) {
-    console.log('En simulador: Arrastra el .apns');
-    return { expoPushToken: null, permissionStatus: finalStatus };
+    if (__DEV__) {
+      console.log(
+        '[PushNotifications] Simulator detected: drag a .apns file to test locally.',
+      );
+    }
+    return { expoPushToken: null, permissionStatus };
   }
 
-  // 4. Generar el token (Solo llegará aquí si es un teléfono físico de verdad)
-  try {
-    const projectId =
-      (Constants.expoConfig?.extra?.eas?.projectId as string | undefined) ??
-      Constants.easConfig?.projectId;
-    const { data: token } = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
-    return { expoPushToken: token, permissionStatus: finalStatus };
-  } catch (error) {
-    console.error('Error al generar el token:', error);
-    return { expoPushToken: null, permissionStatus: finalStatus };
-  }
+  const token = await fetchExpoPushToken();
+  return { expoPushToken: token, permissionStatus };
 }
 
 export function usePushNotifications(): PushNotificationsState {
@@ -109,9 +99,50 @@ export function usePushNotifications(): PushNotificationsState {
     expoPushToken: null,
     permissionStatus: null,
   });
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(setState);
+    registerForPushNotifications().then(setState);
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      const returningToForeground =
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active';
+
+      if (returningToForeground) {
+        registerForPushNotifications().then(setState);
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const onReceived = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        if (__DEV__) {
+          console.log(
+            `[PushNotifications] Notification received: ${notification.request.identifier}`,
+          );
+        }
+      },
+    );
+
+    const onResponseReceived =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        if (__DEV__) {
+          console.log(
+            `[PushNotifications] Notification response: ${response.notification.request.identifier}`,
+          );
+        }
+      });
+
+    return () => {
+      onReceived.remove();
+      onResponseReceived.remove();
+    };
   }, []);
 
   return state;
