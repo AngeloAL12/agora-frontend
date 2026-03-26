@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as Notifications from 'expo-notifications';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
@@ -214,6 +214,81 @@ describe('usePushNotifications', () => {
       expect.any(Error),
     );
     errorSpy.mockRestore();
+  });
+
+  it('re-registers when app returns to foreground', async () => {
+    mockGetPermissions
+      .mockResolvedValueOnce({ status: 'granted' })
+      .mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken
+      .mockResolvedValueOnce({ data: 'ExponentPushToken[token-1]' })
+      .mockResolvedValueOnce({ data: 'ExponentPushToken[token-2]' });
+
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBe('ExponentPushToken[token-1]');
+    });
+
+    const mockAppState = jest.requireMock('react-native').AppState;
+    const changeCallback = mockAppState.addEventListener.mock.calls[0][1];
+
+    act(() => changeCallback('background'));
+    act(() => changeCallback('active'));
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBe('ExponentPushToken[token-2]');
+    });
+
+    expect(mockGetPermissions).toHaveBeenCalledTimes(2);
+  });
+
+  it('logs received notification identifier in dev mode', async () => {
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken.mockResolvedValueOnce({ data: 'ExponentPushToken[test]' });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(Notifications.addNotificationReceivedListener).toHaveBeenCalled();
+    });
+
+    const callback = (
+      Notifications.addNotificationReceivedListener as jest.Mock
+    ).mock.calls[0][0];
+    callback({ request: { identifier: 'notif-123' } });
+
+    expect(logSpy).toHaveBeenCalledWith(
+      '[PushNotifications] Notification received: notif-123',
+    );
+    logSpy.mockRestore();
+  });
+
+  it('logs notification response identifier in dev mode', async () => {
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken.mockResolvedValueOnce({ data: 'ExponentPushToken[test]' });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(
+        Notifications.addNotificationResponseReceivedListener,
+      ).toHaveBeenCalled();
+    });
+
+    const callback = (
+      Notifications.addNotificationResponseReceivedListener as jest.Mock
+    ).mock.calls[0][0];
+    callback({ notification: { request: { identifier: 'notif-456' } } });
+
+    expect(logSpy).toHaveBeenCalledWith(
+      '[PushNotifications] Notification response: notif-456',
+    );
+    logSpy.mockRestore();
   });
 
   it('registers a handler with expected notification behavior', async () => {
