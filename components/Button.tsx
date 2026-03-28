@@ -1,5 +1,11 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from 'react-native';
 import { theme } from '../constants/theme';
 
 interface ButtonProps {
@@ -9,8 +15,14 @@ interface ButtonProps {
   size?: 'small' | 'medium' | 'large';
   fullWidth?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
+
+const sizeStyles = {
+  small: { paddingVertical: 8, paddingHorizontal: 16 },
+  medium: { paddingVertical: 14, paddingHorizontal: 24 },
+  large: { paddingVertical: 18, paddingHorizontal: 32 },
+};
 
 export const Button = ({
   text,
@@ -23,33 +35,33 @@ export const Button = ({
 }: ButtonProps) => {
   const isSecondary = variant === 'secondary';
 
-  const getBackgroundColor = () => {
-    if (disabled && !isSecondary) return theme.colors.gray700;
-    if (isSecondary) return 'transparent';
-    return theme.palette.primary;
-  };
+  const backgroundColor =
+    disabled && !isSecondary
+      ? theme.colors.gray700
+      : isSecondary
+        ? undefined
+        : theme.palette.primary;
 
-  const getTextColor = () => {
-    if (disabled && isSecondary) return theme.colors.gray700;
-    if (isSecondary) return theme.palette.primary;
-    return theme.colors.white;
-  };
+  const textColor =
+    disabled && isSecondary
+      ? theme.colors.gray700
+      : isSecondary
+        ? theme.palette.primary
+        : theme.colors.white;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={!disabled ? onPress : undefined}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.baseContainer,
-        { backgroundColor: getBackgroundColor() },
-        size === 'small' && { paddingVertical: 8, paddingHorizontal: 16 },
-        size === 'medium' && { paddingVertical: 14, paddingHorizontal: 24 },
-        size === 'large' && { paddingVertical: 18, paddingHorizontal: 32 },
+        { backgroundColor },
+        sizeStyles[size],
         fullWidth && { width: '100%' },
-        isSecondary && [
-          styles.secondaryBorder,
-          disabled && { borderColor: theme.colors.gray700 },
-        ],
+        isSecondary && styles.secondaryBorder,
+        isSecondary && disabled && { borderColor: theme.colors.gray700 },
         pressed && !disabled && { opacity: 0.8 },
         style,
       ]}
@@ -57,7 +69,7 @@ export const Button = ({
       <Text
         style={[
           styles.baseText,
-          { color: getTextColor() },
+          { color: textColor },
           size === 'large' && { fontSize: 18 },
           size === 'small' && { fontSize: 14 },
         ]}

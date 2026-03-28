@@ -9,7 +9,7 @@ describe('Button Component', () => {
   });
 
   it('renders different variants and sizes', () => {
-    render(
+    const { getByText: getSecondary } = render(
       <Button
         text="Secondary"
         variant="secondary"
@@ -17,7 +17,16 @@ describe('Button Component', () => {
         onPress={() => {}}
       />,
     );
-    render(<Button text="Small" size="small" onPress={() => {}} />);
-    render(<Button text="Large" size="large" fullWidth onPress={() => {}} />);
+    expect(getSecondary('Secondary')).toBeTruthy();
+
+    const { getByText: getSmall } = render(
+      <Button text="Small" size="small" onPress={() => {}} />,
+    );
+    expect(getSmall('Small')).toBeTruthy();
+
+    const { getByText: getLarge } = render(
+      <Button text="Large" size="large" fullWidth onPress={() => {}} />,
+    );
+    expect(getLarge('Large')).toBeTruthy();
   });
 });

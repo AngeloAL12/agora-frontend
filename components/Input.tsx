@@ -5,9 +5,9 @@ import { theme } from '../constants/theme';
 export const Input = (props: TextInputProps) => {
   return (
     <TextInput
-      style={styles.input}
-      placeholderTextColor={theme.colors.gray700}
       {...props}
+      style={[styles.input, props.style]}
+      placeholderTextColor={props.placeholderTextColor ?? theme.colors.gray700}
     />
   );
 };
