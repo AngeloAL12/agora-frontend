@@ -1,5 +1,13 @@
 import { Stack } from 'expo-router';
 
+/**
+ * Stack Navigator para la sección de Clubes
+ *
+ * Estructura:
+ * - (tabs) - Tab Navigator con navegación entre explorary mis-clubes
+ * - DetalleClub - Pantalla de detalle (navegada vía router.push)
+ * - CrearClub - Modal para crear nuevo club
+ */
 export default function ClubesLayout() {
   return (
     <Stack
@@ -10,13 +18,7 @@ export default function ClubesLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="ClubesScreen"
+        name="(tabs)"
         options={{
           headerShown: false,
         }}
