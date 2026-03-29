@@ -14,6 +14,7 @@ export const colors = {
   gray700: '#434751',
   black: '#000000',
   gray950: '#191C1E',
+  error: '#D32F2F',
 } as const;
 
 export const palette = {
