@@ -8,6 +8,12 @@
     "scheme": "agorafrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7221beb9-0d4a-45b2-af74-9d1f32dec2e0"
+      }
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.agora.frontend",
@@ -22,6 +28,7 @@
       }
     },
     "android": {
+      "package": "com.agora.frontend",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -49,7 +56,15 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1E488F",
+          "iosDisplayInForeground": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
