@@ -3,9 +3,13 @@ import { fontFamily } from './fonts';
 export const colors = {
   yellow: '#F1C806',
   bluePrimary: '#1E488F',
+  blueSecondary: '#003172',
   blueDark: '#192A56',
   white: '#FFFFFF',
   whiteSoft: '#FCFBFB',
+  backgroundScreen: '#F7F9FB',
+  borderSubtle: 'rgba(195,198,210,0.15)',
+  sheetIndicator: 'rgba(195,198,210,0.5)',
   gray900: '#2E323C',
   gray700: '#434751',
   black: '#000000',
