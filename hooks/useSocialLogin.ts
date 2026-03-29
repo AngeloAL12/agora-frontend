@@ -51,8 +51,8 @@ export function useSocialLogin(): UseSocialLoginReturn {
     googleDiscovery,
   );
 
-  const microsoftRedirectUri = makeRedirectUri({ scheme: 'agorafrontend' });
-  const [, microsoftResponse, promptMicrosoft] = useAuthRequest(
+  const microsoftRedirectUri = 'agorafrontend://auth';
+  const [microsoftRequest, microsoftResponse, promptMicrosoft] = useAuthRequest(
     {
       clientId: MICROSOFT_CLIENT_ID,
       responseType: 'code',
@@ -126,18 +126,40 @@ export function useSocialLogin(): UseSocialLoginReturn {
 
   useEffect(() => {
     if (microsoftResponse?.type === 'success') {
-      const idToken = microsoftResponse.authentication?.idToken;
-      if (idToken) {
-        handleLoginResponse(() => loginWithMicrosoft(idToken));
-      } else {
+      const code = microsoftResponse.params?.code;
+      if (!code || !microsoftRequest?.codeVerifier) {
         setError('No se pudo obtener el token de Microsoft.');
         setLoadingProvider(null);
+        return;
       }
+
+      exchangeCodeAsync(
+        {
+          clientId: MICROSOFT_CLIENT_ID,
+          code,
+          redirectUri: microsoftRedirectUri,
+          extraParams: { code_verifier: microsoftRequest.codeVerifier },
+        },
+        { tokenEndpoint: microsoftDiscovery.tokenEndpoint },
+      )
+        .then((tokenResponse) => {
+          const idToken = tokenResponse.idToken;
+          if (idToken) {
+            handleLoginResponse(() => loginWithMicrosoft(idToken));
+          } else {
+            setError('No se pudo obtener el id_token de Microsoft.');
+            setLoadingProvider(null);
+          }
+        })
+        .catch(() => {
+          setError('Error al intercambiar el token de Microsoft.');
+          setLoadingProvider(null);
+        });
     } else if (microsoftResponse?.type === 'error') {
       setError('Error al iniciar sesión con Microsoft. Inténtalo de nuevo.');
       setLoadingProvider(null);
     }
-  }, [microsoftResponse, handleLoginResponse]);
+  }, [microsoftResponse, microsoftRequest, handleLoginResponse]);
 
   const handleGooglePress = useCallback(() => {
     setError(null);

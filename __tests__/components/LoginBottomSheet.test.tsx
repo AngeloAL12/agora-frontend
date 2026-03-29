@@ -17,10 +17,11 @@ const mockPromptMicrosoft = jest.fn();
 let mockGoogleResponse: unknown = null;
 let mockMicrosoftResponse: unknown = null;
 let mockGoogleRequest: unknown = { codeVerifier: 'verifier123' };
+let mockMicrosoftRequest: unknown = { codeVerifier: 'msVerifier123' };
 
 jest.mock('expo-auth-session', () => ({
   ResponseType: { Code: 'code' },
-  makeRedirectUri: jest.fn(() => 'agorafrontend://'),
+  makeRedirectUri: jest.fn((_options?: unknown) => 'agorafrontend://auth'),
   // Distinguish Google vs Microsoft by the discovery tokenEndpoint
   useAuthRequest: jest.fn(
     (_config: unknown, discovery: { tokenEndpoint?: string }) => {
@@ -28,7 +29,7 @@ jest.mock('expo-auth-session', () => ({
       if (isGoogle) {
         return [mockGoogleRequest, mockGoogleResponse, mockPromptGoogle];
       }
-      return [null, mockMicrosoftResponse, mockPromptMicrosoft];
+      return [mockMicrosoftRequest, mockMicrosoftResponse, mockPromptMicrosoft];
     },
   ),
   exchangeCodeAsync: jest.fn(),
@@ -103,6 +104,7 @@ describe('LoginBottomSheet', () => {
     mockGoogleResponse = null;
     mockMicrosoftResponse = null;
     mockGoogleRequest = { codeVerifier: 'verifier123' };
+    mockMicrosoftRequest = { codeVerifier: 'msVerifier123' };
     mockLogin.mockResolvedValue(undefined);
     // Return the same stable object reference every call so that `auth` never
     // changes between renders, keeping `handleLoginResponse` stable
@@ -191,7 +193,10 @@ describe('LoginBottomSheet', () => {
     ).toBeTruthy();
   });
 
-  it('microsoftResponse success with idToken calls loginWithMicrosoft and navigates', async () => {
+  it('microsoftResponse success with valid code exchanges token and navigates', async () => {
+    (exchangeCodeAsync as jest.Mock).mockResolvedValue({
+      idToken: 'ms-id-token',
+    });
     (loginWithMicrosoft as jest.Mock).mockResolvedValue({
       access_token: 'jwt',
       token_type: 'bearer',
@@ -200,24 +205,70 @@ describe('LoginBottomSheet', () => {
 
     mockMicrosoftResponse = {
       type: 'success',
-      authentication: { idToken: 'ms-id-token' },
+      params: { code: 'ms-auth-code' },
     };
 
     renderSheet();
     await act(async () => {});
+    expect(exchangeCodeAsync).toHaveBeenCalled();
     await act(async () => {});
 
     expect(loginWithMicrosoft).toHaveBeenCalledWith('ms-id-token');
     expect(router.replace).toHaveBeenCalledWith('/(tabs)/home');
   });
 
-  it('microsoftResponse success without idToken sets error', async () => {
-    mockMicrosoftResponse = { type: 'success', authentication: {} };
+  it('microsoftResponse success without code sets error', async () => {
+    mockMicrosoftResponse = { type: 'success', params: {} };
 
     const { getByText } = renderSheet();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el token de Microsoft.')).toBeTruthy();
+  });
+
+  it('microsoftResponse success without codeVerifier sets error', async () => {
+    mockMicrosoftRequest = null;
+    mockMicrosoftResponse = {
+      type: 'success',
+      params: { code: 'ms-auth-code' },
+    };
+
+    const { getByText } = renderSheet();
+    await act(async () => {});
+
+    expect(getByText('No se pudo obtener el token de Microsoft.')).toBeTruthy();
+  });
+
+  it('microsoftResponse exchangeCodeAsync failure sets error', async () => {
+    (exchangeCodeAsync as jest.Mock).mockRejectedValue(
+      new Error('exchange failed'),
+    );
+    mockMicrosoftResponse = {
+      type: 'success',
+      params: { code: 'ms-auth-code' },
+    };
+
+    const { getByText } = renderSheet();
+    await act(async () => {});
+
+    expect(
+      getByText('Error al intercambiar el token de Microsoft.'),
+    ).toBeTruthy();
+  });
+
+  it('microsoftResponse success without idToken in exchange result sets error', async () => {
+    (exchangeCodeAsync as jest.Mock).mockResolvedValue({ idToken: null });
+    mockMicrosoftResponse = {
+      type: 'success',
+      params: { code: 'ms-auth-code' },
+    };
+
+    const { getByText } = renderSheet();
+    await act(async () => {});
+
+    expect(
+      getByText('No se pudo obtener el id_token de Microsoft.'),
+    ).toBeTruthy();
   });
 
   it('microsoftResponse type error sets error message', async () => {

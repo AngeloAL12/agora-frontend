@@ -1,6 +1,9 @@
 export const MICROSOFT_CLIENT_ID =
   process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID ?? '';
 
+export const MICROSOFT_TENANT_ID =
+  process.env.EXPO_PUBLIC_MICROSOFT_TENANT_ID ?? '';
+
 const rawGoogleIosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
 const isSchemeFormat = rawGoogleIosId.startsWith('com.googleusercontent.apps.');
 
@@ -20,7 +23,6 @@ export const googleDiscovery = {
 };
 
 export const microsoftDiscovery = {
-  authorizationEndpoint:
-    'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-  tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+  authorizationEndpoint: `https://login.microsoftonline.com/${MICROSOFT_TENANT_ID}/oauth2/v2.0/authorize`,
+  tokenEndpoint: `https://login.microsoftonline.com/${MICROSOFT_TENANT_ID}/oauth2/v2.0/token`,
 };
