@@ -60,7 +60,6 @@ describe('usePushNotifications', () => {
     mockPlatformOS = 'ios';
 
     const mockConstants = jest.requireMock('expo-constants').default;
-    delete mockConstants.appOwnership;
     delete mockConstants.executionEnvironment;
     mockConstants.expoConfig.extra.eas.projectId = 'test-project-id';
     mockConstants.easConfig = undefined;
@@ -177,7 +176,7 @@ describe('usePushNotifications', () => {
   it('returns early in Expo Go on Android', async () => {
     mockPlatformOS = 'android';
     const mockConstants = jest.requireMock('expo-constants').default;
-    mockConstants.appOwnership = 'expo';
+    mockConstants.executionEnvironment = 'storeClient';
 
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 

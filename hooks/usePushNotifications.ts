@@ -10,7 +10,7 @@ export type PushNotificationsState = {
 };
 
 function isRunningInExpoGo(): boolean {
-  return (Constants as { appOwnership?: string }).appOwnership === 'expo';
+  return Constants.executionEnvironment === 'storeClient';
 }
 
 function configureNotificationHandler(): void {
