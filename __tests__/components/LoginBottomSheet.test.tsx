@@ -11,6 +11,13 @@ jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
 }));
 
+(globalThis as Record<string, unknown>).requestAnimationFrame = (
+  cb: FrameRequestCallback,
+) => {
+  cb(0);
+  return 0;
+};
+
 const mockPromptGoogle = jest.fn();
 const mockPromptMicrosoft = jest.fn();
 
@@ -114,7 +121,10 @@ describe('LoginBottomSheet', () => {
       token: null,
       user: null,
       isLoading: false,
+      isAuthenticating: false,
       logout: jest.fn(),
+      startAuthentication: jest.fn(),
+      finishAuthentication: jest.fn(),
     });
   });
 

@@ -32,6 +32,7 @@ describe('AuthContext', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
+    expect(result.current.isAuthenticating).toBe(false);
   });
 
   it('restores session from SecureStore on mount', async () => {
@@ -51,6 +52,7 @@ describe('AuthContext', () => {
     expect(result.current.token).toBe('stored-jwt');
     expect(result.current.user).toEqual(fakeUser);
     expect(result.current.isLoading).toBe(false);
+    expect(result.current.isAuthenticating).toBe(false);
   });
 
   it('login saves token and user to SecureStore and updates state', async () => {
@@ -77,6 +79,49 @@ describe('AuthContext', () => {
     );
     expect(result.current.token).toBe('new-jwt');
     expect(result.current.user).toEqual(loginResponse.user);
+    expect(result.current.isAuthenticating).toBe(false);
+  });
+
+  it('does not let the initial storage load overwrite a fresh login', async () => {
+    let resolveStoredToken: (value: string | null) => void;
+    let resolveStoredUser: (value: string | null) => void;
+
+    mockGetItemAsync
+      .mockImplementationOnce(
+        () =>
+          new Promise<string | null>((resolve) => {
+            resolveStoredToken = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<string | null>((resolve) => {
+            resolveStoredUser = resolve;
+          }),
+      );
+    mockSetItemAsync.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    const loginResponse = {
+      access_token: 'fresh-jwt',
+      token_type: 'bearer',
+      user: { id: 3, email: 'fresh@itmexicali.edu.mx', name: 'Fresh' },
+    };
+
+    await act(async () => {
+      await result.current.login(loginResponse);
+    });
+
+    await act(async () => {
+      resolveStoredToken!(null);
+      resolveStoredUser!(null);
+    });
+
+    expect(result.current.token).toBe('fresh-jwt');
+    expect(result.current.user).toEqual(loginResponse.user);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isAuthenticating).toBe(false);
   });
 
   it('logout clears SecureStore and resets state', async () => {
@@ -99,6 +144,7 @@ describe('AuthContext', () => {
     expect(mockDeleteItemAsync).toHaveBeenCalledWith('agora_user');
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
+    expect(result.current.isAuthenticating).toBe(false);
   });
 
   it('handles SecureStore error gracefully and sets no auth', async () => {
@@ -109,6 +155,26 @@ describe('AuthContext', () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.token).toBeNull();
+    expect(result.current.isAuthenticating).toBe(false);
+  });
+
+  it('tracks authentication flow state', async () => {
+    mockGetItemAsync.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {});
+
+    act(() => {
+      result.current.startAuthentication();
+    });
+
+    expect(result.current.isAuthenticating).toBe(true);
+
+    act(() => {
+      result.current.finishAuthentication();
+    });
+
+    expect(result.current.isAuthenticating).toBe(false);
   });
 
   it('throws when useAuth is used outside AuthProvider', () => {
