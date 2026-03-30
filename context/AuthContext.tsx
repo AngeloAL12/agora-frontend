@@ -16,11 +16,14 @@ type AuthState = {
   token: string | null;
   user: AuthUser | null;
   isLoading: boolean;
+  isAuthenticating: boolean;
 };
 
 type AuthContextValue = AuthState & {
   login: (response: LoginResponse) => Promise<void>;
   logout: () => Promise<void>;
+  startAuthentication: () => void;
+  finishAuthentication: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
     user: null,
     isLoading: true,
+    isAuthenticating: false,
   });
 
   useEffect(() => {
@@ -40,17 +44,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           SecureStore.getItemAsync(USER_KEY),
         ]);
 
-        if (storedToken && storedUser) {
-          setState({
-            token: storedToken,
-            user: JSON.parse(storedUser) as AuthUser,
+        setState((currentState) => {
+          if (currentState.token && currentState.user) {
+            return { ...currentState, isLoading: false };
+          }
+
+          if (storedToken && storedUser) {
+            return {
+              token: storedToken,
+              user: JSON.parse(storedUser) as AuthUser,
+              isLoading: false,
+              isAuthenticating: currentState.isAuthenticating,
+            };
+          }
+
+          return {
+            token: null,
+            user: null,
             isLoading: false,
-          });
-        } else {
-          setState({ token: null, user: null, isLoading: false });
-        }
+            isAuthenticating: currentState.isAuthenticating,
+          };
+        });
       } catch {
-        setState({ token: null, user: null, isLoading: false });
+        setState((currentState) =>
+          currentState.token && currentState.user
+            ? { ...currentState, isLoading: false }
+            : {
+                token: null,
+                user: null,
+                isLoading: false,
+                isAuthenticating: currentState.isAuthenticating,
+              },
+        );
       }
     }
 
@@ -66,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token: response.access_token,
       user: response.user,
       isLoading: false,
+      isAuthenticating: false,
     });
   }, []);
 
@@ -74,11 +100,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
     ]);
-    setState({ token: null, user: null, isLoading: false });
+    setState({
+      token: null,
+      user: null,
+      isLoading: false,
+      isAuthenticating: false,
+    });
+  }, []);
+
+  const startAuthentication = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      isAuthenticating: true,
+    }));
+  }, []);
+
+  const finishAuthentication = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      isAuthenticating: false,
+    }));
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        login,
+        logout,
+        startAuthentication,
+        finishAuthentication,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -4,18 +4,32 @@ export const MICROSOFT_CLIENT_ID =
 export const MICROSOFT_TENANT_ID =
   process.env.EXPO_PUBLIC_MICROSOFT_TENANT_ID ?? '';
 
+function normalizeGoogleClientId(rawClientId: string): string {
+  if (rawClientId.startsWith('com.googleusercontent.apps.')) {
+    return `${rawClientId.replace('com.googleusercontent.apps.', '')}.apps.googleusercontent.com`;
+  }
+
+  return rawClientId;
+}
+
+function buildGoogleScheme(rawClientId: string): string {
+  if (rawClientId.startsWith('com.googleusercontent.apps.')) {
+    return rawClientId;
+  }
+
+  return `com.googleusercontent.apps.${rawClientId.replace('.apps.googleusercontent.com', '')}`;
+}
+
 const rawGoogleIosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
-const isSchemeFormat = rawGoogleIosId.startsWith('com.googleusercontent.apps.');
+const rawGoogleAndroidId =
+  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '';
 
-export const GOOGLE_IOS_CLIENT_ID = isSchemeFormat
-  ? `${rawGoogleIosId.replace('com.googleusercontent.apps.', '')}.apps.googleusercontent.com`
-  : rawGoogleIosId;
+export const GOOGLE_IOS_CLIENT_ID = normalizeGoogleClientId(rawGoogleIosId);
+export const GOOGLE_ANDROID_CLIENT_ID =
+  normalizeGoogleClientId(rawGoogleAndroidId);
 
-const googleIosScheme = isSchemeFormat
-  ? rawGoogleIosId
-  : `com.googleusercontent.apps.${rawGoogleIosId.replace('.apps.googleusercontent.com', '')}`;
-
-export const GOOGLE_REDIRECT_URI = `${googleIosScheme}:/`;
+export const GOOGLE_IOS_REDIRECT_URI = `${buildGoogleScheme(rawGoogleIosId)}:/`;
+export const GOOGLE_ANDROID_REDIRECT_URI = `${buildGoogleScheme(rawGoogleAndroidId)}:/`;
 
 export const googleDiscovery = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',

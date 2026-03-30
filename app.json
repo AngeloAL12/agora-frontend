@@ -21,7 +21,7 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "com.googleusercontent.apps.650941437631-bppjudu0krhplkvir5hsbb18ef713ihn"
+              "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
             ]
           }
         ]
@@ -29,6 +29,21 @@
     },
     "android": {
       "package": "com.agora.frontend",
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+            },
+            {
+              "scheme": "com.googleusercontent.apps.93837597429-cba0e642fc22383ti1bvfc6o17crehqh"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
