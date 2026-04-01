@@ -8,10 +8,42 @@
     "scheme": "agorafrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7221beb9-0d4a-45b2-af74-9d1f32dec2e0"
+      }
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agora.frontend",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+            ]
+          }
+        ]
+      }
     },
     "android": {
+      "package": "com.agora.frontend",
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+            },
+            {
+              "scheme": "com.googleusercontent.apps.93837597429-cba0e642fc22383ti1bvfc6o17crehqh"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,6 +69,15 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1E488F",
+          "iosDisplayInForeground": true
         }
       ]
     ],
