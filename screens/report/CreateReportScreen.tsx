@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -9,8 +11,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import CategoryChip from '../../components/report/CategoryChip';
 import FormField from '../../components/report/FormField';

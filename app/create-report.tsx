@@ -1,4 +1,4 @@
-import CreateReportScreen from '../src/screens/report/CreateReportScreen';
+import CreateReportScreen from '../screens/report/CreateReportScreen';
 
 export default function CreateReportRoute() {
   return <CreateReportScreen />;

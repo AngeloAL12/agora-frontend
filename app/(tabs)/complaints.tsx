@@ -1,22 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
+import CreateReportScreen from '../../screens/report/CreateReportScreen';
 
 export default function ComplaintsScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Complaints</Text>
-    </View>
-  );
+  return <CreateReportScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-});
