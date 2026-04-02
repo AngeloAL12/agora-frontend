@@ -16,6 +16,7 @@ export const colors = {
   gray950: '#191C1E',
   error: '#D32F2F',
   bluePrimaryLight: 'rgba(30, 72, 143, 0.2)',
+  gray100: '#F2F4F7',
 } as const;
 
 export const palette = {
