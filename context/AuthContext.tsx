@@ -22,6 +22,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   login: (response: LoginResponse) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<AuthUser>) => Promise<void>;
   startAuthentication: () => void;
   finishAuthentication: () => void;
 };
@@ -108,6 +109,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateUser = useCallback(async (patch: Partial<AuthUser>) => {
+    setState((currentState) => {
+      if (!currentState.user) return currentState;
+      const updatedUser = { ...currentState.user, ...patch };
+      SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser)).catch(
+        () => {},
+      );
+      return { ...currentState, user: updatedUser };
+    });
+  }, []);
+
   const startAuthentication = useCallback(() => {
     setState((currentState) => ({
       ...currentState,
@@ -128,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...state,
         login,
         logout,
+        updateUser,
         startAuthentication,
         finishAuthentication,
       }}

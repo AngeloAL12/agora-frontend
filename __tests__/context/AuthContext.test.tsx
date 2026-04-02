@@ -65,7 +65,12 @@ describe('AuthContext', () => {
     const loginResponse = {
       access_token: 'new-jwt',
       token_type: 'bearer',
-      user: { id: 2, email: 'user@itmexicali.edu.mx', name: 'User' },
+      user: {
+        id: 2,
+        email: 'user@itmexicali.edu.mx',
+        name: 'User',
+        id_career: null,
+      },
     };
 
     await act(async () => {
@@ -106,7 +111,12 @@ describe('AuthContext', () => {
     const loginResponse = {
       access_token: 'fresh-jwt',
       token_type: 'bearer',
-      user: { id: 3, email: 'fresh@itmexicali.edu.mx', name: 'Fresh' },
+      user: {
+        id: 3,
+        email: 'fresh@itmexicali.edu.mx',
+        name: 'Fresh',
+        id_career: null,
+      },
     };
 
     await act(async () => {
