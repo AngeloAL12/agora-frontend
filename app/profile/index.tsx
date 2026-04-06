@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ProfileHeader } from '../../components/ProfileHeader';
-import { TabSwitcher } from '../../components/TabSwitcher';
-import { InfoRow } from '../../components/InfoRow';
 import { ActivityList, type ActivityItem } from '../../components/ActivityList';
 import { BottomNavigation } from '../../components/BottomNavigation';
+import { InfoRow } from '../../components/InfoRow';
+import { ProfileHeader } from '../../components/ProfileHeader';
+import { TabSwitcher } from '../../components/TabSwitcher';
+import { useAuth } from '../../context/AuthContext';
 
 const actividadReciente: ActivityItem[] = [
   {
@@ -29,6 +30,10 @@ const actividadReciente: ActivityItem[] = [
 export default function PerfilApp() {
   const [tab, setTab] = useState('informacion');
   const [activeNav, setActiveNav] = useState('profile');
+
+  const { user } = useAuth();
+  const userName = user?.name ?? 'Usuario';
+  const userEmail = user?.email ?? '';
 
   return (
     <div
@@ -100,14 +105,14 @@ export default function PerfilApp() {
           </div>
         </div>
 
-        {/* Header azul */}
+        {/* Header — name y email dinámicos desde AuthUser */}
         <ProfileHeader
-          name="Angelo Alvarado"
-          career="Ingeniería en Sistemas Computacionales"
+          name={userName}
+          career={userEmail}
           stats={[
-            { value: '12', label: 'CLUBS' },
-            { value: '04', label: 'REPORTES' },
-            { value: '156', label: 'LIKES' },
+            { value: '0', label: 'CLUBS' },
+            { value: '0', label: 'REPORTES' },
+            { value: '0', label: 'LIKES' },
           ]}
         />
 
