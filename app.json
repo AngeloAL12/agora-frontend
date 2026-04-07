@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "agorafrontend",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "extra": {
       "router": {},
       "eas": {
