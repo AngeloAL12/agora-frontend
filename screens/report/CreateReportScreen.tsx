@@ -29,9 +29,24 @@ export default function CreateReportScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Mantenimiento');
   const [selectedLocation, setSelectedLocation] = useState(REPORT_LOCATIONS[0]);
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
-  const [classroom, setClassroom] = useState('Aula G01');
+  const [classroom, setClassroom] = useState('');
   const [description, setDescription] = useState('');
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+
+  const isSuggestion = reportType === 'suggestion';
+
+  const suggestionCategories = [
+    'Mantenimiento',
+    'Limpieza',
+    'Seguridad',
+    'Servicios',
+    'Infraestructura',
+    'General',
+  ];
+
+  const activeCategories = isSuggestion
+    ? suggestionCategories
+    : REPORT_CATEGORIES;
 
   const isSubmitDisabled = useMemo(() => {
     return title.trim().length === 0 || description.trim().length === 0;
@@ -47,6 +62,18 @@ export default function CreateReportScreen() {
     setIsLocationDropdownOpen(false);
   };
 
+  const handleClassroomChange = (value: string) => {
+    let numericValue = value.replace(/[^0-9]/g, '');
+    numericValue = numericValue.slice(0, 2);
+
+    if (numericValue !== '') {
+      const numberValue = parseInt(numericValue, 10);
+      if (numberValue > 43) numericValue = '43';
+    }
+
+    setClassroom(numericValue);
+  };
+
   return (
     <>
       <KeyboardAvoidingView
@@ -54,9 +81,13 @@ export default function CreateReportScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            isSuggestion && styles.suggestionContent,
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={!isLocationDropdownOpen}
         >
           <View style={styles.topDot} />
 
@@ -73,7 +104,10 @@ export default function CreateReportScreen() {
           <SegmentedControl
             options={REPORT_TABS}
             selectedValue={reportType}
-            onChange={(value) => setReportType(value as ReportType)}
+            onChange={(value) => {
+              setReportType(value as ReportType);
+              setIsLocationDropdownOpen(false);
+            }}
           />
 
           <FormField
@@ -87,7 +121,7 @@ export default function CreateReportScreen() {
             <Text style={styles.sectionLabel}>CATEGORÍA</Text>
 
             <View style={styles.categoryList}>
-              {REPORT_CATEGORIES.map((category) => (
+              {activeCategories.map((category) => (
                 <CategoryChip
                   key={category}
                   label={category}
@@ -98,91 +132,109 @@ export default function CreateReportScreen() {
             </View>
           </View>
 
-          <View style={styles.row}>
-            <View style={styles.column}>
-              <Text style={styles.sectionLabel}>UBICACIÓN</Text>
+          {!isSuggestion && (
+            <View style={styles.row}>
+              <View style={[styles.column, styles.locationColumn]}>
+                <Text style={styles.sectionLabel}>UBICACIÓN</Text>
 
-              <View style={styles.dropdownWrapper}>
-                <Pressable
-                  style={styles.selectField}
-                  onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
-                >
-                  <Text style={styles.selectFieldText}>{selectedLocation}</Text>
-                  <Ionicons
-                    name={
-                      isLocationDropdownOpen ? 'chevron-up' : 'chevron-down'
-                    }
-                    size={20}
-                    color="#667085"
-                  />
-                </Pressable>
+                <View style={styles.dropdownWrapper}>
+                  <Pressable
+                    style={styles.selectField}
+                    onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
+                  >
+                    <Text style={styles.selectFieldText}>
+                      {selectedLocation}
+                    </Text>
+                    <Ionicons
+                      name={
+                        isLocationDropdownOpen ? 'chevron-up' : 'chevron-down'
+                      }
+                      size={20}
+                      color="#667085"
+                    />
+                  </Pressable>
 
-                {isLocationDropdownOpen && (
-                  <View style={styles.dropdownMenu}>
-                    {REPORT_LOCATIONS.map((location) => {
-                      const isSelected = location === selectedLocation;
+                  {isLocationDropdownOpen && (
+                    <View style={styles.dropdownMenu}>
+                      <ScrollView
+                        nestedScrollEnabled={true}
+                        showsVerticalScrollIndicator={true}
+                        keyboardShouldPersistTaps="handled"
+                        style={styles.dropdownScroll}
+                      >
+                        {REPORT_LOCATIONS.map((location) => {
+                          const isSelected = location === selectedLocation;
 
-                      return (
-                        <Pressable
-                          key={location}
-                          style={[
-                            styles.dropdownItem,
-                            isSelected && styles.dropdownItemSelected,
-                          ]}
-                          onPress={() => handleSelectLocation(location)}
-                        >
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              isSelected && styles.dropdownItemTextSelected,
-                            ]}
-                          >
-                            {location}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
+                          return (
+                            <Pressable
+                              key={location}
+                              style={[
+                                styles.dropdownItem,
+                                isSelected && styles.dropdownItemSelected,
+                              ]}
+                              onPress={() => handleSelectLocation(location)}
+                            >
+                              <Text
+                                style={[
+                                  styles.dropdownItemText,
+                                  isSelected && styles.dropdownItemTextSelected,
+                                ]}
+                              >
+                                {location}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.column}>
+                <Text style={styles.sectionLabel}>AULA</Text>
+
+                <TextInput
+                  value={classroom}
+                  onChangeText={handleClassroomChange}
+                  placeholder="Ej. 12"
+                  placeholderTextColor="#9BA3AE"
+                  style={styles.inputField}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
               </View>
             </View>
+          )}
 
-            <View style={styles.column}>
-              <Text style={styles.sectionLabel}>AULA</Text>
-
-              <TextInput
-                value={classroom}
-                onChangeText={setClassroom}
-                placeholder="Aula G01"
-                placeholderTextColor="#9BA3AE"
-                style={styles.inputField}
-              />
-            </View>
+          <View style={styles.descriptionSection}>
+            <FormField
+              label="DESCRIPCIÓN"
+              placeholder="Describe la situación encontrada..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
           </View>
 
-          <FormField
-            label="DESCRIPCIÓN"
-            placeholder="Describe la situación encontrada..."
-            value={description}
-            onChangeText={setDescription}
-            multiline
-          />
+          {!isSuggestion && (
+            <View style={styles.section}>
+              <View style={styles.evidenceHeader}>
+                <Text style={styles.sectionLabel}>EVIDENCIA</Text>
+                <Text style={styles.evidenceLimit}>Máximo 3</Text>
+              </View>
 
-          <View style={styles.section}>
-            <View style={styles.evidenceHeader}>
-              <Text style={styles.sectionLabel}>EVIDENCIA</Text>
-              <Text style={styles.evidenceLimit}>Máximo 3</Text>
+              <Pressable style={styles.evidenceBox}>
+                <Ionicons name="camera-outline" size={28} color="#495361" />
+                <Text style={styles.evidenceText}>SUBIR</Text>
+              </Pressable>
             </View>
-
-            <Pressable style={styles.evidenceBox}>
-              <Ionicons name="camera-outline" size={28} color="#495361" />
-              <Text style={styles.evidenceText}>SUBIR</Text>
-            </Pressable>
-          </View>
+          )}
 
           <Pressable
             style={[
               styles.submitButton,
+              isSuggestion && styles.suggestionSubmitButton,
               isSubmitDisabled && styles.submitButtonDisabled,
             ]}
             onPress={handleSubmit}
@@ -211,6 +263,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 12,
     paddingBottom: 30,
+  },
+  suggestionContent: {
+    paddingBottom: 36,
   },
   topDot: {
     alignSelf: 'center',
@@ -258,13 +313,17 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 18,
     alignItems: 'flex-start',
+    zIndex: 50,
   },
   column: {
     flex: 1,
   },
+  locationColumn: {
+    zIndex: 100,
+  },
   dropdownWrapper: {
     position: 'relative',
-    zIndex: 20,
+    zIndex: 100,
   },
   selectField: {
     height: 56,
@@ -280,17 +339,21 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   dropdownMenu: {
-    marginTop: 8,
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    height: 220,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    zIndex: 999,
+    elevation: 10,
+  },
+  dropdownScroll: {
+    flexGrow: 0,
   },
   dropdownItem: {
     paddingVertical: 14,
@@ -315,6 +378,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E9EDF2',
     fontSize: 16,
     color: '#1F2937',
+  },
+  descriptionSection: {
+    marginBottom: 30,
   },
   evidenceHeader: {
     flexDirection: 'row',
@@ -349,6 +415,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0F4A97',
+  },
+  suggestionSubmitButton: {
+    marginTop: 80,
   },
   submitButtonDisabled: {
     opacity: 0.55,
