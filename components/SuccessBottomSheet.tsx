@@ -17,7 +17,8 @@ interface SuccessBottomSheetProps {
   message?: string;
 }
 
-const DEFAULT_MESSAGE = '';
+const DEFAULT_MESSAGE =
+  ' Tu reporte ha sido enviado exitosamente al personal académico ';
 
 const SuccessBottomSheet = React.forwardRef<
   BottomSheetModal,

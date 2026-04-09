@@ -10,18 +10,22 @@ import {
   Text,
   TextInput,
   View,
+  StatusBar,
+  Alert,
 } from 'react-native';
 
-import CategoryChip from '../../components/report/CategoryChip';
-import FormField from '../../components/report/FormField';
-import SegmentedControl from '../../components/report/SegmentedControl';
-import SuccessModal from '../../components/report/SuccessModal';
+import { Button } from '@/components/Button';
+import CategoryChip from '@/components/report/CategoryChip';
+import FormField from '@/components/report/FormField';
+import SegmentedControl from '@/components/report/SegmentedControl';
+import SuccessModal from '@/components/report/SuccessModal';
 import {
   REPORT_CATEGORIES,
   REPORT_LOCATIONS,
   REPORT_TABS,
-} from '../../constants/report';
-import { ReportType } from '../../types/report';
+} from '@/constants/report';
+import { colors } from '@/constants/theme';
+import { ReportType } from '@/types/report';
 
 export default function CreateReportScreen() {
   const [reportType, setReportType] = useState<ReportType>('report');
@@ -52,9 +56,55 @@ export default function CreateReportScreen() {
     return title.trim().length === 0 || description.trim().length === 0;
   }, [title, description]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isSubmitDisabled) return;
-    setIsSuccessModalVisible(true);
+
+    try {
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+      if (!apiUrl) {
+        throw new Error('No se encontró EXPO_PUBLIC_API_URL en el .env');
+      }
+
+      // ⚠️ IMPORTANTE: CAMBIA ESTO POR TU TOKEN REAL
+      // Ejemplo: const token = session?.accessToken;
+      const token = 'AQUI_VA_TU_TOKEN';
+
+      if (!token || token === 'AQUI_VA_TU_TOKEN') {
+        throw new Error('Falta el token del usuario logueado');
+      }
+
+      const formData = new FormData();
+
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      formData.append('category', selectedCategory);
+
+      const response = await fetch(`${apiUrl}complaints`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.detail || 'No se pudo enviar el reporte');
+      }
+
+      setIsSuccessModalVisible(true);
+    } catch (error) {
+      console.error('Error al enviar el reporte:', error);
+
+      Alert.alert(
+        'Error',
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error al enviar el reporte',
+      );
+    }
   };
 
   const handleSelectLocation = (location: string) => {
@@ -80,169 +130,174 @@ export default function CreateReportScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            isSuggestion && styles.suggestionContent,
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          scrollEnabled={!isLocationDropdownOpen}
-        >
-          <View style={styles.topDot} />
+        <View style={styles.screen}>
+          {isLocationDropdownOpen && (
+            <Pressable
+              style={styles.overlay}
+              onPress={() => setIsLocationDropdownOpen(false)}
+            />
+          )}
 
-          <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="#1F315D" />
-            </Pressable>
+          <ScrollView
+            contentContainerStyle={[
+              styles.content,
+              isSuggestion && styles.suggestionContent,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={!isLocationDropdownOpen}
+          >
+            <View style={styles.header}>
+              <Pressable
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="#1F315D" />
+              </Pressable>
 
-            <Text style={styles.headerTitle}>Crear</Text>
+              <Text style={styles.headerTitle}>Crear</Text>
 
-            <View style={styles.headerSpacer} />
-          </View>
-
-          <SegmentedControl
-            options={REPORT_TABS}
-            selectedValue={reportType}
-            onChange={(value) => {
-              setReportType(value as ReportType);
-              setIsLocationDropdownOpen(false);
-            }}
-          />
-
-          <FormField
-            label="TÍTULO"
-            placeholder="Ej. Silla rota"
-            value={title}
-            onChangeText={setTitle}
-          />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>CATEGORÍA</Text>
-
-            <View style={styles.categoryList}>
-              {activeCategories.map((category) => (
-                <CategoryChip
-                  key={category}
-                  label={category}
-                  selected={selectedCategory === category}
-                  onPress={() => setSelectedCategory(category)}
-                />
-              ))}
+              <View style={styles.headerSpacer} />
             </View>
-          </View>
 
-          {!isSuggestion && (
-            <View style={styles.row}>
-              <View style={[styles.column, styles.locationColumn]}>
-                <Text style={styles.sectionLabel}>UBICACIÓN</Text>
+            <SegmentedControl
+              options={REPORT_TABS}
+              selectedValue={reportType}
+              onChange={(value) => {
+                setReportType(value as ReportType);
+                setIsLocationDropdownOpen(false);
+              }}
+            />
 
-                <View style={styles.dropdownWrapper}>
-                  <Pressable
-                    style={styles.selectField}
-                    onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
-                  >
-                    <Text style={styles.selectFieldText}>
-                      {selectedLocation}
-                    </Text>
-                    <Ionicons
-                      name={
-                        isLocationDropdownOpen ? 'chevron-up' : 'chevron-down'
-                      }
-                      size={20}
-                      color="#667085"
-                    />
-                  </Pressable>
+            <View style={styles.section}>
+              <FormField
+                label="TÍTULO"
+                placeholder="Ej. Silla rota"
+                value={title}
+                onChangeText={setTitle}
+              />
+            </View>
 
-                  {isLocationDropdownOpen && (
-                    <View style={styles.dropdownMenu}>
-                      <ScrollView
-                        nestedScrollEnabled={true}
-                        showsVerticalScrollIndicator={true}
-                        keyboardShouldPersistTaps="handled"
-                        style={styles.dropdownScroll}
-                      >
-                        {REPORT_LOCATIONS.map((location) => {
-                          const isSelected = location === selectedLocation;
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>CATEGORÍA</Text>
+              <View style={styles.categoryList}>
+                {activeCategories.map((category) => (
+                  <CategoryChip
+                    key={category}
+                    label={category}
+                    selected={selectedCategory === category}
+                    onPress={() => setSelectedCategory(category)}
+                  />
+                ))}
+              </View>
+            </View>
 
-                          return (
-                            <Pressable
-                              key={location}
-                              style={[
-                                styles.dropdownItem,
-                                isSelected && styles.dropdownItemSelected,
-                              ]}
-                              onPress={() => handleSelectLocation(location)}
-                            >
-                              <Text
+            {!isSuggestion && (
+              <View style={styles.row}>
+                <View style={[styles.column, styles.locationColumn]}>
+                  <Text style={styles.sectionLabel}>UBICACIÓN</Text>
+
+                  <View style={styles.dropdownWrapper}>
+                    <Pressable
+                      style={styles.selectField}
+                      onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
+                    >
+                      <Text style={styles.selectFieldText}>
+                        {selectedLocation}
+                      </Text>
+                      <Ionicons
+                        name={
+                          isLocationDropdownOpen ? 'chevron-up' : 'chevron-down'
+                        }
+                        size={20}
+                        color="#667085"
+                      />
+                    </Pressable>
+
+                    {isLocationDropdownOpen && (
+                      <View style={styles.dropdownMenu}>
+                        <ScrollView
+                          nestedScrollEnabled
+                          showsVerticalScrollIndicator
+                          keyboardShouldPersistTaps="handled"
+                          style={styles.dropdownScroll}
+                        >
+                          {REPORT_LOCATIONS.map((location) => {
+                            const isSelected = location === selectedLocation;
+
+                            return (
+                              <Pressable
+                                key={location}
                                 style={[
-                                  styles.dropdownItemText,
-                                  isSelected && styles.dropdownItemTextSelected,
+                                  styles.dropdownItem,
+                                  isSelected && styles.dropdownItemSelected,
                                 ]}
+                                onPress={() => handleSelectLocation(location)}
                               >
-                                {location}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  )}
+                                <Text
+                                  style={[
+                                    styles.dropdownItemText,
+                                    isSelected &&
+                                      styles.dropdownItemTextSelected,
+                                  ]}
+                                >
+                                  {location}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.column}>
+                  <Text style={styles.sectionLabel}>AULA</Text>
+
+                  <TextInput
+                    value={classroom}
+                    onChangeText={handleClassroomChange}
+                    placeholder="Ej. 12"
+                    placeholderTextColor="#9BA3AE"
+                    style={styles.inputField}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
                 </View>
               </View>
+            )}
 
-              <View style={styles.column}>
-                <Text style={styles.sectionLabel}>AULA</Text>
-
-                <TextInput
-                  value={classroom}
-                  onChangeText={handleClassroomChange}
-                  placeholder="Ej. 12"
-                  placeholderTextColor="#9BA3AE"
-                  style={styles.inputField}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-            </View>
-          )}
-
-          <View style={styles.descriptionSection}>
-            <FormField
-              label="DESCRIPCIÓN"
-              placeholder="Describe la situación encontrada..."
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
-          </View>
-
-          {!isSuggestion && (
             <View style={styles.section}>
-              <View style={styles.evidenceHeader}>
-                <Text style={styles.sectionLabel}>EVIDENCIA</Text>
-                <Text style={styles.evidenceLimit}>Máximo 3</Text>
-              </View>
-
-              <Pressable style={styles.evidenceBox}>
-                <Ionicons name="camera-outline" size={28} color="#495361" />
-                <Text style={styles.evidenceText}>SUBIR</Text>
-              </Pressable>
+              <Text style={styles.sectionLabel}>DESCRIPCIÓN</Text>
+              <TextInput
+                placeholder="Describe la situación encontrada..."
+                placeholderTextColor="#9BA3AE"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                style={styles.descriptionInput}
+                textAlignVertical="top"
+              />
             </View>
-          )}
 
-          <Pressable
-            style={[
-              styles.submitButton,
-              isSuggestion && styles.suggestionSubmitButton,
-              isSubmitDisabled && styles.submitButtonDisabled,
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitDisabled}
-          >
-            <Text style={styles.submitButtonText}>Enviar</Text>
-          </Pressable>
-        </ScrollView>
+            {!isSuggestion && (
+              <View style={styles.section}>
+                <View style={styles.evidenceHeader}>
+                  <Text style={styles.sectionLabel}>EVIDENCIA</Text>
+                  <Text style={styles.evidenceLimit}>Máximo 3</Text>
+                </View>
+
+                <Pressable style={styles.evidenceBox}>
+                  <Ionicons name="camera-outline" size={28} color="#495361" />
+                  <Text style={styles.evidenceText}>SUBIR</Text>
+                </Pressable>
+              </View>
+            )}
+
+            <Button text="Envíar" onPress={handleSubmit} />
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
 
       <SuccessModal
@@ -259,6 +314,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAFAFB',
   },
+  screen: {
+    flex: 1,
+    position: 'relative',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 90,
+  },
   content: {
     paddingHorizontal: 22,
     paddingTop: 12,
@@ -267,19 +330,12 @@ const styles = StyleSheet.create({
   suggestionContent: {
     paddingBottom: 36,
   },
-  topDot: {
-    alignSelf: 'center',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginBottom: 14,
-    backgroundColor: '#11131A',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 6 : 12,
   },
   backButton: {
     width: 40,
@@ -338,6 +394,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937',
   },
+  descriptionInput: {
+    minHeight: 120,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#E9EDF2',
+    fontSize: 16,
+    color: colors.blueSecondary,
+  },
   dropdownMenu: {
     position: 'absolute',
     top: 64,
@@ -358,7 +423,7 @@ const styles = StyleSheet.create({
   dropdownItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
   },
   dropdownItemSelected: {
     backgroundColor: '#EEF2F6',
@@ -377,10 +442,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#E9EDF2',
     fontSize: 16,
-    color: '#1F2937',
-  },
-  descriptionSection: {
-    marginBottom: 30,
+    color: colors.blueSecondary,
   },
   evidenceHeader: {
     flexDirection: 'row',
@@ -407,24 +469,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#3E4650',
-  },
-  submitButton: {
-    height: 58,
-    marginTop: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0F4A97',
-  },
-  suggestionSubmitButton: {
-    marginTop: 80,
-  },
-  submitButtonDisabled: {
-    opacity: 0.55,
-  },
-  submitButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });
