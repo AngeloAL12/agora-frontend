@@ -22,7 +22,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Home</Text>
       {user ? <Text style={styles.welcome}>Hola, {user.name}</Text> : null}
 
       <Pressable

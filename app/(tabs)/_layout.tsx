@@ -13,6 +13,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
+      <Tabs.Screen name="ia" options={{ title: 'IA' }} />
       <Tabs.Screen name="clubs" options={{ title: 'Clubs' }} />
       <Tabs.Screen name="complaints" options={{ title: 'Complaints' }} />
     </Tabs>
