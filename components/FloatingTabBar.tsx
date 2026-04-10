@@ -101,7 +101,7 @@ export function FloatingTabBar({
               ? optionLabel
               : (descriptor.options.title ?? route.name);
 
-          const customSize = route.name === 'clubs' ? 28 : 24;
+          const customSize = 24;
 
           const onPress = () => {
             const event = navigation.emit({
