@@ -45,7 +45,7 @@ export default function CareerScreen() {
     try {
       await updateMyCareer(selected.careerId, token);
       await updateUser({ id_career: selected.careerId });
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/map');
     } catch {
       Alert.alert(
         'Error',

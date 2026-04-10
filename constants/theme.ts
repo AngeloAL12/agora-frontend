@@ -7,6 +7,7 @@ export const colors = {
   blueDark: '#192A56',
   white: '#FFFFFF',
   whiteSoft: '#FCFBFB',
+  whiteTransparent90: 'rgba(255, 255, 255, 0.9)',
   backgroundScreen: '#F7F9FB',
   borderSubtle: 'rgba(195,198,210,0.15)',
   sheetIndicator: 'rgba(195,198,210,0.5)',
