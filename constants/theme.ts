@@ -17,6 +17,8 @@ export const colors = {
   error: '#D32F2F',
   bluePrimaryLight: 'rgba(30, 72, 143, 0.2)',
   gray100: '#F2F4F7',
+  glassBackground: 'rgba(255, 255, 255, 0.8)',
+  glassBorder: 'rgba(255, 255, 255, 0.4)',
 } as const;
 
 export const palette = {
