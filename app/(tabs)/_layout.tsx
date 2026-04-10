@@ -16,12 +16,11 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
-      {/* Order must match the Figma left → right layout */}
       <Tabs.Screen name="map" options={{ title: 'Mapa' }} />
-      <Tabs.Screen name="home" options={{ title: 'Buzón' }} />
+      <Tabs.Screen name="complaints" options={{ title: 'Quejas' }} />
       <Tabs.Screen name="ia" options={{ title: 'IA' }} />
       <Tabs.Screen name="clubs" options={{ title: 'Clubs' }} />
-      <Tabs.Screen name="complaints" options={{ title: 'Perfil' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Perfil' }} />
     </Tabs>
   );
 }
