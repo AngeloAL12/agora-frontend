@@ -9,23 +9,25 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
 
 const mapIcon = require('@/assets/icons/navbar/map.svg') as ImageSource;
-const mailboxIcon = require('@/assets/icons/navbar/mailbox.svg') as ImageSource;
-const reportsIcon = require('@/assets/icons/navbar/reports.svg') as ImageSource;
+const complaintsIcon =
+  require('@/assets/icons/navbar/reports.svg') as ImageSource;
+const iaIcon = require('@/assets/icons/navbar/mailbox.svg') as ImageSource;
 const clubsIcon = require('@/assets/icons/navbar/clubs.svg') as ImageSource;
 const profileIcon = require('@/assets/icons/navbar/profile.svg') as ImageSource;
 
 const TAB_ICONS = {
   map: mapIcon,
-  complaints: reportsIcon,
-  ia: mailboxIcon,
+  complaints: complaintsIcon,
+  ia: iaIcon,
   clubs: clubsIcon,
   profile: profileIcon,
 };
+
+const FALLBACK_ICON = complaintsIcon;
 
 const ICON_WRAPPER_SIZE = 46;
 
@@ -33,9 +35,8 @@ export function FloatingTabBar({
   state,
   navigation,
   descriptors,
+  insets,
 }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
-
   const tabCenters = useRef<number[]>([]);
 
   const indicatorTranslateX = useRef(new Animated.Value(0)).current;
@@ -91,8 +92,14 @@ export function FloatingTabBar({
 
         {state.routes.map((route, index) => {
           const isActive = state.index === index;
-          const icon =
-            TAB_ICONS[route.name as keyof typeof TAB_ICONS] ?? reportsIcon;
+          const mappedIcon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
+          const icon = mappedIcon ?? FALLBACK_ICON;
+
+          if (!mappedIcon && __DEV__) {
+            console.warn(
+              `[FloatingTabBar] Missing icon mapping for route "${route.name}".`,
+            );
+          }
 
           const descriptor = descriptors[route.key];
           const optionLabel = descriptor.options.tabBarLabel;
