@@ -79,7 +79,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
         const response = await loginFn();
         await auth.login(response);
         requestAnimationFrame(() => {
-          router.replace('/(tabs)/home');
+          router.replace('/(tabs)/map');
         });
       } catch (err) {
         const apiErr = err as ApiError;

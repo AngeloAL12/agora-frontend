@@ -19,23 +19,26 @@ const reportsIcon = require('@/assets/icons/navbar/reports.svg') as ImageSource;
 const clubsIcon = require('@/assets/icons/navbar/clubs.svg') as ImageSource;
 const profileIcon = require('@/assets/icons/navbar/profile.svg') as ImageSource;
 
-const TAB_ICONS: Record<string, ImageSource> = {
+const TAB_ICONS = {
   map: mapIcon,
-  home: reportsIcon,
+  complaints: reportsIcon,
   ia: mailboxIcon,
   clubs: clubsIcon,
-  complaints: profileIcon,
+  profile: profileIcon,
 };
 
 const ICON_WRAPPER_SIZE = 46;
 
-export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
+export function FloatingTabBar({
+  state,
+  navigation,
+  descriptors,
+}: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
   const tabCenters = useRef<number[]>([]);
-  const pillWidth = useRef(0);
 
-  const indicatorLeft = useRef(new Animated.Value(0)).current;
+  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
   const [indicatorReady, setIndicatorReady] = useState(false);
 
   useEffect(() => {
@@ -43,29 +46,29 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
     const center = tabCenters.current[state.index];
     if (center == null) return;
 
-    const targetLeft = center - ICON_WRAPPER_SIZE / 2;
+    const targetTranslateX = center - ICON_WRAPPER_SIZE / 2;
 
-    Animated.spring(indicatorLeft, {
-      toValue: targetLeft,
-      useNativeDriver: false,
+    Animated.spring(indicatorTranslateX, {
+      toValue: targetTranslateX,
+      useNativeDriver: true,
       damping: 20,
       stiffness: 200,
       mass: 0.8,
     }).start();
-  }, [state.index, indicatorReady, indicatorLeft]);
-
-  const handlePillLayout = (e: LayoutChangeEvent) => {
-    pillWidth.current = e.nativeEvent.layout.width;
-  };
+  }, [state.index, indicatorReady, indicatorTranslateX]);
 
   const handleTabLayout = (index: number) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
     tabCenters.current[index] = x + width / 2;
 
-    if (tabCenters.current.filter(Boolean).length === state.routes.length) {
+    const allMeasured = state.routes.every((_, routeIndex) =>
+      Number.isFinite(tabCenters.current[routeIndex]),
+    );
+
+    if (allMeasured) {
       const initialCenter = tabCenters.current[state.index];
       if (initialCenter != null) {
-        indicatorLeft.setValue(initialCenter - ICON_WRAPPER_SIZE / 2);
+        indicatorTranslateX.setValue(initialCenter - ICON_WRAPPER_SIZE / 2);
         setIndicatorReady(true);
       }
     }
@@ -76,22 +79,29 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       style={[styles.wrapper, { bottom: insets.bottom + 16 }]}
       pointerEvents="box-none"
     >
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={styles.pill}
-        onLayout={handlePillLayout}
-      >
+      <BlurView intensity={80} tint="light" style={styles.pill}>
         {indicatorReady && (
-          <Animated.View style={[styles.indicator, { left: indicatorLeft }]} />
+          <Animated.View
+            style={[
+              styles.indicator,
+              { transform: [{ translateX: indicatorTranslateX }] },
+            ]}
+          />
         )}
 
         {state.routes.map((route, index) => {
           const isActive = state.index === index;
-          const icon = TAB_ICONS[route.name];
+          const icon =
+            TAB_ICONS[route.name as keyof typeof TAB_ICONS] ?? reportsIcon;
 
-          const customSize =
-            route.name === 'home' || route.name === 'clubs' ? 28 : 24;
+          const descriptor = descriptors[route.key];
+          const optionLabel = descriptor.options.tabBarLabel;
+          const label =
+            typeof optionLabel === 'string'
+              ? optionLabel
+              : (descriptor.options.title ?? route.name);
+
+          const customSize = route.name === 'clubs' ? 28 : 24;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -110,9 +120,10 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               onPress={onPress}
               style={styles.tabItem}
               onLayout={handleTabLayout(index)}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
-              accessibilityLabel={route.name}
+              accessibilityLabel={label}
+              accessibilityHint={`Abre la sección ${label}`}
             >
               <View style={styles.iconWrapper}>
                 <ExpoImage
@@ -173,6 +184,7 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
+    left: 0,
     width: ICON_WRAPPER_SIZE,
     height: ICON_WRAPPER_SIZE,
     borderRadius: 9999,

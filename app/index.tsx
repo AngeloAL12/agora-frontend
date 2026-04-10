@@ -9,7 +9,7 @@ export default function IndexScreen() {
 
   if (token) {
     if (user?.id_career == null) return <Redirect href="/career" />;
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/(tabs)/map" />;
   }
 
   return <Redirect href="/auth/onboarding" />;

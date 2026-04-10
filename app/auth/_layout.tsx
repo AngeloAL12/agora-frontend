@@ -11,7 +11,7 @@ export default function AuthLayout() {
   }
 
   if (token) {
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/(tabs)/map" />;
   }
 
   return (
