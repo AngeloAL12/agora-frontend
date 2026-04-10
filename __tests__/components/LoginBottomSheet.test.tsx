@@ -149,7 +149,7 @@ describe('LoginBottomSheet', () => {
     expect(mockPromptMicrosoft).toHaveBeenCalledTimes(1);
   });
 
-  it('googleResponse success with valid code exchanges token and navigates home', async () => {
+  it('googleResponse success with valid code exchanges token and navigates map', async () => {
     (exchangeCodeAsync as jest.Mock).mockResolvedValue({
       idToken: 'google-id-token',
     });
@@ -170,7 +170,7 @@ describe('LoginBottomSheet', () => {
     // Let loginWithGoogle and router.replace run
     await act(async () => {});
     expect(loginWithGoogle).toHaveBeenCalledWith('google-id-token');
-    expect(router.replace).toHaveBeenCalledWith('/(tabs)/home');
+    expect(router.replace).toHaveBeenCalledWith('/(tabs)/map');
   });
 
   it('googleResponse success without code sets error', async () => {
@@ -224,7 +224,7 @@ describe('LoginBottomSheet', () => {
     await act(async () => {});
 
     expect(loginWithMicrosoft).toHaveBeenCalledWith('ms-id-token');
-    expect(router.replace).toHaveBeenCalledWith('/(tabs)/home');
+    expect(router.replace).toHaveBeenCalledWith('/(tabs)/map');
   });
 
   it('microsoftResponse success without code sets error', async () => {
