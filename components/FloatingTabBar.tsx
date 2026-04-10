@@ -30,6 +30,8 @@ const TAB_ICONS = {
 const FALLBACK_ICON = complaintsIcon;
 
 const ICON_WRAPPER_SIZE = 46;
+export const FLOATING_TAB_BAR_HEIGHT = 70;
+export const FLOATING_TAB_BAR_BOTTOM_OFFSET = 8;
 
 export function FloatingTabBar({
   state,
@@ -77,7 +79,10 @@ export function FloatingTabBar({
 
   return (
     <View
-      style={[styles.wrapper, { bottom: insets.bottom + 16 }]}
+      style={[
+        styles.wrapper,
+        { bottom: insets.bottom + FLOATING_TAB_BAR_BOTTOM_OFFSET },
+      ]}
       pointerEvents="box-none"
     >
       <BlurView intensity={80} tint="light" style={styles.pill}>
@@ -168,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     width: '100%',
-    height: 70,
+    height: FLOATING_TAB_BAR_HEIGHT,
     borderRadius: 9999,
     overflow: 'hidden',
     backgroundColor: colors.whiteTransparent90,
@@ -196,7 +201,7 @@ const styles = StyleSheet.create({
     height: ICON_WRAPPER_SIZE,
     borderRadius: 9999,
     backgroundColor: colors.bluePrimary,
-    top: (70 - ICON_WRAPPER_SIZE) / 2,
+    top: (FLOATING_TAB_BAR_HEIGHT - ICON_WRAPPER_SIZE) / 2,
     shadowColor: colors.bluePrimary,
     shadowOpacity: 0.35,
     shadowRadius: 10,

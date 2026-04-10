@@ -52,9 +52,8 @@ export const ChatInput = ({
               placeholder={placeholder}
               placeholderTextColor={`${colors.gray700}99`}
               multiline={true}
-              maxLength={300}
+              blurOnSubmit={false}
               returnKeyType="default"
-              onSubmitEditing={onSend}
             />
 
             {/* Send button */}
@@ -83,7 +82,7 @@ export const ChatInput = ({
 const styles = StyleSheet.create({
   outerContainer: {
     marginHorizontal: 25,
-    marginBottom: 16,
+    marginBottom: 0,
     borderRadius: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
