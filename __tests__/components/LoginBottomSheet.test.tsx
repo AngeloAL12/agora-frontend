@@ -1,10 +1,10 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 
+import { loginWithGoogle, loginWithMicrosoft } from '@/services/authService';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { exchangeCodeAsync } from 'expo-auth-session';
 import { router } from 'expo-router';
-import { loginWithGoogle, loginWithMicrosoft } from '@/services/authService';
 import LoginBottomSheet from '../../components/LoginBottomSheet';
 
 jest.mock('expo-web-browser', () => ({
@@ -262,7 +262,9 @@ describe('LoginBottomSheet', () => {
     await act(async () => {});
 
     expect(
-      getByText('Error al intercambiar el token de Microsoft.'),
+      getByText(
+        'Error al intercambiar el token de Microsoft. Detalle: exchange failed',
+      ),
     ).toBeTruthy();
   });
 
