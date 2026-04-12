@@ -46,3 +46,6 @@ app-example
 coverage
 
 .env
+
+.idea
+.vscode
