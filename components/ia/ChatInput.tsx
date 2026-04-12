@@ -54,6 +54,7 @@ export const ChatInput = ({
               multiline={true}
               blurOnSubmit={false}
               returnKeyType="default"
+              underlineColorAndroid="transparent"
             />
 
             {/* Send button */}
@@ -127,6 +128,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 40,
     maxHeight: 100,
+    backgroundColor: 'transparent',
   },
   sendButton: {
     width: 40,
