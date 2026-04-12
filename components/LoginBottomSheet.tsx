@@ -1,13 +1,9 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useCallback } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import AppBottomSheet from '@/components/AppBottomSheet';
 import { colors, typography } from '@/constants/theme';
 import { useSocialLogin } from '@/hooks/useSocialLogin';
 
@@ -19,7 +15,6 @@ const LoginBottomSheet = React.forwardRef<
   BottomSheetModal,
   LoginBottomSheetProps
 >(({ onDismiss }, ref) => {
-  const insets = useSafeAreaInsets();
   const {
     loadingProvider,
     error,
@@ -28,34 +23,9 @@ const LoginBottomSheet = React.forwardRef<
     googleReady,
   } = useSocialLogin();
 
-  const renderBackdrop = useCallback(
-    (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.4}
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheetModal
-      ref={ref}
-      enableDynamicSizing
-      backdropComponent={renderBackdrop}
-      onDismiss={onDismiss}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.indicator}
-      style={styles.sheetOuter}
-    >
-      <BottomSheetView
-        style={[
-          styles.contentContainer,
-          { paddingBottom: Math.max(insets.bottom, 24) },
-        ]}
-      >
+    <AppBottomSheet ref={ref} onDismiss={onDismiss} minBottomPadding={24}>
+      <View style={styles.contentContainer}>
         <Text style={styles.title}>Inicia Sesión</Text>
         <Text style={styles.subtitle}>
           Accede solo con tu cuenta institucional
@@ -64,9 +34,12 @@ const LoginBottomSheet = React.forwardRef<
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={[styles.loginButton, styles.googleButton]}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [
+              styles.loginButton,
+              styles.googleButton,
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={handleGooglePress}
             disabled={!googleReady || loadingProvider !== null}
           >
@@ -80,11 +53,14 @@ const LoginBottomSheet = React.forwardRef<
                 ? 'Cargando...'
                 : 'Continuar con Google'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={[styles.loginButton, styles.microsoftButton]}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [
+              styles.loginButton,
+              styles.microsoftButton,
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={handleMicrosoftPress}
             disabled={loadingProvider !== null}
           >
@@ -98,51 +74,38 @@ const LoginBottomSheet = React.forwardRef<
                 ? 'Cargando...'
                 : 'Continuar con Microsoft'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
-        <TouchableOpacity activeOpacity={0.8} style={styles.helpButton}>
+        {/* TODO: implementar navegación de ayuda */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.helpButton,
+            pressed && { opacity: 0.8 },
+          ]}
+        >
           <Text style={styles.helpText}>¿Problemas para iniciar sesión?</Text>
           <ExpoImage
             source={require('@/assets/icons/right_top_arrow.svg')}
             style={styles.helpIcon}
             contentFit="contain"
           />
-        </TouchableOpacity>
+        </Pressable>
 
         <Text style={styles.termsText}>
           Al continuar, aceptas nuestros{' '}
           <Text style={styles.linkText}>Términos de Servicio</Text> y{' '}
           <Text style={styles.linkText}>Privacidad</Text>.
         </Text>
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </AppBottomSheet>
   );
 });
 
 const styles = StyleSheet.create({
-  sheetOuter: {
-    marginHorizontal: 6,
-  },
-  sheetBackground: {
-    backgroundColor: colors.white,
-    borderRadius: 52,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 20,
-  },
-  indicator: {
-    backgroundColor: colors.sheetIndicator,
-    width: 48,
-    height: 6,
-    borderRadius: 9999,
-  },
   contentContainer: {
-    paddingHorizontal: 33,
+    width: '100%',
     alignItems: 'center',
-    paddingTop: 32,
   },
   title: {
     fontSize: 24,

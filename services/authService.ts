@@ -4,6 +4,7 @@ export type AuthUser = {
   id: number;
   email: string;
   name: string;
+  id_career: number | null;
 };
 
 export type LoginResponse = {
@@ -38,6 +39,18 @@ export async function savePushToken(
     method: 'POST',
     path: '/push-token',
     body: { push_token: pushToken },
+    token: accessToken,
+  });
+}
+
+export async function updateMyCareer(
+  careerId: number,
+  accessToken: string,
+): Promise<{ id_career: number }> {
+  return apiRequest<{ id_career: number }>({
+    method: 'PATCH',
+    path: '/users/me/career',
+    body: { career_id: careerId },
     token: accessToken,
   });
 }

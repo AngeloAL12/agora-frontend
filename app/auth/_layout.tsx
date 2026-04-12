@@ -1,5 +1,5 @@
-import { useAuth } from '@/context/AuthContext';
 import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
@@ -11,7 +11,7 @@ export default function AuthLayout() {
   }
 
   if (token) {
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/(tabs)/map" />;
   }
 
   return (

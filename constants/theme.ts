@@ -7,6 +7,7 @@ export const colors = {
   blueDark: '#192A56',
   white: '#FFFFFF',
   whiteSoft: '#FCFBFB',
+  whiteTransparent90: 'rgba(255, 255, 255, 0.9)',
   backgroundScreen: '#F7F9FB',
   borderSubtle: 'rgba(195,198,210,0.15)',
   sheetIndicator: 'rgba(195,198,210,0.5)',
@@ -15,6 +16,10 @@ export const colors = {
   black: '#000000',
   gray950: '#191C1E',
   error: '#D32F2F',
+  bluePrimaryLight: 'rgba(30, 72, 143, 0.2)',
+  gray100: '#F2F4F7',
+  glassBackground: 'rgba(255, 255, 255, 0.8)',
+  glassBorder: 'rgba(255, 255, 255, 0.4)',
 } as const;
 
 export const palette = {

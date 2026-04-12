@@ -1,7 +1,7 @@
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
 type RequestOptions = {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   body?: unknown;
   token?: string;

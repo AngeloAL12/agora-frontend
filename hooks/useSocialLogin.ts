@@ -46,6 +46,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const lastHandledGoogleCodeRef = useRef<string | null>(null);
+  const lastHandledMicrosoftCodeRef = useRef<string | null>(null);
   const googleClientId = GOOGLE_IOS_CLIENT_ID;
   const googleRedirectUri = GOOGLE_IOS_REDIRECT_URI;
 
@@ -79,7 +80,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
         const response = await loginFn();
         await auth.login(response);
         requestAnimationFrame(() => {
-          router.replace('/(tabs)/home');
+          router.replace('/(tabs)/map');
         });
       } catch (err) {
         const apiErr = err as ApiError;
@@ -200,6 +201,11 @@ export function useSocialLogin(): UseSocialLoginReturn {
         return;
       }
 
+      if (lastHandledMicrosoftCodeRef.current === code) {
+        return;
+      }
+      lastHandledMicrosoftCodeRef.current = code;
+
       exchangeCodeAsync(
         {
           clientId: MICROSOFT_CLIENT_ID,
@@ -219,9 +225,16 @@ export function useSocialLogin(): UseSocialLoginReturn {
             setLoadingProvider(null);
           }
         })
-        .catch(() => {
+        .catch((exchangeError) => {
+          console.error('Microsoft token exchange error:', exchangeError);
+          const detail =
+            exchangeError instanceof Error
+              ? exchangeError.message
+              : String(exchangeError);
           auth.finishAuthentication();
-          setError('Error al intercambiar el token de Microsoft.');
+          setError(
+            `Error al intercambiar el token de Microsoft. Detalle: ${detail}`,
+          );
           setLoadingProvider(null);
         });
     } else if (microsoftResponse?.type === 'error') {

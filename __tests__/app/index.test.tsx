@@ -21,10 +21,24 @@ describe('Index Screen', () => {
     expect(queryByTestId('redirect')).toBeNull();
   });
 
-  it('redirects to home when token exists', () => {
-    useAuth.mockReturnValue({ token: 'jwt-token', isLoading: false });
+  it('redirects to map when token and career exist', () => {
+    useAuth.mockReturnValue({
+      token: 'jwt-token',
+      user: { id_career: 1 },
+      isLoading: false,
+    });
     const { getByTestId } = render(<Index />);
-    expect(getByTestId('redirect').props.children).toBe('/(tabs)/home');
+    expect(getByTestId('redirect').props.children).toBe('/(tabs)/map');
+  });
+
+  it('redirects to career selection when token exists but no career', () => {
+    useAuth.mockReturnValue({
+      token: 'jwt-token',
+      user: { id_career: null },
+      isLoading: false,
+    });
+    const { getByTestId } = render(<Index />);
+    expect(getByTestId('redirect').props.children).toBe('/career');
   });
 
   it('redirects to onboarding when no token', () => {
