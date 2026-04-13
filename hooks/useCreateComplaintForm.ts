@@ -15,7 +15,7 @@ type HandleSubmitParams = {
   type: 'report' | 'suggestion';
   id_building?: number;
   classroom?: string;
-  onSuccess?: () => void;
+  onSuccess?: (id: number) => void;
 };
 
 export function useCreateComplaintForm() {
@@ -110,7 +110,7 @@ export function useCreateComplaintForm() {
 
       setLoading(true);
 
-      await createComplaint({
+      const response = await createComplaint({
         title,
         description,
         category,
@@ -122,7 +122,7 @@ export function useCreateComplaintForm() {
       });
 
       resetForm();
-      onSuccess?.();
+      onSuccess?.((response as { id: number }).id);
     } catch (error: any) {
       console.log('ERROR:', JSON.stringify(error, null, 2));
       Alert.alert('Error', getErrorMessage(error));

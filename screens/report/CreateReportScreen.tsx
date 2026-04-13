@@ -19,7 +19,8 @@ import { Button } from '@/components/Button';
 import CategoryChip from '@/components/report/CategoryChip';
 import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
-import SuccessModal from '@/components/report/SuccessModal';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import {
   REPORT_BUILDINGS,
   REPORT_CATEGORIES,
@@ -43,7 +44,8 @@ export default function CreateReportScreen() {
   );
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [classroom, setClassroom] = useState('');
-  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [createdReportId, setCreatedReportId] = useState<number | null>(null);
+  const successBottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const selectFieldRef = useRef<View>(null);
   const { height: windowHeight } = useWindowDimensions();
@@ -135,8 +137,9 @@ export default function CreateReportScreen() {
       type: reportType,
       id_building: isSuggestion ? undefined : selectedLocation.id,
       classroom: isSuggestion ? undefined : classroom,
-      onSuccess: () => {
-        setIsSuccessModalVisible(true);
+      onSuccess: (id: number) => {
+        setCreatedReportId(id);
+        successBottomSheetRef.current?.present();
         setClassroom('');
         setSelectedLocation(REPORT_BUILDINGS[0]);
         setIsLocationDropdownOpen(false);
@@ -172,7 +175,7 @@ export default function CreateReportScreen() {
             >
               <Pressable
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={() => router.replace('/complaints')}
               >
                 <Ionicons name="arrow-back" size={24} color="#1F315D" />
               </Pressable>
@@ -310,13 +313,17 @@ export default function CreateReportScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <SuccessModal
-        visible={isSuccessModalVisible}
-        onClose={() => {
-          setIsSuccessModalVisible(false);
+      <SuccessBottomSheet
+        ref={successBottomSheetRef}
+        onPrimaryPress={() => {
+          successBottomSheetRef.current?.dismiss();
+          router.replace('/complaints');
         }}
-        onSeeDetails={() => {
-          setIsSuccessModalVisible(false);
+        onSecondaryPress={() => {
+          successBottomSheetRef.current?.dismiss();
+          if (createdReportId) {
+            router.replace(`/complaint/${createdReportId}`);
+          }
         }}
       />
 
