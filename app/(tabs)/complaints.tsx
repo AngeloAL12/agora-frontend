@@ -1,51 +1,47 @@
-import { useAuth } from '@/context/AuthContext';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
-  SafeAreaView,
+  RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { ReportCard } from '../../components/ReportCard';
-import { apiRequest } from '../../services/api';
+import { useComplaints } from '../../hooks/useComplaints';
 
 export default function ComplaintsScreen() {
-  const { token } = useAuth();
+  const router = useRouter();
+  const { reports, loading, refetch } = useComplaints();
+  const [filter, setFilter] = useState<'Todos' | 'Pendientes' | 'Resueltos'>(
+    'Todos',
+  );
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refetch(true);
+    setRefreshing(false);
+  }, [refetch]);
+  const insets = useSafeAreaInsets();
+  const fabBottom = insets.bottom + 96;
+  const scrollPaddingBottom = insets.bottom + 130;
 
-  const fetchReports = async () => {
-    try {
-      const data = await apiRequest<any[]>({
-        method: 'GET',
-        path: '/complaints/me',
-        token: token ?? undefined,
-      });
-      setReports(data || []);
-    } catch (error) {
-      console.error('Error jalando reportes de la API:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (token) {
-      fetchReports();
-    }
-  }, [token]);
-
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaView
+        edges={['left', 'right']}
         style={[
           styles.mainContainer,
           { justifyContent: 'center', alignItems: 'center' },
@@ -59,89 +55,162 @@ export default function ComplaintsScreen() {
   const hasReports = reports.length > 0;
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E488F" />
+    <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
+      <StatusBar backgroundColor="#1E488F" style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reportes</Text>
-        <Image
-          source={require('../../assets/images/campana.png')}
-          style={{ width: 26, height: 26, resizeMode: 'contain' }}
-        />
-      </View>
+      <ScreenHeader title="Reportes" align="left" showNotificationBell />
 
       <View style={styles.content}>
-        {hasReports ? (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.filtersRow}>
-              <View style={[styles.chip, styles.chipActive]}>
-                <Text style={styles.chipTextActive}>Todos</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: scrollPaddingBottom, flexGrow: 1 },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#1E488F']}
+              tintColor="#1E488F"
+            />
+          }
+        >
+          {hasReports ? (
+            <>
+              <View style={styles.filtersRow}>
+                <Pressable
+                  style={[styles.chip, filter === 'Todos' && styles.chipActive]}
+                  onPress={() => setFilter('Todos')}
+                >
+                  <Text
+                    style={
+                      filter === 'Todos'
+                        ? styles.chipTextActive
+                        : styles.chipText
+                    }
+                  >
+                    Todos
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.chip,
+                    filter === 'Pendientes' && styles.chipActive,
+                  ]}
+                  onPress={() => setFilter('Pendientes')}
+                >
+                  <Text
+                    style={
+                      filter === 'Pendientes'
+                        ? styles.chipTextActive
+                        : styles.chipText
+                    }
+                  >
+                    Pendientes
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.chip,
+                    filter === 'Resueltos' && styles.chipActive,
+                  ]}
+                  onPress={() => setFilter('Resueltos')}
+                >
+                  <Text
+                    style={
+                      filter === 'Resueltos'
+                        ? styles.chipTextActive
+                        : styles.chipText
+                    }
+                  >
+                    Resueltos
+                  </Text>
+                </Pressable>
               </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>Pendientes</Text>
-              </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>Resueltos</Text>
-              </View>
-            </View>
 
-            {reports.map((item, index) => (
-              <ReportCard
-                key={index}
-                folio={`#${item.id}`}
-                title={item.title}
-                description={
-                  item.description || 'Sin descripción detallada por ahora.'
+              {(() => {
+                const filteredReports = reports.filter((item) => {
+                  if (filter === 'Todos') return true;
+                  if (filter === 'Pendientes')
+                    return [
+                      'Pendiente',
+                      'PENDING',
+                      'En proceso',
+                      'IN_PROGRESS',
+                    ].includes(item.status);
+                  if (filter === 'Resueltos')
+                    return ['Resuelto', 'RESOLVED'].includes(item.status);
+                  return true;
+                });
+
+                if (filteredReports.length === 0) {
+                  return (
+                    <View style={{ marginTop: 40, alignItems: 'center' }}>
+                      <Text style={{ color: '#566573', fontSize: 16 }}>
+                        No hay reportes para esta categoría.
+                      </Text>
+                    </View>
+                  );
                 }
-                date={new Date(item.created_at).toLocaleDateString('es-MX')}
-                status={item.status}
-              />
-            ))}
-          </ScrollView>
-        ) : (
-          <View style={styles.emptyCardContainer}>
-            <View style={styles.emptyCard}>
-              <View style={styles.leftColumn}>
-                <View style={styles.iconCircle}>
-                  <View style={styles.iconWrapper}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={46}
-                      color="#2E323C"
-                    />
-                    <View style={styles.plusContainer}>
-                      <Ionicons name="add" size={18} color="#2E323C" />
+
+                return filteredReports.map((item, index) => (
+                  <ReportCard
+                    key={item.id || index}
+                    folio={`${item.id}`}
+                    title={item.title}
+                    description={
+                      item.description || 'Sin descripción detallada por ahora.'
+                    }
+                    date={new Date(item.created_at).toLocaleDateString('es-MX')}
+                    status={item.status}
+                    onPress={() => router.push(`/complaint/${item.id}`)}
+                  />
+                ));
+              })()}
+            </>
+          ) : (
+            <View style={styles.emptyCardContainer}>
+              <View style={styles.emptyCard}>
+                <View style={styles.leftColumn}>
+                  <View style={styles.iconCircle}>
+                    <View style={styles.iconWrapper}>
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={46}
+                        color="#2E323C"
+                      />
+                      <View style={styles.plusContainer}>
+                        <Ionicons name="add" size={18} color="#2E323C" />
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-              <View style={styles.rightColumn}>
-                <Text style={styles.emptyTitle}>
-                  ¿Tienes algo que reportar?
-                </Text>
-                <Text style={styles.emptySubtitle}>
-                  Tu voz ayuda a mejorar nuestra comunidad universitaria. Inicia
-                  un nuevo reporte ahora.
-                </Text>
-                <View style={styles.buttonWrapper}>
-                  <Button
-                    text="Nuevo Reporte"
-                    onPress={() => console.log('Nuevo reporte')}
-                    style={{ backgroundColor: '#1E488F', borderRadius: 30 }}
-                    fullWidth={false}
-                  />
+                <View style={styles.rightColumn}>
+                  <Text style={styles.emptyTitle}>
+                    ¿Tienes algo que reportar?
+                  </Text>
+                  <Text style={styles.emptySubtitle}>
+                    Tu voz ayuda a mejorar nuestra comunidad universitaria.
+                    Inicia un nuevo reporte ahora.
+                  </Text>
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      text="Nuevo Reporte"
+                      onPress={() => console.log('Nuevo reporte')}
+                      style={{ backgroundColor: '#1E488F', borderRadius: 30 }}
+                      fullWidth={false}
+                    />
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        )}
+          )}
+        </ScrollView>
       </View>
 
       <Pressable
-        style={styles.fab}
+        style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => console.log('Nuevo reporte FAB')}
       >
         <Ionicons name="add" size={32} color="#2E323C" />
@@ -155,27 +224,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FCFBFB',
   },
-  header: {
-    backgroundColor: '#1E488F',
-    height: 110,
-    paddingHorizontal: 20,
-    paddingTop: 45,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   content: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 130,
   },
   filtersRow: {
     flexDirection: 'row',
@@ -261,12 +315,11 @@ const styles = StyleSheet.create({
 
   fab: {
     position: 'absolute',
-    bottom: 90,
-    right: 20,
-    backgroundColor: '#F1C806',
-    width: 60,
-    height: 60,
-    borderRadius: 16,
+    right: 24,
+    backgroundColor: colors.yellow,
+    width: 56,
+    height: 56,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,

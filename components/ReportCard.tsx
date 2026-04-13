@@ -1,20 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 
 interface ReportCardProps {
   folio: string;
   title: string;
   description: string;
   date: string;
-  status: 'Pendiente' | 'Resuelto' | 'Rechazado' | 'En proceso';
+  status: string;
+  onPress?: () => void;
 }
 
-const statusColors = {
-  'En proceso': { bg: '#FDEB71', text: '#3E2723' },
-  Resuelto: { bg: '#D4EFDF', text: '#145A32' },
-  Rechazado: { bg: '#FADBD8', text: '#78281F' },
-  Pendiente: { bg: '#E5E7E9', text: '#1A1A1A' },
+const statusColors: Record<
+  string,
+  { bg: string; text: string; label: string }
+> = {
+  'En proceso': { bg: '#FDEB71', text: '#3E2723', label: 'En proceso' },
+  Resuelto: { bg: '#D4EFDF', text: '#145A32', label: 'Resuelto' },
+  Rechazado: { bg: '#FADBD8', text: '#78281F', label: 'Rechazado' },
+  Pendiente: { bg: '#E5E7E9', text: '#1A1A1A', label: 'Pendiente' },
+  PENDING: { bg: '#E5E7E9', text: '#1A1A1A', label: 'Pendiente' },
+  IN_PROGRESS: { bg: '#FDEB71', text: '#3E2723', label: 'En proceso' },
+  RESOLVED: { bg: '#D4EFDF', text: '#145A32', label: 'Resuelto' },
+  REJECTED: { bg: '#FADBD8', text: '#78281F', label: 'Rechazado' },
 };
 
 export const ReportCard = ({
@@ -23,16 +31,17 @@ export const ReportCard = ({
   description,
   date,
   status,
+  onPress,
 }: ReportCardProps) => {
-  const colors = statusColors[status] || statusColors['Pendiente'];
+  const colors = statusColors[status] || statusColors['PENDING'];
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardHeader}>
         <Text style={styles.folio}>FOLIO #{folio}</Text>
         <View style={[styles.badge, { backgroundColor: colors.bg }]}>
           <Text style={[styles.badgeText, { color: colors.text }]}>
-            {status}
+            {colors.label}
           </Text>
         </View>
       </View>
@@ -46,7 +55,7 @@ export const ReportCard = ({
         <Ionicons name="calendar-clear-outline" size={15} color="#95A5A6" />
         <Text style={styles.date}>{date}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
