@@ -27,6 +27,7 @@ import {
 import { colors } from '@/constants/theme';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
 import { ReportType } from '@/types/report';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BuildingOption = {
   id: number;
@@ -41,6 +42,7 @@ export default function CreateReportScreen() {
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [classroom, setClassroom] = useState('');
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const {
     title,
@@ -101,15 +103,6 @@ export default function CreateReportScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.screen}>
-          {isLocationDropdownOpen && (
-            <View pointerEvents="box-none" style={styles.overlayContainer}>
-              <Pressable
-                style={styles.overlay}
-                onPress={() => setIsLocationDropdownOpen(false)}
-              />
-            </View>
-          )}
-
           <ScrollView
             contentContainerStyle={[
               styles.content,
@@ -119,7 +112,31 @@ export default function CreateReportScreen() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={!isLocationDropdownOpen}
           >
-            <View style={styles.header}>
+            {isLocationDropdownOpen && (
+              <Pressable
+                style={{
+                  position: 'absolute',
+                  top: -1000,
+                  bottom: -1000,
+                  left: -1000,
+                  right: -1000,
+                  zIndex: 40,
+                }}
+                onPress={() => setIsLocationDropdownOpen(false)}
+              />
+            )}
+
+            <View
+              style={[
+                styles.header,
+                {
+                  paddingTop:
+                    Platform.OS === 'android'
+                      ? (StatusBar.currentHeight ?? 0) + 6
+                      : Math.max(insets.top, 24),
+                },
+              ]}
+            >
               <Pressable
                 style={styles.backButton}
                 onPress={() => router.back()}
@@ -233,6 +250,7 @@ export default function CreateReportScreen() {
 
                   <TextInput
                     value={classroom}
+                    onFocus={() => setIsLocationDropdownOpen(false)}
                     onChangeText={handleClassroomChange}
                     placeholder="Ej. G01"
                     placeholderTextColor="#9BA3AE"
@@ -322,13 +340,6 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 90,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   content: {
     paddingHorizontal: 22,
     paddingTop: 12,
@@ -342,8 +353,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
-    paddingTop:
-      Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 6 : 12,
   },
   backButton: {
     width: 40,
@@ -409,7 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#E9EDF2',
     fontSize: 16,
-    color: colors.blueSecondary,
+    color: '#1F2937',
   },
   dropdownMenu: {
     position: 'absolute',
@@ -456,7 +465,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#E9EDF2',
     fontSize: 16,
-    color: colors.blueSecondary,
+    color: '#1F2937',
   },
   evidenceHeader: {
     flexDirection: 'row',
