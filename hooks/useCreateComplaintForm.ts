@@ -47,23 +47,27 @@ export function useCreateComplaintForm() {
       return;
     }
 
+    const remainingSlots = 3 - images.length;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.7,
-      allowsMultipleSelection: false,
+      allowsMultipleSelection: true,
+      selectionLimit: remainingSlots,
     });
 
     if (result.canceled) return;
 
-    const asset = result.assets[0];
-
-    const newImage: LocalImageFile = {
+    const newImages: LocalImageFile[] = result.assets.map((asset, index) => ({
       uri: asset.uri,
       type: asset.mimeType || 'image/jpeg',
-      name: asset.fileName || `photo_${Date.now()}.jpg`,
-    };
+      name: asset.fileName || `photo_${Date.now()}_${index}.jpg`,
+    }));
 
-    setImages((prev) => [...prev, newImage]);
+    setImages((prev) => {
+      const merged = [...prev, ...newImages];
+      return merged.slice(0, 3);
+    });
   };
 
   const removeImage = (index: number) => {
