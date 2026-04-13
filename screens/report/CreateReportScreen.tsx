@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -43,6 +45,52 @@ export default function CreateReportScreen() {
   const [classroom, setClassroom] = useState('');
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  const selectFieldRef = useRef<View>(null);
+  const { height: windowHeight } = useWindowDimensions();
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+  }>({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+
+  const handleOpenDropdown = () => {
+    if (isLocationDropdownOpen) {
+      setIsLocationDropdownOpen(false);
+      return;
+    }
+
+    selectFieldRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      const dropdownMaxHeight = 280;
+      const spaceBelow = windowHeight - (pageY + height + 8);
+      const spaceAbove = pageY - 8;
+
+      if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+        setDropdownPosition({
+          top: undefined,
+          bottom: windowHeight - pageY + 8,
+          left: pageX,
+          width,
+        });
+      } else {
+        const topPosition = Math.min(
+          pageY + height + 8,
+          Math.max(8, windowHeight - dropdownMaxHeight - 8),
+        );
+        setDropdownPosition({
+          top: topPosition,
+          bottom: undefined,
+          left: pageX,
+          width,
+        });
+      }
+      setIsLocationDropdownOpen(true);
+    });
+  };
 
   const {
     title,
@@ -110,22 +158,7 @@ export default function CreateReportScreen() {
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={!isLocationDropdownOpen}
           >
-            {isLocationDropdownOpen && (
-              <Pressable
-                style={{
-                  position: 'absolute',
-                  top: -1000,
-                  bottom: -1000,
-                  left: -1000,
-                  right: -1000,
-                  zIndex: 40,
-                }}
-                onPress={() => setIsLocationDropdownOpen(false)}
-              />
-            )}
-
             <View
               style={[
                 styles.header,
@@ -185,11 +218,10 @@ export default function CreateReportScreen() {
               <View style={styles.row}>
                 <View style={[styles.column, styles.locationColumn]}>
                   <Text style={styles.sectionLabel}>UBICACIÓN</Text>
-
-                  <View style={styles.dropdownWrapper}>
+                  <View style={styles.dropdownWrapper} ref={selectFieldRef}>
                     <Pressable
                       style={styles.selectField}
-                      onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
+                      onPress={handleOpenDropdown}
                     >
                       <Text style={styles.selectFieldText}>
                         {selectedLocation.label}
@@ -202,46 +234,6 @@ export default function CreateReportScreen() {
                         color="#667085"
                       />
                     </Pressable>
-
-                    {isLocationDropdownOpen && (
-                      <View style={styles.dropdownMenu}>
-                        <ScrollView
-                          nestedScrollEnabled={true}
-                          scrollEnabled={true}
-                          showsVerticalScrollIndicator={true}
-                          keyboardShouldPersistTaps="handled"
-                          bounces={false}
-                          style={styles.dropdownScroll}
-                          contentContainerStyle={styles.dropdownContent}
-                        >
-                          {REPORT_BUILDINGS.map((location) => {
-                            const isSelected =
-                              location.id === selectedLocation.id;
-
-                            return (
-                              <Pressable
-                                key={location.id}
-                                style={[
-                                  styles.dropdownItem,
-                                  isSelected && styles.dropdownItemSelected,
-                                ]}
-                                onPress={() => handleSelectLocation(location)}
-                              >
-                                <Text
-                                  style={[
-                                    styles.dropdownItemText,
-                                    isSelected &&
-                                      styles.dropdownItemTextSelected,
-                                  ]}
-                                >
-                                  {location.label}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
-                    )}
                   </View>
                 </View>
 
@@ -252,7 +244,7 @@ export default function CreateReportScreen() {
                     value={classroom}
                     onFocus={() => setIsLocationDropdownOpen(false)}
                     onChangeText={handleClassroomChange}
-                    placeholder="Ej. G01"
+                    placeholder="Ej. 01"
                     placeholderTextColor="#9BA3AE"
                     style={styles.inputField}
                     maxLength={10}
@@ -327,6 +319,64 @@ export default function CreateReportScreen() {
           setIsSuccessModalVisible(false);
         }}
       />
+
+      <Modal
+        visible={isLocationDropdownOpen}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setIsLocationDropdownOpen(false)}
+      >
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setIsLocationDropdownOpen(false)}
+        />
+        <View
+          style={[
+            styles.dropdownMenu,
+            {
+              ...(dropdownPosition.top !== undefined && {
+                top: dropdownPosition.top,
+              }),
+              ...(dropdownPosition.bottom !== undefined && {
+                bottom: dropdownPosition.bottom,
+              }),
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+            },
+          ]}
+        >
+          <ScrollView
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={true}
+            bounces={false}
+            style={styles.dropdownScroll}
+            contentContainerStyle={styles.dropdownContent}
+          >
+            {REPORT_BUILDINGS.map((location) => {
+              const isSelected = location.id === selectedLocation.id;
+              return (
+                <Pressable
+                  key={location.id}
+                  style={[
+                    styles.dropdownItem,
+                    isSelected && styles.dropdownItemSelected,
+                  ]}
+                  onPress={() => handleSelectLocation(location)}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownItemText,
+                      isSelected && styles.dropdownItemTextSelected,
+                    ]}
+                  >
+                    {location.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -422,16 +472,12 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     position: 'absolute',
-    top: 64,
-    left: 0,
-    right: 0,
     maxHeight: 280,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    zIndex: 999,
-    elevation: 12,
+    elevation: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
