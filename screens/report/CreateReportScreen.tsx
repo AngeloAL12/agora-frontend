@@ -1,17 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
-  StatusBar,
-  Alert,
 } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -20,94 +19,51 @@ import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
 import SuccessModal from '@/components/report/SuccessModal';
 import {
+  REPORT_BUILDINGS,
   REPORT_CATEGORIES,
-  REPORT_LOCATIONS,
   REPORT_TABS,
+  SUGGESTION_CATEGORIES,
 } from '@/constants/report';
 import { colors } from '@/constants/theme';
+import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
 import { ReportType } from '@/types/report';
+
+type BuildingOption = {
+  id: number;
+  label: string;
+};
 
 export default function CreateReportScreen() {
   const [reportType, setReportType] = useState<ReportType>('report');
-  const [title, setTitle] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Mantenimiento');
-  const [selectedLocation, setSelectedLocation] = useState(REPORT_LOCATIONS[0]);
+  const [selectedLocation, setSelectedLocation] = useState<BuildingOption>(
+    REPORT_BUILDINGS[0],
+  );
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [classroom, setClassroom] = useState('');
-  const [description, setDescription] = useState('');
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    category,
+    setCategory,
+    images,
+    loading,
+    isSubmitDisabled,
+    pickImage,
+    removeImage,
+    handleSubmit,
+  } = useCreateComplaintForm();
 
   const isSuggestion = reportType === 'suggestion';
 
-  const suggestionCategories = [
-    'Mantenimiento',
-    'Limpieza',
-    'Seguridad',
-    'Servicios',
-    'Infraestructura',
-    'General',
-  ];
-
   const activeCategories = isSuggestion
-    ? suggestionCategories
+    ? SUGGESTION_CATEGORIES
     : REPORT_CATEGORIES;
 
-  const isSubmitDisabled = useMemo(() => {
-    return title.trim().length === 0 || description.trim().length === 0;
-  }, [title, description]);
-
-  const handleSubmit = async () => {
-    if (isSubmitDisabled) return;
-
-    try {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
-      if (!apiUrl) {
-        throw new Error('No se encontró EXPO_PUBLIC_API_URL en el .env');
-      }
-
-      // ⚠️ IMPORTANTE: CAMBIA ESTO POR TU TOKEN REAL
-      // Ejemplo: const token = session?.accessToken;
-      const token = 'AQUI_VA_TU_TOKEN';
-
-      if (!token || token === 'AQUI_VA_TU_TOKEN') {
-        throw new Error('Falta el token del usuario logueado');
-      }
-
-      const formData = new FormData();
-
-      formData.append('title', title.trim());
-      formData.append('description', description.trim());
-      formData.append('category', selectedCategory);
-
-      const response = await fetch(`${apiUrl}complaints`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.detail || 'No se pudo enviar el reporte');
-      }
-
-      setIsSuccessModalVisible(true);
-    } catch (error) {
-      console.error('Error al enviar el reporte:', error);
-
-      Alert.alert(
-        'Error',
-        error instanceof Error
-          ? error.message
-          : 'Ocurrió un error al enviar el reporte',
-      );
-    }
-  };
-
-  const handleSelectLocation = (location: string) => {
+  const handleSelectLocation = (location: BuildingOption) => {
     setSelectedLocation(location);
     setIsLocationDropdownOpen(false);
   };
@@ -124,6 +80,20 @@ export default function CreateReportScreen() {
     setClassroom(numericValue);
   };
 
+  const onSubmit = async () => {
+    await handleSubmit({
+      type: reportType,
+      id_building: isSuggestion ? undefined : selectedLocation.id,
+      classroom: isSuggestion ? undefined : classroom,
+      onSuccess: () => {
+        setIsSuccessModalVisible(true);
+        setClassroom('');
+        setSelectedLocation(REPORT_BUILDINGS[0]);
+        setIsLocationDropdownOpen(false);
+      },
+    });
+  };
+
   return (
     <>
       <KeyboardAvoidingView
@@ -132,10 +102,12 @@ export default function CreateReportScreen() {
       >
         <View style={styles.screen}>
           {isLocationDropdownOpen && (
-            <Pressable
-              style={styles.overlay}
-              onPress={() => setIsLocationDropdownOpen(false)}
-            />
+            <View pointerEvents="box-none" style={styles.overlayContainer}>
+              <Pressable
+                style={styles.overlay}
+                onPress={() => setIsLocationDropdownOpen(false)}
+              />
+            </View>
           )}
 
           <ScrollView
@@ -181,12 +153,12 @@ export default function CreateReportScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>CATEGORÍA</Text>
               <View style={styles.categoryList}>
-                {activeCategories.map((category) => (
+                {activeCategories.map((item) => (
                   <CategoryChip
-                    key={category}
-                    label={category}
-                    selected={selectedCategory === category}
-                    onPress={() => setSelectedCategory(category)}
+                    key={item.value}
+                    label={item.label}
+                    selected={category === item.value}
+                    onPress={() => setCategory(item.value)}
                   />
                 ))}
               </View>
@@ -203,7 +175,7 @@ export default function CreateReportScreen() {
                       onPress={() => setIsLocationDropdownOpen((prev) => !prev)}
                     >
                       <Text style={styles.selectFieldText}>
-                        {selectedLocation}
+                        {selectedLocation.label}
                       </Text>
                       <Ionicons
                         name={
@@ -217,17 +189,21 @@ export default function CreateReportScreen() {
                     {isLocationDropdownOpen && (
                       <View style={styles.dropdownMenu}>
                         <ScrollView
-                          nestedScrollEnabled
-                          showsVerticalScrollIndicator
+                          nestedScrollEnabled={true}
+                          scrollEnabled={true}
+                          showsVerticalScrollIndicator={true}
                           keyboardShouldPersistTaps="handled"
+                          bounces={false}
                           style={styles.dropdownScroll}
+                          contentContainerStyle={styles.dropdownContent}
                         >
-                          {REPORT_LOCATIONS.map((location) => {
-                            const isSelected = location === selectedLocation;
+                          {REPORT_BUILDINGS.map((location) => {
+                            const isSelected =
+                              location.id === selectedLocation.id;
 
                             return (
                               <Pressable
-                                key={location}
+                                key={location.id}
                                 style={[
                                   styles.dropdownItem,
                                   isSelected && styles.dropdownItemSelected,
@@ -241,7 +217,7 @@ export default function CreateReportScreen() {
                                       styles.dropdownItemTextSelected,
                                   ]}
                                 >
-                                  {location}
+                                  {location.label}
                                 </Text>
                               </Pressable>
                             );
@@ -258,11 +234,10 @@ export default function CreateReportScreen() {
                   <TextInput
                     value={classroom}
                     onChangeText={handleClassroomChange}
-                    placeholder="Ej. 12"
+                    placeholder="Ej. G01"
                     placeholderTextColor="#9BA3AE"
                     style={styles.inputField}
-                    keyboardType="number-pad"
-                    maxLength={2}
+                    maxLength={10}
                   />
                 </View>
               </View>
@@ -285,25 +260,54 @@ export default function CreateReportScreen() {
               <View style={styles.section}>
                 <View style={styles.evidenceHeader}>
                   <Text style={styles.sectionLabel}>EVIDENCIA</Text>
-                  <Text style={styles.evidenceLimit}>Máximo 3</Text>
+                  <Text style={styles.evidenceLimit}>
+                    Máximo 3 ({images.length}/3)
+                  </Text>
                 </View>
 
-                <Pressable style={styles.evidenceBox}>
+                <Pressable style={styles.evidenceBox} onPress={pickImage}>
                   <Ionicons name="camera-outline" size={28} color="#495361" />
                   <Text style={styles.evidenceText}>SUBIR</Text>
                 </Pressable>
+
+                {images.length > 0 && (
+                  <View style={styles.imageList}>
+                    {images.map((image, index) => (
+                      <View
+                        key={`${image.uri}-${index}`}
+                        style={styles.imageItem}
+                      >
+                        <Text style={styles.imageName} numberOfLines={1}>
+                          {image.name}
+                        </Text>
+
+                        <Pressable onPress={() => removeImage(index)}>
+                          <Text style={styles.removeText}>Eliminar</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 
-            <Button text="Envíar" onPress={handleSubmit} />
+            <Button
+              text={loading ? 'Enviando...' : 'Enviar'}
+              onPress={onSubmit}
+              disabled={loading || isSubmitDisabled}
+            />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
 
       <SuccessModal
         visible={isSuccessModalVisible}
-        onClose={() => setIsSuccessModalVisible(false)}
-        onSeeDetails={() => setIsSuccessModalVisible(false)}
+        onClose={() => {
+          setIsSuccessModalVisible(false);
+        }}
+        onSeeDetails={() => {
+          setIsSuccessModalVisible(false);
+        }}
       />
     </>
   );
@@ -318,9 +322,12 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  overlay: {
+  overlayContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 90,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     paddingHorizontal: 22,
@@ -335,7 +342,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 6 : 12,
+    paddingTop:
+      Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 6 : 12,
   },
   backButton: {
     width: 40,
@@ -408,17 +416,23 @@ const styles = StyleSheet.create({
     top: 64,
     left: 0,
     right: 0,
-    height: 220,
+    maxHeight: 280,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    overflow: 'hidden',
     zIndex: 999,
-    elevation: 10,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   dropdownScroll: {
-    flexGrow: 0,
+    maxHeight: 280,
+  },
+  dropdownContent: {
+    paddingVertical: 4,
   },
   dropdownItem: {
     paddingVertical: 14,
@@ -469,5 +483,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#3E4650',
+  },
+  imageList: {
+    marginTop: 12,
+    gap: 8,
+  },
+  imageItem: {
+    backgroundColor: '#EEF2F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  imageName: {
+    flex: 1,
+    marginRight: 12,
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  removeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#C62828',
   },
 });

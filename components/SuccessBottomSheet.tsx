@@ -31,7 +31,7 @@ const SuccessBottomSheet = React.forwardRef<
       onSecondaryPress,
       primaryLabel = 'Listo',
       secondaryLabel = 'Ver detalles del reporte',
-      title = '¡Hurra!',
+      title = '¡Bien hecho!',
       message = DEFAULT_MESSAGE,
     },
     ref,

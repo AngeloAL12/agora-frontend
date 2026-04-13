@@ -22,7 +22,7 @@ export default function SuccessModal({
             <Ionicons name="checkmark" size={42} color="#1E4C92" />
           </View>
 
-          <Text style={styles.title}>¡Hurra!</Text>
+          <Text style={styles.title}>¡Bien hecho!</Text>
 
           <Text style={styles.description}>
             Tu reporte ha sido enviado exitosamente al personal académico.

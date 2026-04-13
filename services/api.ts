@@ -1,49 +1,59 @@
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
-type RequestOptions = {
+type ApiRequestOptions = {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
-  body?: unknown;
+  body?: any;
   token?: string;
+  isMultipart?: boolean;
 };
 
 export type ApiError = {
-  status: number;
-  detail: string;
+  detail?: string;
+  message?: string;
+  [key: string]: any;
 };
 
-export async function apiRequest<T>(options: RequestOptions): Promise<T> {
-  const { method, path, body, token } = options;
+export async function apiRequest<T>({
+  method,
+  path,
+  body,
+  token,
+  isMultipart = false,
+}: ApiRequestOptions): Promise<T> {
+  const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  if (!baseUrl) {
+    throw new Error('No se encontró EXPO_PUBLIC_API_URL en el .env');
+  }
+
+  const headers: Record<string, string> = {};
+
+  if (!isMultipart) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isMultipart ? body : body ? JSON.stringify(body) : undefined,
   });
 
-  if (!response.ok) {
-    let detail = `HTTP error ${response.status}`;
-    try {
-      const errorBody = await response.json();
-      detail = errorBody.detail ?? detail;
-    } catch {
-      // response was not JSON
-    }
-    const error: ApiError = { status: response.status, detail };
-    throw error;
+  let data: any = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
   }
 
-  const NO_BODY_STATUSES = new Set([204, 205]);
-  const contentLength = response.headers.get('content-length');
-  const hasBody =
-    !NO_BODY_STATUSES.has(response.status) && contentLength !== '0';
-  return (hasBody ? response.json() : Promise.resolve(null)) as Promise<T>;
+  if (!response.ok) {
+    throw (data ?? { detail: 'Ocurrió un error en la petición' }) as ApiError;
+  }
+
+  return data as T;
 }
