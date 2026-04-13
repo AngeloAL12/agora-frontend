@@ -54,3 +54,20 @@ export async function updateMyCareer(
     token: accessToken,
   });
 }
+
+export type UserMeResponse = {
+  name: string;
+  clubs_count: number;
+  complaints_count: number;
+  likes_count: number;
+  career: string | null;
+  photo: string | null;
+};
+
+export async function getMe(accessToken: string): Promise<UserMeResponse> {
+  return apiRequest<UserMeResponse>({
+    method: 'GET',
+    path: '/users/me',
+    token: accessToken,
+  });
+}
