@@ -68,7 +68,6 @@ export default function IaScreen() {
     );
   }, []);
 
-  // Fix #2 — keyboard events cross-platform (Mainly for iOS sync now)
   useEffect(() => {
     const showEvent =
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -212,7 +211,7 @@ export default function IaScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
-      <ScreenHeader title="Búfalo IA" />
+      <ScreenHeader title="Búfalo IA" align="left" showNotificationBell />
 
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
