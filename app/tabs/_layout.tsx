@@ -2,16 +2,17 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '@/constants/theme';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2B4CC8',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: theme.palette.primary,
+        tabBarInactiveTintColor: theme.palette.textSecondary,
         tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false, // En la imagen 1 no se ven etiquetas de texto
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
@@ -57,13 +58,17 @@ export default function TabLayout() {
             <View
               style={[
                 styles.profileIconContainer,
-                color !== '#9CA3AF' && styles.activeProfile,
+                color === theme.palette.primary && styles.activeProfile,
               ]}
             >
               <Ionicons
                 name="person-outline"
                 size={24}
-                color={color !== '#9CA3AF' ? '#FFF' : color}
+                color={
+                  color === theme.palette.primary
+                    ? theme.palette.onPrimary
+                    : color
+                }
               />
             </View>
           ),
@@ -80,11 +85,10 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 65,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 35, // Hace la barra redondeada como en la imagen
+    backgroundColor: theme.palette.surface,
+    borderRadius: 35,
     paddingBottom: 0,
-    // Sombra
-    shadowColor: '#000',
+    shadowColor: theme.palette.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -99,6 +103,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeProfile: {
-    backgroundColor: '#2B4CC8', // El fondo azul cuando el perfil está activo
+    backgroundColor: theme.palette.primary,
   },
 });

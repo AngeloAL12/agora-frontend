@@ -4,94 +4,64 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Switch,
+  ActivityIndicator,
   ScrollView,
   Image,
   SafeAreaView,
   StatusBar,
+  Pressable,
+  ImageSourcePropType,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AyudaIcon from '../../assets/Iconos/ayuda-soporte.svg';
-import EditarInfoIcon from '../../assets/Iconos/editar-info.svg';
-import NotificationIcon from '../../assets/Iconos/notification.svg';
+import { theme } from '@/constants/theme';
+import { ActivityTab, ActivityItem } from '@/components/ActivityTab';
+import { InfoTab } from '@/components/InfoTab';
+import { StatBox } from '@/components/StatBox';
+import { API_BASE_URL, apiFetchJson } from '@/lib/api';
 
-// ─── Colores ──────────────────────────────────────────────────────────────────
-const COLORS = {
-  headerBg: '#1E488F',
-  primary: '#1E488F',
-  bg: '#F8FAFF', // Fondo de la pantalla
-  white: '#FFFFFF',
-
-  userName: '#FFFFFF',
-  statsValue: '#FFFFFF',
-  careerText: '#D8EAFE',
-
-  textDark: '#191C1E',
-  iconBg: '#D8E2FF',
-  iconColor: '#192A56',
-
-  tabContainerBg: '#F3F4F6',
-  tabActiveBg: '#FFFFFF',
-  tabTextActive: '#003172',
-  tabTextInactive: '#434751',
-
-  textMuted: '#6B7280',
-  border: '#E5E7EB',
-  logoutBg: '#FFDAD6',
-  logoutText: '#BA1A1A',
-};
-
-// ─── Datos de ejemplo (Ajustados a tu imagen de diseño) ───────────────────────
 interface UserProfile {
   name: string;
   career: string;
-  avatar: any;
+  avatar: ImageSourcePropType | null;
   stats: { clubs: number; reports: number; likes: number };
 }
 
-interface ActivityItem {
-  id: string;
-  type: 'club' | 'comment' | 'like';
-  clubName?: string;
+type BackendActivityItem = {
+  id?: string | number;
+  type?: unknown;
+  club_name?: string;
   location?: string;
   timestamp?: string;
   title?: string;
   subtitle?: string;
-  dotColor: string;
-}
+};
 
-const RECENT_ACTIVITY: ActivityItem[] = [
-  {
-    id: '1',
-    type: 'club',
-    clubName: 'Ajedrez',
-    location: 'Edificio G',
-    timestamp: 'Hace 2 horas',
-    dotColor: '#EAB308', // Amarillo del diseño
-  },
-  {
-    id: '2',
-    type: 'comment',
-    title: 'Comentaste en una publicación',
-    subtitle: 'Ayer • 14:30 PM',
-    dotColor: '#1E488F', // Azul oscuro
-  },
-  {
-    id: '3',
-    type: 'like',
-    title: 'Diste like a una publicación',
-    subtitle: '05 Mar 2026',
-    dotColor: '#9CA3AF', // Gris
-  },
-];
+type BackendUserProfile = {
+  full_name?: string;
+  career?: string;
+  avatar_url?: string | null;
+  stats?: {
+    clubs_count?: number;
+    reports_count?: number;
+    likes_count?: number;
+    clubs?: number;
+    reports?: number;
+    likes?: number;
+  };
+  recent_activities?: BackendActivityItem[];
+};
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+const isActivityType = (value: unknown): value is ActivityItem['type'] =>
+  value === 'club' || value === 'comment' || value === 'like';
+
 export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'info' | 'activity'>('info');
   const [notificationsOn, setNotifications] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const handleEditInfo = () =>
     Alert.alert('Editar información', 'Navega a la pantalla de edición.');
@@ -106,52 +76,110 @@ export default function ProfileScreen() {
       },
     ]);
 
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+
+      const data = await apiFetchJson<BackendUserProfile>('/users/me');
+
+      setUser({
+        name: data.full_name ?? 'Usuario',
+        career: data.career ?? 'Estudiante',
+        avatar: data.avatar_url ? { uri: data.avatar_url } : null,
+        stats: {
+          clubs: data.stats?.clubs_count ?? data.stats?.clubs ?? 0,
+          reports: data.stats?.reports_count ?? data.stats?.reports ?? 0,
+          likes: data.stats?.likes_count ?? data.stats?.likes ?? 0,
+        },
+      });
+
+      const dotColorByType: Record<ActivityItem['type'], string> = {
+        club: theme.palette.accent,
+        comment: theme.palette.primary,
+        like: theme.palette.error,
+      };
+
+      const mappedActivities: ActivityItem[] = (
+        data.recent_activities ?? []
+      ).map((item, index) => {
+        const activityType: ActivityItem['type'] = isActivityType(item.type)
+          ? item.type
+          : 'comment';
+
+        return {
+          id: String(item.id ?? `${activityType}-${index}`),
+          type: activityType,
+          clubName: item.club_name,
+          location: item.location,
+          timestamp: item.timestamp,
+          title: item.title,
+          subtitle: item.subtitle,
+          dotColor: dotColorByType[activityType],
+        };
+      });
+
+      setActivities(mappedActivities);
+    } catch (error) {
+      console.error('Error cargando el perfil:', error);
+      setLoadError('No se pudo cargar tu perfil. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setTimeout(() => {
-          setUser({
-            name: 'Angelo Alvarado',
-            career: 'Ingeniería en Sistemas Computacionales',
-            avatar: null,
-            stats: { clubs: 12, reports: 4, likes: 156 },
-          });
-        }, 500);
-      } catch (error) {
-        console.error('Error cargando el perfil:', error);
-      }
-    };
-    fetchUserData();
+    void fetchUserData();
   }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.safe, styles.center]}>
+        <ActivityIndicator size="large" color={theme.palette.onPrimary} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={[styles.safe, styles.center, styles.errorContainer]}>
+        <Text style={styles.errorTitle}>Ocurrió un error</Text>
+        <Text style={styles.errorSubtitle}>{loadError}</Text>
+        {__DEV__ && <Text style={styles.errorMeta}>API: {API_BASE_URL}</Text>}
+        <Pressable style={styles.retryButton} onPress={fetchUserData}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!user) return null;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.headerBg} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.palette.primary}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.avatarWrapper}>
             {user.avatar ? (
               <Image source={user.avatar} style={styles.avatarImage} />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons
-                  name="person-outline"
-                  size={44}
-                  color="rgba(255,255,255,0.7)"
-                />
-              </View>
+              <Ionicons
+                name="person-outline"
+                size={40}
+                color={theme.palette.onPrimary}
+              />
             )}
           </View>
 
-          {/* Nombre y Carrera */}
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={styles.userCareer}>{user.career}</Text>
 
@@ -162,12 +190,14 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── TABS ── */}
         <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'info' && styles.tabActive]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.tab,
+              activeTab === 'info' && styles.tabActive,
+              { opacity: pressed ? 0.9 : 1 },
+            ]}
             onPress={() => setActiveTab('info')}
-            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -177,12 +207,15 @@ export default function ProfileScreen() {
             >
               Información
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'activity' && styles.tabActive]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.tab,
+              activeTab === 'activity' && styles.tabActive,
+              { opacity: pressed ? 0.9 : 1 },
+            ]}
             onPress={() => setActiveTab('activity')}
-            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -192,10 +225,9 @@ export default function ProfileScreen() {
             >
               Actividad
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
-        {/* ── CONTENIDO ── */}
         <View style={styles.contentContainer}>
           {activeTab === 'info' ? (
             <View style={styles.cardInfo}>
@@ -211,7 +243,7 @@ export default function ProfileScreen() {
             <View style={styles.activityContainer}>
               <Text style={styles.activityTitle}>Actividad Reciente</Text>
               <View style={styles.cardActivity}>
-                <ActivityTab activities={RECENT_ACTIVITY} />
+                <ActivityTab activities={activities} />
               </View>
             </View>
           )}
@@ -221,124 +253,12 @@ export default function ProfileScreen() {
   );
 }
 
-function StatBox({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.statBox}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-// ─── InfoTab ──────────────────────────────────────────────────────────────────
-function InfoTab({
-  notificationsOn,
-  onToggleNotifications,
-  onEditInfo,
-  onHelp,
-  onLogout,
-}: {
-  notificationsOn: boolean;
-  onToggleNotifications: (v: boolean) => void;
-  onEditInfo: () => void;
-  onHelp: () => void;
-  onLogout: () => void;
-}) {
-  return (
-    <View>
-      <TouchableOpacity
-        style={styles.menuItem}
-        activeOpacity={0.7}
-        onPress={onEditInfo}
-      >
-        <View style={styles.menuIconBg}>
-          <EditarInfoIcon width={20} height={20} fill={COLORS.iconColor} />
-        </View>
-        <Text style={styles.menuLabel}>Editar información</Text>
-        <Text style={styles.menuChevron}>{'›'}</Text>
-      </TouchableOpacity>
-
-      <View style={styles.separator} />
-
-      <View style={styles.menuItem}>
-        <View style={styles.menuIconBg}>
-          <NotificationIcon width={20} height={20} fill={COLORS.iconColor} />
-        </View>
-        <Text style={styles.menuLabel}>Notificaciones</Text>
-        <Switch
-          value={notificationsOn}
-          onValueChange={onToggleNotifications}
-          trackColor={{ false: '#D1D5DB', true: COLORS.primary }}
-          thumbColor="#FFFFFF"
-        />
-      </View>
-
-      <View style={styles.separator} />
-
-      <TouchableOpacity
-        style={styles.menuItem}
-        activeOpacity={0.7}
-        onPress={onHelp}
-      >
-        <View style={styles.menuIconBg}>
-          <AyudaIcon width={20} height={20} fill={COLORS.iconColor} />
-        </View>
-        <Text style={styles.menuLabel}>Ayuda y soporte</Text>
-        <Text style={styles.menuChevron}>{'›'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={onLogout}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="log-out-outline" size={20} color={COLORS.logoutText} />
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ─── ActivityTab (Corregido a diseño de línea pura) ───────────────────────────
-function ActivityTab({ activities }: { activities: ActivityItem[] }) {
-  return (
-    <View>
-      {activities.map((item, index) => {
-        const isClub = item.type === 'club';
-        const displayTitle = isClub
-          ? `Asistencia al Club de ${item.clubName}`
-          : item.title;
-        const displaySubtitle = isClub
-          ? `${item.timestamp} • ${item.location}`
-          : item.subtitle;
-
-        return (
-          <View key={item.id} style={styles.activityItem}>
-            <View style={styles.timelineCol}>
-              <View style={[styles.dot, { backgroundColor: item.dotColor }]} />
-              {index < activities.length - 1 && (
-                <View style={styles.timelineLine} />
-              )}
-            </View>
-            <View style={styles.activityContent}>
-              <Text style={styles.activityItemTitle}>{displayTitle}</Text>
-              <Text style={styles.activityItemSubtitle}>{displaySubtitle}</Text>
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-// ─── Estilos ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.headerBg },
-  scroll: { flex: 1, backgroundColor: COLORS.bg },
-  scrollContent: { flexGrow: 1, paddingBottom: 40 }, // Espacio extra para la barra de navegación flotante
-
+  safe: { flex: 1, backgroundColor: theme.palette.primary },
+  scroll: { flex: 1, backgroundColor: theme.palette.background },
+  scrollContent: { flexGrow: 1, paddingBottom: 100 },
   header: {
-    backgroundColor: COLORS.headerBg,
+    backgroundColor: theme.palette.primary,
     alignItems: 'center',
     paddingTop: 40,
     paddingBottom: 25,
@@ -349,182 +269,108 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: theme.palette.onPrimary,
     overflow: 'hidden',
     marginBottom: 8,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: theme.palette.primaryContainer,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: { width: '100%', height: '100%' },
-  avatarPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-
   userName: {
     fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.userName,
+    fontFamily: theme.typography.fontFamily.manropeBold,
+    color: theme.palette.onPrimary,
     marginBottom: 4,
   },
   userCareer: {
     fontSize: 13,
-    color: COLORS.careerText,
+    fontFamily: theme.typography.fontFamily.interRegular,
+    color: theme.palette.onPrimary,
     textAlign: 'center',
     marginBottom: 20,
+    opacity: 0.8,
   },
-
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     marginTop: 10,
   },
-
-  statBox: {
-    backgroundColor: '#345B9D',
-    borderRadius: 16,
-    paddingVertical: 14,
-    width: '31%',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  statLabel: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  // ── Tabs corregidos (Estilo Píldora) ──
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.tabContainerBg,
+    backgroundColor: theme.palette.surfaceVariant,
     marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: 25, // Mucho más redondeado
+    marginTop: 15,
+    borderRadius: 25,
     padding: 4,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
+  tab: { flex: 1, paddingVertical: 10, borderRadius: 20, alignItems: 'center' },
   tabActive: {
-    backgroundColor: COLORS.tabActiveBg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    backgroundColor: theme.palette.surface,
     elevation: 2,
   },
-  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.tabTextInactive },
-  tabTextActive: { color: COLORS.tabTextActive },
-
-  // ── Contenedores de contenido ──
+  tabText: {
+    fontSize: 14,
+    fontFamily: theme.typography.fontFamily.interSemiBold,
+    color: theme.palette.textSecondary,
+  },
+  tabTextActive: { color: theme.palette.primary },
   contentContainer: { marginTop: 12, flex: 1 },
   cardInfo: {
     marginHorizontal: 20,
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 12,
-    //    elevation: 2,
-    //    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
+    backgroundColor: theme.palette.surface,
+    borderRadius: 18,
+    padding: 16,
   },
   activityContainer: { flex: 1 },
-
-  // ── Menú de Información ──
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  menuIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: COLORS.iconBg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.textDark,
-  },
-  menuChevron: { fontSize: 22, color: COLORS.textMuted },
-  separator: { height: 1, backgroundColor: COLORS.border },
-
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.logoutBg,
-    borderRadius: 12,
-    paddingVertical: 12,
-    marginTop: 12,
-    gap: 8,
-  },
-  logoutText: { fontSize: 15, fontWeight: '700', color: COLORS.logoutText },
-
-  // ── Sección de Actividad ──
-  activitySection: { paddingHorizontal: 20 },
   activityTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontFamily: theme.typography.fontFamily.interBold,
+    color: theme.palette.primary,
     marginBottom: 16,
     marginLeft: 20,
   },
-
   cardActivity: {
-    backgroundColor: COLORS.white,
+    backgroundColor: theme.palette.surface,
     borderRadius: 18,
-    paddingTop: 20,
-    paddingBottom: 8,
-    paddingRight: 16,
-    paddingLeft: 22,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    padding: 20,
+    marginHorizontal: 20,
   },
-  activityItem: {
-    flexDirection: 'row',
-    minHeight: 30,
+  center: { justifyContent: 'center', alignItems: 'center' },
+  errorContainer: { paddingHorizontal: 24 },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: theme.typography.fontFamily.interBold,
+    color: theme.palette.onPrimary,
+    textAlign: 'center',
   },
-  timelineCol: {
-    width: 20,
-    alignItems: 'center',
-    marginRight: 20,
+  errorSubtitle: {
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: theme.typography.fontFamily.interRegular,
+    color: theme.palette.onPrimary,
+    opacity: 0.85,
+    textAlign: 'center',
   },
-  dot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 4,
+  errorMeta: {
+    marginTop: 10,
+    fontSize: 12,
+    fontFamily: theme.typography.fontFamily.interRegular,
+    color: theme.palette.onPrimary,
+    opacity: 0.75,
+    textAlign: 'center',
   },
-  activityContent: { flex: 1, paddingBottom: 12 },
-  activityItemTitle: {
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: theme.palette.onPrimary,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  retryButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textDark,
-    lineHeight: 18,
+    fontFamily: theme.typography.fontFamily.interSemiBold,
+    color: theme.palette.primary,
   },
-  activityItemSubtitle: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 });
