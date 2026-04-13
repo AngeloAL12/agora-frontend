@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useAppFonts } from '@/hooks/useFonts';
+import { useNotificationsPreference } from '@/hooks/useNotificationsPreference';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { savePushToken } from '@/services/authService';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -9,7 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function AppContent() {
   const { token } = useAuth();
-  const { expoPushToken } = usePushNotifications();
+  const { notificationsEnabled } = useNotificationsPreference();
+  const { expoPushToken } = usePushNotifications(notificationsEnabled);
 
   useEffect(() => {
     if (token && expoPushToken) {

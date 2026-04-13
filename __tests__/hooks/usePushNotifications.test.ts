@@ -310,4 +310,32 @@ describe('usePushNotifications', () => {
       shouldShowList: true,
     });
   });
+
+  it('disables notification presentation when hook is disabled', async () => {
+    const { result } = renderHook(() => usePushNotifications(false));
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBeNull();
+      expect(result.current.permissionStatus).toBeNull();
+      expect(mockSetNotificationHandler).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockGetPermissions).not.toHaveBeenCalled();
+    expect(mockRequestPermissions).not.toHaveBeenCalled();
+    expect(mockGetToken).not.toHaveBeenCalled();
+    expect(
+      Notifications.addNotificationReceivedListener,
+    ).not.toHaveBeenCalled();
+    expect(
+      Notifications.addNotificationResponseReceivedListener,
+    ).not.toHaveBeenCalled();
+
+    const handlerConfig = mockSetNotificationHandler.mock.calls[0][0];
+    await expect(handlerConfig.handleNotification()).resolves.toEqual({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: false,
+      shouldShowList: false,
+    });
+  });
 });

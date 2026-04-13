@@ -24,6 +24,17 @@ function configureNotificationHandler(): void {
   });
 }
 
+function configureNotificationsDisabledHandler(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: false,
+      shouldShowList: false,
+    }),
+  });
+}
+
 async function configureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
@@ -94,7 +105,7 @@ async function registerForPushNotifications(): Promise<PushNotificationsState> {
   return { expoPushToken: token, permissionStatus };
 }
 
-export function usePushNotifications(): PushNotificationsState {
+export function usePushNotifications(enabled = true): PushNotificationsState {
   const [state, setState] = useState<PushNotificationsState>({
     expoPushToken: null,
     permissionStatus: null,
@@ -102,6 +113,12 @@ export function usePushNotifications(): PushNotificationsState {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+    if (!enabled) {
+      configureNotificationsDisabledHandler();
+      setState({ expoPushToken: null, permissionStatus: null });
+      return;
+    }
+
     registerForPushNotifications().then(setState);
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -117,9 +134,11 @@ export function usePushNotifications(): PushNotificationsState {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const onReceived = Notifications.addNotificationReceivedListener(
       (notification) => {
         if (__DEV__) {
@@ -143,7 +162,7 @@ export function usePushNotifications(): PushNotificationsState {
       onReceived.remove();
       onResponseReceived.remove();
     };
-  }, []);
+  }, [enabled]);
 
   return state;
 }
