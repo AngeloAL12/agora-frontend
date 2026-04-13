@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 
 // ---
@@ -36,12 +37,13 @@ interface UseChatReturn {
 }
 
 export function useChat(): UseChatReturn {
+  const { token, user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -55,28 +57,59 @@ export function useChat(): UseChatReturn {
     setInput('');
     setChatError(null);
 
-    // TODO: conectar API — cuando el endpoint esté listo, implementar aquí:
-    //
-    // setIsLoading(true);
-    // try {
-    //   const response = await apiRequest({
-    //     method: 'POST',
-    //     path: '/ia/chat',
-    //     body: { message: userMessage.text },
-    //     token,
-    //   });
-    //   const assistantMessage: Message = {
-    //     id: nextId(),
-    //     text: response.reply,
-    //     sender: 'assistant',
-    //     timestamp: formatTimestamp(),
-    //   };
-    //   setMessages((prev) => [...prev, assistantMessage]);
-    // } catch {
-    //   setChatError('No pude responder. Intenta de nuevo.');
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        'https://n8n.angelolo.lat/webhook/49743887-0e77-4f12-a409-f9f4826740b2',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chatInput: userMessage.text,
+            message: userMessage.text,
+            token,
+            user: user
+              ? {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                }
+              : null,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Error al conectar con la IA');
+      }
+
+      const textResponse = await response.text();
+      let data;
+      try {
+        data = JSON.parse(textResponse);
+      } catch {
+        data = textResponse;
+      }
+
+      const replyText =
+        data.output ||
+        data.text ||
+        (typeof data === 'string' ? data : JSON.stringify(data));
+
+      const assistantMessage: Message = {
+        id: nextId(),
+        text: replyText,
+        sender: 'assistant',
+        timestamp: formatTimestamp(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch {
+      setChatError('No pude responder. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSuggestedQuestion = (text: string) => {
