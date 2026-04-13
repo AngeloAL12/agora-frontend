@@ -59,31 +59,24 @@ export function useChat(): UseChatReturn {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        'https://n8n.angelolo.lat/webhook/49743887-0e77-4f12-a409-f9f4826740b2',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chatInput: userMessage.text,
-            message: userMessage.text,
-            token,
-            user: user
-              ? {
-                  id: user.id,
-                  name: user.name,
-                  email: user.email,
-                }
-              : null,
-          }),
+      const response = await fetch(process.env.EXPO_PUBLIC_N8N_URL!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
-
-      if (!response.ok) {
-        throw new Error('Error al conectar con la IA');
-      }
+        body: JSON.stringify({
+          chatInput: userMessage.text,
+          message: userMessage.text,
+          token,
+          user: user
+            ? {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              }
+            : null,
+        }),
+      });
 
       const textResponse = await response.text();
       let data;
