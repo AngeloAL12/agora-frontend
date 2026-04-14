@@ -195,6 +195,32 @@ describe('usePushNotifications', () => {
     warnSpy.mockRestore();
   });
 
+  it('silences aps-environment entitlement errors on iOS', async () => {
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken.mockRejectedValueOnce(
+      new Error(
+        'no valid "aps-environment" entitlement string found for application',
+      ),
+    );
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBeNull();
+      expect(result.current.permissionStatus).toBe('granted');
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[PushNotifications] iOS push capability is not configured yet (missing aps-environment entitlement). Skipping token generation.',
+    );
+    expect(errorSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
   it('returns null token when token generation fails', async () => {
     mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
     mockGetToken.mockRejectedValueOnce(new Error('token failure'));

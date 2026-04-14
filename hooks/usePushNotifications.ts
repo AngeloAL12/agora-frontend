@@ -9,6 +9,8 @@ export type PushNotificationsState = {
   permissionStatus: Notifications.PermissionStatus | null;
 };
 
+let hasLoggedMissingApsEnvironmentWarning = false;
+
 function isRunningInExpoGo(): boolean {
   return Constants.executionEnvironment === 'storeClient';
 }
@@ -62,6 +64,14 @@ function resolveProjectId(): string | undefined {
   );
 }
 
+function isMissingApsEnvironmentEntitlement(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  return /aps-environment.*entitlement string found for application/i.test(
+    error.message,
+  );
+}
+
 async function fetchExpoPushToken(): Promise<string | null> {
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync({
@@ -69,6 +79,16 @@ async function fetchExpoPushToken(): Promise<string | null> {
     });
     return token;
   } catch (error) {
+    if (isMissingApsEnvironmentEntitlement(error)) {
+      if (__DEV__ && !hasLoggedMissingApsEnvironmentWarning) {
+        console.warn(
+          '[PushNotifications] iOS push capability is not configured yet (missing aps-environment entitlement). Skipping token generation.',
+        );
+        hasLoggedMissingApsEnvironmentWarning = true;
+      }
+      return null;
+    }
+
     console.error('[PushNotifications] Failed to generate token:', error);
     return null;
   }
