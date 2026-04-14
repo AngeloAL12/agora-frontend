@@ -20,6 +20,13 @@ export const colors = {
   gray100: '#F2F4F7',
   glassBackground: 'rgba(255, 255, 255, 0.8)',
   glassBorder: 'rgba(255, 255, 255, 0.4)',
+  errorContainer: '#FFDAD6',
+  errorText: '#BA1A1A',
+  primaryContainer: '#D8E2FF',
+  bluePrimaryLight2: 'rgba(219,234,254,0.8)',
+  statsBackground: 'rgba(255,255,255,0.1)',
+  activityYellow: '#CBA800',
+  activityGray: '#747782',
 } as const;
 
 export const palette = {

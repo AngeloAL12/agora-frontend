@@ -25,8 +25,7 @@ export default function CategoryChip({
 
 const styles = StyleSheet.create({
   container: {
-    marginRight: 10,
-    marginBottom: 10,
+    maxWidth: '100%',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
@@ -39,6 +38,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#3E4650',
+    flexShrink: 1,
   },
   labelSelected: {
     color: '#1E1E1E',

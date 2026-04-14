@@ -195,6 +195,32 @@ describe('usePushNotifications', () => {
     warnSpy.mockRestore();
   });
 
+  it('silences aps-environment entitlement errors on iOS', async () => {
+    mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockGetToken.mockRejectedValueOnce(
+      new Error(
+        'no valid "aps-environment" entitlement string found for application',
+      ),
+    );
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBeNull();
+      expect(result.current.permissionStatus).toBe('granted');
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[PushNotifications] iOS push capability is not configured yet (missing aps-environment entitlement). Skipping token generation.',
+    );
+    expect(errorSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
   it('returns null token when token generation fails', async () => {
     mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
     mockGetToken.mockRejectedValueOnce(new Error('token failure'));
@@ -308,6 +334,34 @@ describe('usePushNotifications', () => {
       shouldSetBadge: false,
       shouldShowBanner: true,
       shouldShowList: true,
+    });
+  });
+
+  it('disables notification presentation when hook is disabled', async () => {
+    const { result } = renderHook(() => usePushNotifications(false));
+
+    await waitFor(() => {
+      expect(result.current.expoPushToken).toBeNull();
+      expect(result.current.permissionStatus).toBeNull();
+      expect(mockSetNotificationHandler).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockGetPermissions).not.toHaveBeenCalled();
+    expect(mockRequestPermissions).not.toHaveBeenCalled();
+    expect(mockGetToken).not.toHaveBeenCalled();
+    expect(
+      Notifications.addNotificationReceivedListener,
+    ).not.toHaveBeenCalled();
+    expect(
+      Notifications.addNotificationResponseReceivedListener,
+    ).not.toHaveBeenCalled();
+
+    const handlerConfig = mockSetNotificationHandler.mock.calls[0][0];
+    await expect(handlerConfig.handleNotification()).resolves.toEqual({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: false,
+      shouldShowList: false,
     });
   });
 });

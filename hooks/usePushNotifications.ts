@@ -9,6 +9,8 @@ export type PushNotificationsState = {
   permissionStatus: Notifications.PermissionStatus | null;
 };
 
+let hasLoggedMissingApsEnvironmentWarning = false;
+
 function isRunningInExpoGo(): boolean {
   return Constants.executionEnvironment === 'storeClient';
 }
@@ -20,6 +22,17 @@ function configureNotificationHandler(): void {
       shouldSetBadge: false,
       shouldShowBanner: true,
       shouldShowList: true,
+    }),
+  });
+}
+
+function configureNotificationsDisabledHandler(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: false,
+      shouldShowList: false,
     }),
   });
 }
@@ -51,6 +64,14 @@ function resolveProjectId(): string | undefined {
   );
 }
 
+function isMissingApsEnvironmentEntitlement(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  return /aps-environment.*entitlement string found for application/i.test(
+    error.message,
+  );
+}
+
 async function fetchExpoPushToken(): Promise<string | null> {
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync({
@@ -58,6 +79,16 @@ async function fetchExpoPushToken(): Promise<string | null> {
     });
     return token;
   } catch (error) {
+    if (isMissingApsEnvironmentEntitlement(error)) {
+      if (__DEV__ && !hasLoggedMissingApsEnvironmentWarning) {
+        console.warn(
+          '[PushNotifications] iOS push capability is not configured yet (missing aps-environment entitlement). Skipping token generation.',
+        );
+        hasLoggedMissingApsEnvironmentWarning = true;
+      }
+      return null;
+    }
+
     console.error('[PushNotifications] Failed to generate token:', error);
     return null;
   }
@@ -94,7 +125,7 @@ async function registerForPushNotifications(): Promise<PushNotificationsState> {
   return { expoPushToken: token, permissionStatus };
 }
 
-export function usePushNotifications(): PushNotificationsState {
+export function usePushNotifications(enabled = true): PushNotificationsState {
   const [state, setState] = useState<PushNotificationsState>({
     expoPushToken: null,
     permissionStatus: null,
@@ -102,6 +133,12 @@ export function usePushNotifications(): PushNotificationsState {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+    if (!enabled) {
+      configureNotificationsDisabledHandler();
+      setState({ expoPushToken: null, permissionStatus: null });
+      return;
+    }
+
     registerForPushNotifications().then(setState);
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -117,9 +154,11 @@ export function usePushNotifications(): PushNotificationsState {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const onReceived = Notifications.addNotificationReceivedListener(
       (notification) => {
         if (__DEV__) {
@@ -143,7 +182,7 @@ export function usePushNotifications(): PushNotificationsState {
       onReceived.remove();
       onResponseReceived.remove();
     };
-  }, []);
+  }, [enabled]);
 
   return state;
 }
