@@ -437,6 +437,8 @@ const styles = StyleSheet.create({
   categoryList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    columnGap: 10,
+    rowGap: 10,
   },
   row: {
     flexDirection: 'row',
