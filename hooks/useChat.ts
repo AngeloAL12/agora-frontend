@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // ---
 
@@ -10,9 +10,7 @@ export interface Message {
   timestamp: string;
 }
 
-// Contador atómico + timestamp para garantizar IDs únicos sin dependencias externas
-let _msgCounter = 0;
-const nextId = () => `msg_${++_msgCounter}_${Date.now()}`;
+const N8N_URL = process.env.EXPO_PUBLIC_N8N_URL ?? '';
 
 const formatTimestamp = (): string => {
   const now = new Date();
@@ -31,7 +29,7 @@ interface UseChatReturn {
   setInput: (text: string) => void;
   isLoading: boolean;
   chatError: string | null;
-  handleSend: () => void;
+  handleSend: (textOverride?: string) => void;
   handleSuggestedQuestion: (text: string) => void;
   clearError: () => void;
 }
@@ -43,30 +41,53 @@ export function useChat(): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const msgCounterRef = useRef(0);
+  const nextId = () => `msg_${++msgCounterRef.current}_${Date.now()}`;
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleSend = async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim();
+    if (!text || isLoading) return;
+
+    if (!N8N_URL) {
+      setChatError('No se encontró la URL del asistente.');
+      return;
+    }
 
     const userMessage: Message = {
       id: nextId(),
-      text: input.trim(),
+      text,
       sender: 'user',
       timestamp: formatTimestamp(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    if (!textOverride) setInput('');
     setChatError(null);
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 30_000);
 
     setIsLoading(true);
     try {
-      const response = await fetch(process.env.EXPO_PUBLIC_N8N_URL!, {
+      const response = await fetch(N8N_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
-          chatInput: userMessage.text,
-          message: userMessage.text,
+          chatInput: text,
+          message: text,
           token,
           user: user
             ? {
@@ -98,15 +119,20 @@ export function useChat(): UseChatReturn {
         timestamp: formatTimestamp(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
-      setChatError('No pude responder. Intenta de nuevo.');
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setChatError('El asistente tardó demasiado. Intenta de nuevo.');
+      } else {
+        setChatError('No pude responder. Intenta de nuevo.');
+      }
     } finally {
+      clearTimeout(timeout);
       setIsLoading(false);
     }
   };
 
   const handleSuggestedQuestion = (text: string) => {
-    setInput(text);
+    handleSend(text);
   };
 
   const clearError = () => setChatError(null);
