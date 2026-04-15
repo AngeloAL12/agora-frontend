@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiRequest } from '../services/api';
+import { useAuthRequest } from './useAuthRequest';
 
 export interface Complaint {
   id: number;
@@ -15,6 +15,7 @@ let complaintsCache: Complaint[] | null = null;
 
 export const useComplaints = () => {
   const { token } = useAuth();
+  const authRequest = useAuthRequest();
   const [reports, setReports] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,10 +31,9 @@ export const useComplaints = () => {
 
       setLoading(true);
       try {
-        const data = await apiRequest<Complaint[]>({
+        const data = await authRequest<Complaint[]>({
           method: 'GET',
           path: '/complaints/me',
-          token: token,
         });
         complaintsCache = data || [];
         setReports(complaintsCache);
@@ -43,7 +43,7 @@ export const useComplaints = () => {
         setLoading(false);
       }
     },
-    [token],
+    [token, authRequest],
   );
 
   useEffect(() => {
