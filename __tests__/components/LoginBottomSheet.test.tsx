@@ -20,6 +20,8 @@ jest.mock('expo-web-browser', () => ({
 
 const mockPromptGoogle = jest.fn();
 const mockPromptMicrosoft = jest.fn();
+const mockStartAuthentication = jest.fn();
+const mockFinishAuthentication = jest.fn();
 
 let mockGoogleResponse: unknown = null;
 let mockMicrosoftResponse: unknown = null;
@@ -123,8 +125,8 @@ describe('LoginBottomSheet', () => {
       isLoading: false,
       isAuthenticating: false,
       logout: jest.fn(),
-      startAuthentication: jest.fn(),
-      finishAuthentication: jest.fn(),
+      startAuthentication: mockStartAuthentication,
+      finishAuthentication: mockFinishAuthentication,
     });
   });
 
@@ -147,6 +149,34 @@ describe('LoginBottomSheet', () => {
     const { getByText } = renderSheet();
     fireEvent.press(getByText('Continuar con Microsoft'));
     expect(mockPromptMicrosoft).toHaveBeenCalledTimes(1);
+  });
+
+  it('google cancel response clears loading state', async () => {
+    const { getByText, rerender } = renderSheet();
+
+    fireEvent.press(getByText('Continuar con Google'));
+    expect(getByText('Cargando...')).toBeTruthy();
+
+    mockGoogleResponse = { type: 'cancel' };
+    rerender(<LoginBottomSheet ref={React.createRef<BottomSheetModal>()} />);
+    await act(async () => {});
+
+    expect(getByText('Continuar con Google')).toBeTruthy();
+    expect(mockFinishAuthentication).toHaveBeenCalled();
+  });
+
+  it('microsoft dismiss response clears loading state', async () => {
+    const { getByText, rerender } = renderSheet();
+
+    fireEvent.press(getByText('Continuar con Microsoft'));
+    expect(getByText('Cargando...')).toBeTruthy();
+
+    mockMicrosoftResponse = { type: 'dismiss' };
+    rerender(<LoginBottomSheet ref={React.createRef<BottomSheetModal>()} />);
+    await act(async () => {});
+
+    expect(getByText('Continuar con Microsoft')).toBeTruthy();
+    expect(mockFinishAuthentication).toHaveBeenCalled();
   });
 
   it('googleResponse success with valid code exchanges token and navigates map', async () => {

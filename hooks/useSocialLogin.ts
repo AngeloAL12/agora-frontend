@@ -164,8 +164,21 @@ export function useSocialLogin(): UseSocialLoginReturn {
       auth.finishAuthentication();
       setError('Error al iniciar sesión con Google. Inténtalo de nuevo.');
       setLoadingProvider(null);
+    } else if (
+      (googleResponse?.type === 'cancel' ||
+        googleResponse?.type === 'dismiss') &&
+      loadingProvider === 'google'
+    ) {
+      auth.finishAuthentication();
+      setLoadingProvider(null);
     }
-  }, [auth, googleResponse, googleRequest, handleGoogleAuthorizationCode]);
+  }, [
+    auth,
+    googleResponse,
+    googleRequest,
+    handleGoogleAuthorizationCode,
+    loadingProvider,
+  ]);
 
   useEffect(() => {
     const maybeHandleGoogleUrl = (url: string | null) => {
@@ -241,8 +254,21 @@ export function useSocialLogin(): UseSocialLoginReturn {
       auth.finishAuthentication();
       setError('Error al iniciar sesión con Microsoft. Inténtalo de nuevo.');
       setLoadingProvider(null);
+    } else if (
+      (microsoftResponse?.type === 'cancel' ||
+        microsoftResponse?.type === 'dismiss') &&
+      loadingProvider === 'microsoft'
+    ) {
+      auth.finishAuthentication();
+      setLoadingProvider(null);
     }
-  }, [auth, microsoftResponse, microsoftRequest, handleLoginResponse]);
+  }, [
+    auth,
+    microsoftResponse,
+    microsoftRequest,
+    handleLoginResponse,
+    loadingProvider,
+  ]);
 
   const handleGooglePress = useCallback(() => {
     if (Platform.OS === 'android' && isRunningInExpoGo()) {
