@@ -10,23 +10,24 @@ interface SuggestedQuestionProps {
   onPress: (text: string) => void;
 }
 
-export const SuggestedQuestion = ({
-  text,
-  onPress,
-}: SuggestedQuestionProps) => {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
-      onPress={() => onPress(text)}
-      accessibilityRole="button"
-    >
-      <ExpoImage source={capIcon} style={styles.icon} contentFit="contain" />
-      <Text style={styles.text} numberOfLines={2}>
-        {text}
-      </Text>
-    </Pressable>
-  );
-};
+export const SuggestedQuestion = React.memo(
+  ({ text, onPress }: SuggestedQuestionProps) => {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+        onPress={() => onPress(text)}
+        accessibilityRole="button"
+      >
+        <ExpoImage source={capIcon} style={styles.icon} contentFit="contain" />
+        <Text style={styles.text} numberOfLines={2}>
+          {text}
+        </Text>
+      </Pressable>
+    );
+  },
+);
+
+SuggestedQuestion.displayName = 'SuggestedQuestion';
 
 const styles = StyleSheet.create({
   container: {
