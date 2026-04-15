@@ -27,7 +27,7 @@ import { Career, CAREERS } from '@/constants/careers';
 
 export default function CareerScreen() {
   const router = useRouter();
-  const { token, updateUser, logout } = useAuth();
+  const { token, refreshToken, setTokens, updateUser, logout } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +43,15 @@ export default function CareerScreen() {
 
     setIsSubmitting(true);
     try {
-      await updateMyCareer(selected.careerId, token);
+      await updateMyCareer(selected.careerId, token, {
+        refreshToken: refreshToken ?? undefined,
+        onTokenRefreshed: (newAccess, newRefresh) => {
+          setTokens(newAccess, newRefresh).catch(() => {});
+        },
+        onRefreshFailed: () => {
+          logout().catch(() => {});
+        },
+      });
       await updateUser({ id_career: selected.careerId });
       router.replace('/(tabs)/map');
     } catch {

@@ -24,7 +24,7 @@ const exitIcon = require('@/assets/icons/profile/exit.svg');
 type TabType = 'info' | 'activity';
 
 export default function ProfileScreen() {
-  const { user, token, logout } = useAuth();
+  const { user, token, refreshToken, setTokens, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const { notificationsEnabled, isLoading, setNotificationsEnabled } =
@@ -36,7 +36,15 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!token) return;
     setIsLoadingMe(true);
-    getMe(token)
+    getMe(token, {
+      refreshToken: refreshToken ?? undefined,
+      onTokenRefreshed: (newAccess, newRefresh) => {
+        setTokens(newAccess, newRefresh).catch(() => {});
+      },
+      onRefreshFailed: () => {
+        logout().catch(() => {});
+      },
+    })
       .then(setMeData)
       .catch((err) => console.log('Error fetching me:', err))
       .finally(() => setIsLoadingMe(false));

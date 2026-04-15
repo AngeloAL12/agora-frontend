@@ -9,17 +9,25 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function AppContent() {
-  const { token } = useAuth();
+  const { token, refreshToken, setTokens, logout } = useAuth();
   const { notificationsEnabled } = useNotificationsPreference();
   const { expoPushToken } = usePushNotifications(notificationsEnabled);
 
   useEffect(() => {
     if (token && expoPushToken) {
-      savePushToken(expoPushToken, token).catch(() => {
+      savePushToken(expoPushToken, token, {
+        refreshToken: refreshToken ?? undefined,
+        onTokenRefreshed: (newAccess, newRefresh) => {
+          setTokens(newAccess, newRefresh).catch(() => {});
+        },
+        onRefreshFailed: () => {
+          logout().catch(() => {});
+        },
+      }).catch(() => {
         // silent — push token registration is non-critical
       });
     }
-  }, [token, expoPushToken]);
+  }, [token, expoPushToken, refreshToken, setTokens, logout]);
 
   return (
     <BottomSheetModalProvider>
