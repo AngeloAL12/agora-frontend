@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ClubsProvider } from '@/context/ClubsContext';
 import { useAppFonts } from '@/hooks/useFonts';
 import { useNotificationsPreference } from '@/hooks/useNotificationsPreference';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -11,7 +12,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 function AppContent() {
   const { token, refreshToken, setTokens, logout } = useAuth();
   const { notificationsEnabled } = useNotificationsPreference();
-  const { expoPushToken } = usePushNotifications(notificationsEnabled);
+  const shouldEnablePush =
+    notificationsEnabled && process.env.NODE_ENV === 'production';
+  const { expoPushToken } = usePushNotifications(shouldEnablePush);
 
   useEffect(() => {
     if (token && expoPushToken) {
@@ -24,14 +27,16 @@ function AppContent() {
           logout().catch(() => {});
         },
       }).catch(() => {
-        // silent — push token registration is non-critical
+        // silent
       });
     }
   }, [token, expoPushToken, refreshToken, setTokens, logout]);
 
   return (
     <BottomSheetModalProvider>
-      <Slot />
+      <ClubsProvider>
+        <Slot />
+      </ClubsProvider>
     </BottomSheetModalProvider>
   );
 }

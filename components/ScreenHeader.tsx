@@ -24,8 +24,9 @@ export const ScreenHeader = ({
   align = 'center',
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
+  const hasTitle = Boolean(title && title.trim().length > 0);
   const hasHeaderRow = Boolean(
-    title || leftAction || rightAction || showNotificationBell,
+    hasTitle || leftAction || rightAction || showNotificationBell,
   );
 
   const notificationBell = showNotificationBell ? (
@@ -49,7 +50,7 @@ export const ScreenHeader = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {hasHeaderRow && (
+      {hasHeaderRow && hasTitle && (
         <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
           {align === 'center' ? (
             <>
@@ -58,7 +59,7 @@ export const ScreenHeader = ({
                 style={[styles.title, { textAlign: 'center' }]}
                 numberOfLines={1}
               >
-                {title ?? ''}
+                {title}
               </Text>
               <View style={styles.slot}>{resolvedRightAction ?? null}</View>
             </>
@@ -68,11 +69,9 @@ export const ScreenHeader = ({
                 {leftAction && (
                   <View style={styles.leftActionItem}>{leftAction}</View>
                 )}
-                {title ? (
-                  <Text style={styles.titleLeft} numberOfLines={1}>
-                    {title}
-                  </Text>
-                ) : null}
+                <Text style={styles.titleLeft} numberOfLines={1}>
+                  {title}
+                </Text>
               </View>
               {resolvedRightAction && (
                 <View style={styles.rightActionItem}>
@@ -83,7 +82,17 @@ export const ScreenHeader = ({
           )}
         </View>
       )}
-      {searchInput && <View style={styles.searchWrapper}>{searchInput}</View>}
+
+      {searchInput && (
+        <View style={styles.searchRow}>
+          <View style={styles.searchInputContainer}>{searchInput}</View>
+          {resolvedRightAction && !hasTitle && (
+            <View style={styles.searchBellContainer}>
+              {resolvedRightAction}
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -96,7 +105,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 24,
     elevation: 4,
+    paddingBottom: 14,
   },
+
   inner: {
     height: 56,
     flexDirection: 'row',
@@ -104,14 +115,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 24,
   },
+
   innerLeft: {
-    height: 64, // Más altura según diseño
+    height: 64,
   },
+
   slot: {
     width: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   title: {
     flex: 1,
     fontSize: 20,
@@ -119,33 +133,56 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: -0.3,
   },
+
   leftContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+
   titleLeft: {
     fontSize: 24,
     fontFamily: typography.fontFamily.manropeExtraBold,
     color: colors.white,
     letterSpacing: -0.3,
   },
+
   leftActionItem: {
     marginRight: 16,
   },
+
   rightActionItem: {
     marginLeft: 16,
   },
-  searchWrapper: {
-    paddingHorizontal: 24,
-    paddingBottom: 14,
+
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    marginTop: 45,
+    gap: 12,
   },
+
+  searchInputContainer: {
+    flex: 1,
+    maxWidth: '85%',
+  },
+
+  searchBellContainer: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   notificationBell: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   bellIcon: {
     width: 36,
     height: 36,

@@ -1,212 +1,105 @@
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
-import { Image as ExpoImage, type ImageSource } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  LayoutChangeEvent,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { COLORS } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors } from '@/constants/theme';
+const HIDDEN_ROUTES = ['my-clubs'];
 
-const mapIcon = require('@/assets/icons/navbar/map.svg') as ImageSource;
-const complaintsIcon =
-  require('@/assets/icons/navbar/reports.svg') as ImageSource;
-const iaIcon = require('@/assets/icons/navbar/mailbox.svg') as ImageSource;
-const clubsIcon = require('@/assets/icons/navbar/clubs.svg') as ImageSource;
-const profileIcon = require('@/assets/icons/navbar/profile.svg') as ImageSource;
-
-const TAB_ICONS = {
-  map: mapIcon,
-  complaints: complaintsIcon,
-  ia: iaIcon,
-  clubs: clubsIcon,
-  profile: profileIcon,
-};
-
-const FALLBACK_ICON = complaintsIcon;
-
-const ICON_WRAPPER_SIZE = 46;
-export const FLOATING_TAB_BAR_HEIGHT = 70;
-export const FLOATING_TAB_BAR_BOTTOM_OFFSET = 8;
-
-export function FloatingTabBar({
+export const FloatingTabBar: React.FC<BottomTabBarProps> = ({
   state,
   navigation,
-  descriptors,
-  insets,
-}: BottomTabBarProps) {
-  const tabCenters = useRef<number[]>([]);
-
-  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
-  const [indicatorReady, setIndicatorReady] = useState(false);
-
-  useEffect(() => {
-    if (!indicatorReady) return;
-    const center = tabCenters.current[state.index];
-    if (center == null) return;
-
-    const targetTranslateX = center - ICON_WRAPPER_SIZE / 2;
-
-    Animated.spring(indicatorTranslateX, {
-      toValue: targetTranslateX,
-      useNativeDriver: true,
-      damping: 20,
-      stiffness: 200,
-      mass: 0.8,
-    }).start();
-  }, [state.index, indicatorReady, indicatorTranslateX]);
-
-  const handleTabLayout = (index: number) => (e: LayoutChangeEvent) => {
-    const { x, width } = e.nativeEvent.layout;
-    tabCenters.current[index] = x + width / 2;
-
-    const allMeasured = state.routes.every((_, routeIndex) =>
-      Number.isFinite(tabCenters.current[routeIndex]),
-    );
-
-    if (allMeasured) {
-      const initialCenter = tabCenters.current[state.index];
-      if (initialCenter != null) {
-        indicatorTranslateX.setValue(initialCenter - ICON_WRAPPER_SIZE / 2);
-        setIndicatorReady(true);
-      }
-    }
-  };
-
+}) => {
   return (
-    <View
-      style={[
-        styles.wrapper,
-        { bottom: insets.bottom + FLOATING_TAB_BAR_BOTTOM_OFFSET },
-      ]}
-      pointerEvents="box-none"
-    >
-      <BlurView intensity={80} tint="light" style={styles.pill}>
-        {indicatorReady && (
-          <Animated.View
-            style={[
-              styles.indicator,
-              { transform: [{ translateX: indicatorTranslateX }] },
-            ]}
-          />
-        )}
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        {state.routes
 
-        {state.routes.map((route, index) => {
-          const isActive = state.index === index;
-          const mappedIcon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
-          const icon = mappedIcon ?? FALLBACK_ICON;
+          .filter((route) => !HIDDEN_ROUTES.includes(route.name))
+          .map((route, index) => {
+            const isFocused = state.index === index;
 
-          if (!mappedIcon && __DEV__) {
-            console.warn(
-              `[FloatingTabBar] Missing icon mapping for route "${route.name}".`,
-            );
-          }
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-          const descriptor = descriptors[route.key];
-          const optionLabel = descriptor.options.tabBarLabel;
-          const label =
-            typeof optionLabel === 'string'
-              ? optionLabel
-              : (descriptor.options.title ?? route.name);
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
-          const customSize = 24;
+            const getIconName = () => {
+              switch (route.name) {
+                case 'map':
+                  return isFocused ? 'map' : 'map-outline';
+                case 'complaints':
+                  return isFocused ? 'mail' : 'mail-outline';
+                case 'ia':
+                  return isFocused
+                    ? 'chatbubble-ellipses'
+                    : 'chatbubble-ellipses-outline';
+                case 'clubs':
+                  return isFocused ? 'people' : 'people-outline';
+                case 'profile':
+                  return isFocused ? 'person' : 'person-outline';
+                default:
+                  return 'ellipse-outline';
+              }
+            };
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
-
-          return (
-            <Pressable
-              key={route.key}
-              onPress={onPress}
-              style={styles.tabItem}
-              onLayout={handleTabLayout(index)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={label}
-              accessibilityHint={`Abre la sección ${label}`}
-            >
-              <View style={styles.iconWrapper}>
-                <ExpoImage
-                  source={icon}
-                  style={[
-                    { width: customSize, height: customSize },
-                    { tintColor: isActive ? colors.white : colors.gray700 },
-                  ]}
-                  contentFit="contain"
+            return (
+              <Pressable
+                key={route.key}
+                onPress={onPress}
+                style={[styles.tabButton, isFocused && styles.activeTabButton]}
+              >
+                <Ionicons
+                  name={getIconName() as any}
+                  size={24}
+                  color={isFocused ? COLORS.white : '#6B7280'}
                 />
-              </View>
-            </Pressable>
-          );
-        })}
-      </BlurView>
+              </Pressable>
+            );
+          })}
+      </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
+    bottom: 10,
     alignItems: 'center',
-    borderRadius: 9999,
-    shadowColor: colors.blueSecondary,
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
   },
-  pill: {
+  container: {
+    width: 351,
+    height: 72,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 9999,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    width: '100%',
-    height: FLOATING_TAB_BAR_HEIGHT,
-    borderRadius: 9999,
-    overflow: 'hidden',
-    backgroundColor: colors.whiteTransparent90,
-    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    shadowColor: '#003172',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 32,
+    elevation: 8,
   },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    zIndex: 1,
-  },
-  iconWrapper: {
-    width: ICON_WRAPPER_SIZE,
-    height: ICON_WRAPPER_SIZE,
+  tabButton: {
+    width: 46,
+    height: 46,
     borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  indicator: {
-    position: 'absolute',
-    left: 0,
-    width: ICON_WRAPPER_SIZE,
-    height: ICON_WRAPPER_SIZE,
-    borderRadius: 9999,
-    backgroundColor: colors.bluePrimary,
-    top: (FLOATING_TAB_BAR_HEIGHT - ICON_WRAPPER_SIZE) / 2,
-    shadowColor: colors.bluePrimary,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-    zIndex: 0,
+  activeTabButton: {
+    backgroundColor: COLORS.primary,
   },
 });
