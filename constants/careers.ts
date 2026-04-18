@@ -18,3 +18,22 @@ export const CAREER_ICONS: Record<number, number> = {
 };
 
 export const getCareerIcon = (careerId: number) => CAREER_ICONS[careerId];
+
+export const CAREERS_LIST = [
+  { id: 1, name: 'Ingeniería Bioquímica' },
+  { id: 2, name: 'Ingeniería en Semiconductores' },
+  { id: 3, name: 'Contador Público' },
+  { id: 4, name: 'Licenciatura en Administración' },
+  { id: 5, name: 'Ingeniería en Desarrollo de Aplicaciones' },
+  { id: 6, name: 'Ingeniería Eléctrica' },
+  { id: 7, name: 'Ingeniería Electrónica' },
+  { id: 8, name: 'Ingeniería en Energías Renovables' },
+  { id: 9, name: 'Ingeniería en Gestión Empresarial' },
+  { id: 10, name: 'Ingeniería Industrial' },
+  { id: 11, name: 'Ingeniería en Logística' },
+  { id: 12, name: 'Ingeniería en Materiales' },
+  { id: 13, name: 'Ingeniería Mecatrónica' },
+  { id: 14, name: 'Ingeniería Mecánica' },
+  { id: 15, name: 'Ingeniería Química' },
+  { id: 16, name: 'Ingeniería en Sistemas Computacionales' },
+] as const;

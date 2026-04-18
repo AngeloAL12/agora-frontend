@@ -1,11 +1,13 @@
-import { useAuth } from '@/context/AuthContext';
+import { CAREERS_LIST, getCareerIcon } from '@/constants/careers';
 import { theme } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/services/api';
 import { getMe, UserMeResponse } from '@/services/authService';
-import { useCareers } from '@/hooks/useCareers';
+import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
+import { Image as ExpoImage, type ImageSource } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { router, Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, {
   useCallback,
@@ -26,9 +28,9 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  View,
   TextInput,
   useWindowDimensions,
+  View,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -41,15 +43,32 @@ const extractStudentId = (email: string): string => {
   return email.slice(1, atIndex);
 };
 
-type ServerProfileUpdate = {
-  full_name: string;
-  id_career: number | null;
+const LockIcon = require('@/assets/icons/profile/lock.svg') as ImageSource;
+
+const findCareerIdByName = (name: string | null | undefined) => {
+  if (!name) return null;
+  const normalizedName = name.toLowerCase().trim();
+
+  // 1. Exact match (case insensitive)
+  const exact = CAREERS_LIST.find(
+    (c) => c.name.toLowerCase().trim() === normalizedName,
+  );
+  if (exact) return exact.id;
+
+  // 2. Partial match (if one contains the other)
+  const partial = CAREERS_LIST.find((c) => {
+    const cName = c.name.toLowerCase().trim();
+    return cName.includes(normalizedName) || normalizedName.includes(cName);
+  });
+
+  return partial ? partial.id : null;
 };
 
 type CachedProfile = {
   full_name: string;
   career: string;
   email: string;
+  id_career?: number | null;
   avatar_url: string | null;
 };
 
@@ -66,18 +85,19 @@ const parseCachedProfile = (raw: string | null): CachedProfile | null => {
 
 export default function EditInfoScreen() {
   const { token, user, updateUser } = useAuth();
-  const { careers, loading: careersLoading } = useCareers(token ?? undefined);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const selectFieldRef = useRef<View>(null);
 
-  const [fullName, setFullName] = useState('');
-  const [career, setCareer] = useState('');
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [selectedCareerId, setSelectedCareerId] = useState<number | null>(
+    user?.id_career ?? null,
+  );
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [initialAvatarUri, setInitialAvatarUri] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCareerDropdownOpen, setIsCareerDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{
@@ -87,10 +107,11 @@ export default function EditInfoScreen() {
     width: number;
   }>({ top: 0, left: 0, width: 0 });
 
-  const selectedCareerLabel = useMemo(
-    () => career || 'Selecciona una carrera',
-    [career],
-  );
+  const selectedCareerLabel = useMemo(() => {
+    if (selectedCareerId === null) return 'Selecciona una carrera';
+    const found = CAREERS_LIST.find((c) => c.id === selectedCareerId);
+    return found ? found.name : 'Selecciona una carrera';
+  }, [selectedCareerId]);
 
   const loadUser = useCallback(async () => {
     if (!token) return;
@@ -100,8 +121,10 @@ export default function EditInfoScreen() {
       const cachedProfile = parseCachedProfile(cachedRaw);
 
       if (cachedProfile) {
+        const foundId =
+          cachedProfile.id_career || findCareerIdByName(cachedProfile.career);
         setFullName(cachedProfile.full_name);
-        setCareer(cachedProfile.career);
+        if (foundId) setSelectedCareerId(foundId);
         setEmail(cachedProfile.email);
         setStudentId(extractStudentId(cachedProfile.email));
         setAvatarUri(cachedProfile.avatar_url);
@@ -113,10 +136,11 @@ export default function EditInfoScreen() {
       const resolvedName = data.full_name || data.name || user?.name || '';
       const resolvedEmail = data.email || user?.email || '';
       const resolvedAvatar = data.avatar_url ?? data.photo ?? null;
-      const resolvedCareer = data.career ?? cachedProfile?.career ?? '';
+      const careerName = data.career || cachedProfile?.career || '';
+      const foundId = findCareerIdByName(careerName) || user?.id_career;
 
       setFullName(resolvedName);
-      setCareer(resolvedCareer);
+      if (foundId) setSelectedCareerId(foundId);
       setEmail(resolvedEmail);
       setStudentId(extractStudentId(resolvedEmail));
       setAvatarUri(resolvedAvatar ?? cachedProfile?.avatar_url ?? null);
@@ -126,8 +150,11 @@ export default function EditInfoScreen() {
       const fallbackProfile = parseCachedProfile(fallbackRaw);
 
       if (fallbackProfile) {
+        const foundId =
+          fallbackProfile.id_career ||
+          findCareerIdByName(fallbackProfile.career);
         setFullName(fallbackProfile.full_name);
-        setCareer(fallbackProfile.career);
+        if (foundId) setSelectedCareerId(foundId);
         setEmail(fallbackProfile.email);
         setStudentId(extractStudentId(fallbackProfile.email));
         setAvatarUri(fallbackProfile.avatar_url);
@@ -136,7 +163,7 @@ export default function EditInfoScreen() {
         const fallbackName = user?.name ?? '';
         const fallbackEmail = user?.email ?? '';
         setFullName(fallbackName);
-        setCareer('');
+        setSelectedCareerId(null);
         setEmail(fallbackEmail);
         setStudentId(extractStudentId(fallbackEmail));
         setAvatarUri(null);
@@ -145,7 +172,7 @@ export default function EditInfoScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, user?.email, user?.name]);
+  }, [token, user?.email, user?.name, user?.id_career]);
 
   useEffect(() => {
     void loadUser();
@@ -183,8 +210,8 @@ export default function EditInfoScreen() {
     });
   }, [isCareerDropdownOpen, windowHeight]);
 
-  const handleSelectCareer = useCallback((label: string) => {
-    setCareer(label);
+  const handleSelectCareer = useCallback((id: number) => {
+    setSelectedCareerId(id);
     setIsCareerDropdownOpen(false);
   }, []);
 
@@ -223,14 +250,13 @@ export default function EditInfoScreen() {
     try {
       setSaving(true);
 
-      const selectedCareer = careers.find((item) => item.name === career);
       const nextAvatar = avatarUri ?? initialAvatarUri ?? null;
 
       const form = new FormData();
       form.append('name', fullName.trim());
 
-      if (selectedCareer?.id != null) {
-        form.append('id_career', String(selectedCareer.id));
+      if (selectedCareerId != null) {
+        form.append('id_career', String(selectedCareerId));
       }
 
       if (avatarUri && avatarUri !== initialAvatarUri) {
@@ -254,10 +280,13 @@ export default function EditInfoScreen() {
         isMultipart: true,
       });
 
+      CacheService.clearMeData();
+
       const cachedProfile: CachedProfile = {
         full_name: fullName.trim(),
-        career,
+        career: selectedCareerLabel,
         email,
+        id_career: selectedCareerId,
         avatar_url: nextAvatar,
       };
 
@@ -266,7 +295,11 @@ export default function EditInfoScreen() {
         JSON.stringify(cachedProfile),
       );
 
-      await updateUser({ name: fullName.trim(), email });
+      await updateUser({
+        name: fullName.trim(),
+        email,
+        id_career: selectedCareerId,
+      });
       setInitialAvatarUri(nextAvatar);
       setAvatarUri(nextAvatar);
       Alert.alert('Éxito', 'Los cambios se guardaron correctamente.');
@@ -278,17 +311,17 @@ export default function EditInfoScreen() {
     }
   }, [
     avatarUri,
-    career,
-    careers,
     email,
     fullName,
     initialAvatarUri,
+    selectedCareerId,
+    selectedCareerLabel,
     token,
     updateUser,
   ]);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar
         barStyle="dark-content"
@@ -300,7 +333,7 @@ export default function EditInfoScreen() {
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
           onPress={() => router.replace('/profile')}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.palette.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.blueDark} />
         </Pressable>
         <Text style={styles.headerTitle}>Editar información</Text>
         <View style={{ width: 24 }} />
@@ -356,13 +389,25 @@ export default function EditInfoScreen() {
                   style={[styles.input, styles.selectRow]}
                   onPress={handleOpenCareerDropdown}
                 >
-                  <Text
-                    style={
-                      career ? styles.selectValue : styles.selectPlaceholder
-                    }
-                  >
-                    {selectedCareerLabel}
-                  </Text>
+                  <View style={styles.selectTextContainer}>
+                    {selectedCareerId !== null && (
+                      <ExpoImage
+                        source={getCareerIcon(selectedCareerId)}
+                        style={styles.selectIcon}
+                        contentFit="contain"
+                      />
+                    )}
+                    <Text
+                      style={
+                        selectedCareerId !== null
+                          ? styles.selectValue
+                          : styles.selectPlaceholder
+                      }
+                      numberOfLines={1}
+                    >
+                      {selectedCareerLabel}
+                    </Text>
+                  </View>
                   <Ionicons
                     name={isCareerDropdownOpen ? 'chevron-up' : 'chevron-down'}
                     size={18}
@@ -374,11 +419,15 @@ export default function EditInfoScreen() {
 
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>CORREO INSTITUCIONAL</Text>
-                <Ionicons
-                  name="lock-closed"
-                  size={11}
-                  color={theme.palette.textSecondary}
+                <Text style={styles.fieldLabelGray}>CORREO INSTITUCIONAL</Text>
+                <ExpoImage
+                  source={LockIcon}
+                  style={{
+                    width: 11,
+                    height: 11,
+                    tintColor: theme.palette.textSecondary,
+                  }}
+                  contentFit="contain"
                 />
               </View>
               <View style={[styles.input, styles.inputDisabled]}>
@@ -388,11 +437,15 @@ export default function EditInfoScreen() {
 
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>MATRÍCULA</Text>
-                <Ionicons
-                  name="lock-closed"
-                  size={11}
-                  color={theme.palette.textSecondary}
+                <Text style={styles.fieldLabelGray}>MATRÍCULA</Text>
+                <ExpoImage
+                  source={LockIcon}
+                  style={{
+                    width: 11,
+                    height: 11,
+                    tintColor: theme.palette.textSecondary,
+                  }}
+                  contentFit="contain"
                 />
               </View>
               <View style={[styles.input, styles.inputDisabled]}>
@@ -452,28 +505,26 @@ export default function EditInfoScreen() {
             style={styles.dropdownScroll}
             contentContainerStyle={styles.dropdownContent}
           >
-            {careersLoading && careers.length === 0 ? (
-              <View style={styles.dropdownLoading}>
-                <ActivityIndicator color={theme.palette.primary} />
-              </View>
-            ) : careers.length === 0 ? (
-              <View style={styles.dropdownEmpty}>
-                <Text style={styles.dropdownEmptyText}>
-                  No hay carreras disponibles.
-                </Text>
-              </View>
-            ) : (
-              careers.map((item) => {
-                const isSelected = item.name === career;
-                return (
-                  <Pressable
-                    key={item.id}
-                    style={[
-                      styles.dropdownItem,
-                      isSelected && styles.dropdownItemSelected,
-                    ]}
-                    onPress={() => handleSelectCareer(item.name)}
-                  >
+            {CAREERS_LIST.map((item) => {
+              const isSelected = item.id === selectedCareerId;
+              const icon = getCareerIcon(item.id);
+              return (
+                <Pressable
+                  key={item.id}
+                  style={[
+                    styles.dropdownItem,
+                    isSelected && styles.dropdownItemSelected,
+                  ]}
+                  onPress={() => handleSelectCareer(item.id)}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <View style={styles.dropdownIconBox}>
+                      <ExpoImage
+                        source={icon}
+                        style={styles.dropdownItemIcon}
+                        contentFit="contain"
+                      />
+                    </View>
                     <Text
                       style={[
                         styles.dropdownItemText,
@@ -482,10 +533,10 @@ export default function EditInfoScreen() {
                     >
                       {item.name}
                     </Text>
-                  </Pressable>
-                );
-              })
-            )}
+                  </View>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       </Modal>
@@ -510,9 +561,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.palette.surface,
   },
   headerTitle: {
-    fontSize: 17,
-    fontFamily: theme.typography.fontFamily.interSemiBold,
-    color: theme.palette.primary,
+    fontSize: 20,
+    fontFamily: theme.typography.fontFamily.interBold,
+    color: theme.colors.blueDark,
   },
   scrollContent: {
     paddingBottom: 20,
@@ -561,7 +612,7 @@ const styles = StyleSheet.create({
   photoLabel: {
     marginTop: 8,
     fontSize: 12,
-    fontFamily: theme.typography.fontFamily.interSemiBold,
+    fontFamily: theme.typography.fontFamily.interRegular,
     color: theme.palette.textSecondary,
     letterSpacing: 0.5,
   },
@@ -581,9 +632,15 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: theme.typography.fontFamily.interSemiBold,
-    color: theme.palette.primary,
+    color: theme.colors.blueSecondary,
+    letterSpacing: 0.6,
+  },
+  fieldLabelGray: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontFamily.interSemiBold,
+    color: theme.colors.activityGray,
     letterSpacing: 0.6,
   },
   input: {
@@ -599,6 +656,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  selectTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  selectIcon: {
+    width: 20,
+    height: 20,
   },
   selectValue: {
     flex: 1,
@@ -672,9 +739,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   dropdownItem: {
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: theme.palette.surface,
+  },
+  dropdownItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dropdownIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: theme.colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownItemIcon: {
+    width: 18,
+    height: 18,
   },
   dropdownItemSelected: {
     backgroundColor: theme.colors.primaryContainer,
