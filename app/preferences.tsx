@@ -96,7 +96,7 @@ export default function PreferencesScreen() {
   }, [notificationsOn, homeScreen]);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar
         barStyle="dark-content"
