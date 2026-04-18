@@ -38,10 +38,12 @@ export function FloatingTabBar({
   descriptors,
   insets,
 }: BottomTabBarProps) {
+  // 1. Hooks al principio
   const tabCenters = useRef<number[]>([]);
   const indicatorTranslateX = useRef(new Animated.Value(0)).current;
   const [indicatorReady, setIndicatorReady] = useState(false);
 
+  // 2. Lógica de visibilidad
   const currentRouteKey = state.routes[state.index]?.key;
   const focusedOptions = currentRouteKey
     ? descriptors[currentRouteKey]?.options
@@ -51,25 +53,23 @@ export function FloatingTabBar({
 
   useEffect(() => {
     if (!indicatorReady || isHidden) return;
-
     const center = tabCenters.current[state.index];
     if (center == null) return;
-    const targetTranslateX = center - ICON_WRAPPER_SIZE / 2;
 
     Animated.spring(indicatorTranslateX, {
-      toValue: targetTranslateX,
+      toValue: center - ICON_WRAPPER_SIZE / 2,
       useNativeDriver: true,
       damping: 20,
       stiffness: 200,
       mass: 0.8,
     }).start();
-  }, [state.index, indicatorReady, indicatorTranslateX, isHidden]);
+  }, [state.index, indicatorReady, isHidden]);
 
   const handleTabLayout = (index: number) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
     tabCenters.current[index] = x + width / 2;
-    const allMeasured = state.routes.every((_, routeIndex) =>
-      Number.isFinite(tabCenters.current[routeIndex]),
+    const allMeasured = state.routes.every((_, i) =>
+      Number.isFinite(tabCenters.current[i]),
     );
     if (allMeasured) {
       const initialCenter = tabCenters.current[state.index];
@@ -79,9 +79,8 @@ export function FloatingTabBar({
       }
     }
   };
-  if (isHidden) {
-    return null;
-  }
+
+  if (isHidden) return null;
 
   return (
     <View
@@ -106,15 +105,21 @@ export function FloatingTabBar({
           const mappedIcon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
           const icon = mappedIcon ?? FALLBACK_ICON;
 
+          // --- ACCESSIBILIDAD PARA TESTS ---
+          const descriptor = descriptors[route.key];
+          const optionLabel = descriptor?.options.tabBarLabel;
+          const label =
+            typeof optionLabel === 'string'
+              ? optionLabel
+              : (descriptor?.options.title ?? route.name);
+
           const onPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
+            if (!event.defaultPrevented) navigation.navigate(route.name);
           };
 
           return (
@@ -124,6 +129,7 @@ export function FloatingTabBar({
               style={styles.tabItem}
               onLayout={handleTabLayout(index)}
               accessibilityRole="tab"
+              accessibilityLabel={label}
               accessibilityState={{ selected: isActive }}
             >
               <View style={styles.iconWrapper}>
