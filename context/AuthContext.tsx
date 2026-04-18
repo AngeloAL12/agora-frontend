@@ -84,6 +84,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadStoredAuth();
   }, []);
 
+  useEffect(() => {
+    if (state.token && state.isAuthenticating) {
+      setState((currentState) =>
+        currentState.token
+          ? { ...currentState, isAuthenticating: false }
+          : currentState,
+      );
+    }
+  }, [state.token, state.isAuthenticating]);
+
   const login = useCallback(async (response: LoginResponse) => {
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, response.access_token),

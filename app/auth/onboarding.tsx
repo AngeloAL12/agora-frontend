@@ -1,16 +1,18 @@
+import { router } from 'expo-router';
 import LoginBottomSheet from '@/components/LoginBottomSheet';
 import { colors, typography } from '@/constants/theme';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useAuth } from '@/context/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function Onboarding() {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const { login } = useAuth();
+  const [loginVisible, setLoginVisible] = useState(false);
 
   const handleOpenLogin = () => {
-    bottomSheetRef.current?.present();
+    setLoginVisible(true);
   };
 
   return (
@@ -52,7 +54,10 @@ export default function Onboarding() {
         </Pressable>
       </View>
 
-      <LoginBottomSheet ref={bottomSheetRef} />
+      <LoginBottomSheet
+        visible={loginVisible}
+        onDismiss={() => setLoginVisible(false)}
+      />
     </View>
   );
 }

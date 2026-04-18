@@ -56,12 +56,17 @@ export async function updateMyCareer(
 }
 
 export type UserMeResponse = {
+  id: number;
+  email: string;
+  role: string;
   name: string;
+  full_name?: string;
   clubs_count: number;
   complaints_count: number;
   likes_count: number;
   career: string | null;
   photo: string | null;
+  avatar_url?: string | null;
 };
 
 export async function getMe(accessToken: string): Promise<UserMeResponse> {

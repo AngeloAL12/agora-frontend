@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -9,43 +9,185 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { useNotificationsPreference } from '../../hooks/useNotificationsPreference';
 import { getMe, UserMeResponse } from '../../services/authService';
+import { router } from 'expo-router';
+import { useComplaints } from '../../hooks/useComplaints';
 
 // SVG Icons
 const editIcon = require('@/assets/icons/profile/edit.svg');
-const notificationsIcon = require('@/assets/icons/profile/notifications.svg');
+const preferencesIcon = require('@/assets/icons/profile/preferences.svg');
 const helpIcon = require('@/assets/icons/profile/help.svg');
 const exitIcon = require('@/assets/icons/profile/exit.svg');
+const PROFILE_CACHE_KEY = 'agora_profile_cache';
 
 type TabType = 'info' | 'activity';
+
+type ProfileCache = {
+  full_name?: string;
+  career?: string;
+  email?: string;
+  avatar_url?: string | null;
+};
+
+type ActivityItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  meta: string;
+  color: string;
+};
+
+const parseProfileCache = (raw: string | null): ProfileCache | null => {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as ProfileCache;
+  } catch {
+    return null;
+  }
+};
+
+const formatRelativeDate = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Fecha no disponible';
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMinutes / 60);
+  const diffDays = Math.round(diffHours / 24);
+
+  if (diffMinutes < 1) return 'Hace unos segundos';
+  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
+  if (diffHours < 24) return `Hace ${diffHours} h`;
+  if (diffDays === 1) return 'Ayer';
+  if (diffDays < 7) return `Hace ${diffDays} días`;
+
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const normalizeComplaintStatus = (status: string): string => {
+  const normalized = status.trim().toUpperCase();
+
+  if (normalized === 'PENDING') return 'Pendiente';
+  if (normalized === 'IN_PROGRESS') return 'En proceso';
+  if (normalized === 'RESOLVED') return 'Resuelto';
+  if (normalized === 'REJECTED') return 'Rechazado';
+
+  return status;
+};
 
 export default function ProfileScreen() {
   const { user, token, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('info');
-  const { notificationsEnabled, isLoading, setNotificationsEnabled } =
-    useNotificationsPreference();
+  const {
+    reports: recentComplaints,
+    loading: complaintsLoading,
+    error: complaintsError,
+    refetch: refetchComplaints,
+  } = useComplaints();
 
   const [meData, setMeData] = useState<UserMeResponse | null>(null);
   const [isLoadingMe, setIsLoadingMe] = useState(false);
+  const [cachedProfile, setCachedProfile] = useState<ProfileCache | null>(null);
+  const avatarSource =
+    cachedProfile?.avatar_url ?? meData?.avatar_url ?? meData?.photo ?? null;
+  const resolvedName =
+    cachedProfile?.full_name ||
+    meData?.full_name ||
+    meData?.name ||
+    user?.name ||
+    'Usuario';
+  const resolvedCareer =
+    cachedProfile?.career || meData?.career || 'Sin asignar';
 
-  useEffect(() => {
+  const recentActivity = useMemo<ActivityItem[]>(() => {
+    return [...recentComplaints]
+      .sort(
+        (left, right) =>
+          new Date(right.created_at).getTime() -
+          new Date(left.created_at).getTime(),
+      )
+      .slice(0, 3)
+      .map((item) => {
+        const type = item.type?.toUpperCase?.() ?? 'REPORT';
+        const isSuggestion = type === 'SUGGESTION';
+        const title = isSuggestion
+          ? `Sugerencia enviada: ${item.title}`
+          : `Reporte enviado: ${item.title}`;
+        const location =
+          item.id_building != null
+            ? `Edificio ${item.id_building}${
+                item.classroom ? `, Aula ${item.classroom}` : ''
+              }`
+            : 'Sin ubicación';
+        const status = normalizeComplaintStatus(item.status);
+        const evidenceCount = item.images?.length ?? 0;
+        const evidenceText =
+          evidenceCount > 0
+            ? `${evidenceCount} evidencia${evidenceCount === 1 ? '' : 's'}`
+            : 'Sin evidencia adjunta';
+
+        return {
+          id: String(item.id),
+          title,
+          subtitle: `${formatRelativeDate(item.created_at)} • ${location}`,
+          meta: `${status} • ${evidenceText}`,
+          color: isSuggestion ? colors.blueSecondary : colors.activityYellow,
+        };
+      });
+  }, [recentComplaints]);
+
+  const fetchMe = useCallback(async () => {
     if (!token) return;
     setIsLoadingMe(true);
-    getMe(token)
-      .then(setMeData)
-      .catch((err) => console.log('Error fetching me:', err))
-      .finally(() => setIsLoadingMe(false));
+    try {
+      const cachedRaw = await SecureStore.getItemAsync(PROFILE_CACHE_KEY);
+      setCachedProfile(parseProfileCache(cachedRaw));
+    } catch {
+      setCachedProfile(null);
+    }
+
+    try {
+      const remoteMe = await getMe(token);
+      setMeData(remoteMe);
+    } catch (err) {
+      console.log('Error fetching me:', err);
+      setMeData(null);
+      try {
+        const cachedRaw = await SecureStore.getItemAsync(PROFILE_CACHE_KEY);
+        setCachedProfile(parseProfileCache(cachedRaw));
+      } catch {
+        setCachedProfile(null);
+      }
+    } finally {
+      setIsLoadingMe(false);
+    }
   }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchMe();
+    }, [fetchMe]),
+  );
 
   const renderInfoTab = () => (
     <View style={styles.sectionContainer}>
       <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
+        {/* Botón: Editar Información */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/edit-info')}
+        >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
               <ExpoImage
@@ -59,40 +201,25 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={colors.gray700} />
         </TouchableOpacity>
 
+        {/* Botón: Preferencias */}
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-          disabled={isLoading}
+          onPress={() => router.push('/preferences')}
         >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
               <ExpoImage
-                source={notificationsIcon}
+                source={preferencesIcon}
                 style={styles.menuIcon}
                 contentFit="contain"
               />
             </View>
-            <Text style={styles.menuItemText}>Notificaciones</Text>
+            <Text style={styles.menuItemText}>Preferencias</Text>
           </View>
-          <View
-            style={[
-              styles.badgeContainer,
-              notificationsEnabled
-                ? styles.badgeContainerEnabled
-                : styles.badgeContainerDisabled,
-            ]}
-          >
-            <View
-              style={[
-                styles.badgeDot,
-                notificationsEnabled
-                  ? styles.badgeDotEnabled
-                  : styles.badgeDotDisabled,
-              ]}
-            />
-          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.gray700} />
         </TouchableOpacity>
 
+        {/* Botón: Ayuda y soporte */}
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
@@ -122,61 +249,61 @@ export default function ProfileScreen() {
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>Actividad Reciente</Text>
       <View style={styles.activityCard}>
-        {/* Timeline Item 1 */}
-        <View style={styles.timelineItem}>
-          <View style={styles.timelineLeft}>
-            <View
-              style={[
-                styles.timelineDot,
-                { backgroundColor: colors.activityYellow },
-              ]}
-            />
-            <View style={styles.timelineLine} />
+        {complaintsLoading ? (
+          <View style={styles.activityEmptyState}>
+            <Text style={styles.activityEmptyText}>Cargando actividad...</Text>
           </View>
-          <View style={styles.timelineContent}>
-            <Text style={styles.timelineTitle}>
-              Asistencia al Club de Ajedrez
+        ) : complaintsError ? (
+          <View style={styles.activityEmptyState}>
+            <Text style={styles.activityEmptyTitle}>
+              No pudimos cargar la actividad
             </Text>
-            <Text style={styles.timelineDate}>Hace 2 horas • Edificio G</Text>
+            <Text style={styles.activityEmptyText}>{complaintsError}</Text>
+            <TouchableOpacity
+              style={styles.activityRetryButton}
+              onPress={() => void refetchComplaints(true)}
+            >
+              <Text style={styles.activityRetryText}>Reintentar</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Timeline Item 2 */}
-        <View style={styles.timelineItem}>
-          <View style={styles.timelineLeft}>
-            <View
-              style={[
-                styles.timelineDot,
-                { backgroundColor: colors.blueSecondary },
-              ]}
-            />
-            <View style={styles.timelineLine} />
-          </View>
-          <View style={styles.timelineContent}>
-            <Text style={styles.timelineTitle}>
-              Comentaste en una publicación
+        ) : recentActivity.length === 0 ? (
+          <View style={styles.activityEmptyState}>
+            <Text style={styles.activityEmptyTitle}>
+              Aún no hay actividad reciente
             </Text>
-            <Text style={styles.timelineDate}>Ayer • 14:30 PM</Text>
-          </View>
-        </View>
-
-        {/* Timeline Item 3 (Last) */}
-        <View style={styles.timelineItemLast}>
-          <View style={styles.timelineLeftLast}>
-            <View
-              style={[
-                styles.timelineDot,
-                { backgroundColor: colors.activityGray },
-              ]}
-            />
-          </View>
-          <View style={styles.timelineContent}>
-            <Text style={styles.timelineTitle}>
-              Diste like a una publicación
+            <Text style={styles.activityEmptyText}>
+              Cuando envíes reportes o sugerencias, aparecerán aquí con su
+              fecha, ubicación y estado.
             </Text>
-            <Text style={styles.timelineDate}>05 Mar 2026</Text>
           </View>
-        </View>
+        ) : (
+          recentActivity.map((item, index) => {
+            const isLast = index === recentActivity.length - 1;
+            return (
+              <View
+                key={item.id}
+                style={isLast ? styles.timelineItemLast : styles.timelineItem}
+              >
+                <View
+                  style={isLast ? styles.timelineLeftLast : styles.timelineLeft}
+                >
+                  <View
+                    style={[
+                      styles.timelineDot,
+                      { backgroundColor: item.color },
+                    ]}
+                  />
+                  {!isLast ? <View style={styles.timelineLine} /> : null}
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineTitle}>{item.title}</Text>
+                  <Text style={styles.timelineDate}>{item.subtitle}</Text>
+                  <Text style={styles.timelineMeta}>{item.meta}</Text>
+                </View>
+              </View>
+            );
+          })
+        )}
       </View>
     </View>
   );
@@ -191,15 +318,16 @@ export default function ProfileScreen() {
           <View style={styles.heroContent}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatarPlaceholder}>
-                {meData?.photo ? (
+                {avatarSource ? (
                   <ExpoImage
-                    source={meData.photo}
+                    source={avatarSource}
                     style={{ width: 96, height: 96, borderRadius: 48 }}
                     contentFit="cover"
                   />
                 ) : (
                   <Text style={styles.avatarText}>
-                    {meData?.name?.charAt(0).toUpperCase() ||
+                    {meData?.full_name?.charAt(0).toUpperCase() ||
+                      meData?.name?.charAt(0).toUpperCase() ||
                       user?.name?.charAt(0).toUpperCase() ||
                       'A'}
                   </Text>
@@ -207,12 +335,8 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>
-                {meData?.name || user?.name || 'Usuario'}
-              </Text>
-              <Text style={styles.userCareer}>
-                {meData?.career || 'Sin asignar'}
-              </Text>
+              <Text style={styles.userName}>{resolvedName}</Text>
+              <Text style={styles.userCareer}>{resolvedCareer}</Text>
             </View>
 
             <View style={styles.statsGrid}>
@@ -583,5 +707,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interRegular,
     color: colors.activityGray,
+  },
+  timelineMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.gray700,
+  },
+  activityEmptyState: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  activityEmptyTitle: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.gray950,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  activityEmptyText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  activityRetryButton: {
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 9999,
+    backgroundColor: colors.bluePrimary,
+  },
+  activityRetryText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.white,
   },
 });
