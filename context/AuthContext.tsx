@@ -10,6 +10,8 @@ import {
 
 import { AuthUser, LoginResponse } from '@/services/authService';
 
+import { CacheService } from '@/services/cacheService';
+
 const TOKEN_KEY = 'agora_jwt';
 const USER_KEY = 'agora_user';
 
@@ -108,9 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    CacheService.clearAll();
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
+      SecureStore.deleteItemAsync('agora_profile_cache'),
     ]);
     setState({
       token: null,
