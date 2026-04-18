@@ -38,12 +38,10 @@ export function FloatingTabBar({
   descriptors,
   insets,
 }: BottomTabBarProps) {
-  // 1. Hooks al principio
   const tabCenters = useRef<number[]>([]);
   const indicatorTranslateX = useRef(new Animated.Value(0)).current;
   const [indicatorReady, setIndicatorReady] = useState(false);
 
-  // 2. Lógica de visibilidad
   const currentRouteKey = state.routes[state.index]?.key;
   const focusedOptions = currentRouteKey
     ? descriptors[currentRouteKey]?.options
@@ -105,7 +103,6 @@ export function FloatingTabBar({
           const mappedIcon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
           const icon = mappedIcon ?? FALLBACK_ICON;
 
-          // --- ACCESSIBILIDAD PARA TESTS ---
           const descriptor = descriptors[route.key];
           const optionLabel = descriptor?.options.tabBarLabel;
           const label =
