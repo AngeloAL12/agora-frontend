@@ -6,64 +6,94 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 const HIDDEN_ROUTES = ['my-clubs'];
 
+const getAccessibilityLabel = (routeName: string) => {
+  switch (routeName) {
+    case 'map':
+      return 'Mapa';
+    case 'complaints':
+      return 'Quejas';
+    case 'ia':
+      return 'IA';
+    case 'clubs':
+      return 'Clubs';
+    case 'profile':
+      return 'Perfil';
+    default:
+      return routeName;
+  }
+};
+
 export const FloatingTabBar: React.FC<BottomTabBarProps> = ({
   state,
   navigation,
 }) => {
+  const visibleRoutes = state.routes.filter(
+    (route) => !HIDDEN_ROUTES.includes(route.name),
+  );
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
-        {state.routes
+        {visibleRoutes.map((route) => {
+          const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+          const isFocused = state.index === routeIndex;
 
-          .filter((route) => !HIDDEN_ROUTES.includes(route.name))
-          .map((route, index) => {
-            const isFocused = state.index === index;
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
 
-            const getIconName = () => {
-              switch (route.name) {
-                case 'map':
-                  return isFocused ? 'map' : 'map-outline';
-                case 'complaints':
-                  return isFocused ? 'mail' : 'mail-outline';
-                case 'ia':
-                  return isFocused
-                    ? 'chatbubble-ellipses'
-                    : 'chatbubble-ellipses-outline';
-                case 'clubs':
-                  return isFocused ? 'people' : 'people-outline';
-                case 'profile':
-                  return isFocused ? 'person' : 'person-outline';
-                default:
-                  return 'ellipse-outline';
-              }
-            };
+          const getIconName = () => {
+            switch (route.name) {
+              case 'map':
+                return isFocused ? 'map' : 'map-outline';
+              case 'complaints':
+                return isFocused ? 'mail' : 'mail-outline';
+              case 'ia':
+                return isFocused
+                  ? 'chatbubble-ellipses'
+                  : 'chatbubble-ellipses-outline';
+              case 'clubs':
+                return isFocused ? 'people' : 'people-outline';
+              case 'profile':
+                return isFocused ? 'person' : 'person-outline';
+              default:
+                return 'ellipse-outline';
+            }
+          };
 
-            return (
-              <Pressable
-                key={route.key}
-                onPress={onPress}
-                style={[styles.tabButton, isFocused && styles.activeTabButton]}
-              >
-                <Ionicons
-                  name={getIconName() as any}
-                  size={24}
-                  color={isFocused ? COLORS.white : '#6B7280'}
-                />
-              </Pressable>
-            );
-          })}
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              accessibilityRole="tab"
+              accessibilityLabel={getAccessibilityLabel(route.name)}
+              accessibilityState={{ selected: isFocused }}
+              style={[styles.tabButton, isFocused && styles.activeTabButton]}
+            >
+              <Ionicons
+                name={getIconName() as any}
+                size={24}
+                color={isFocused ? COLORS.white : '#6B7280'}
+              />
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
