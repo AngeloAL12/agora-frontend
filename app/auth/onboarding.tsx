@@ -1,5 +1,6 @@
 import LoginBottomSheet from '@/components/LoginBottomSheet';
 import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,11 +14,12 @@ import {
 } from 'react-native';
 
 export default function Onboarding() {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const { login } = useAuth();
+  const loginSheetRef = useRef<BottomSheetModal>(null);
   const { height } = useWindowDimensions();
 
   const handleOpenLogin = () => {
-    bottomSheetRef.current?.present();
+    loginSheetRef.current?.present();
   };
 
   return (
@@ -59,7 +61,10 @@ export default function Onboarding() {
         </Pressable>
       </View>
 
-      <LoginBottomSheet ref={bottomSheetRef} />
+      <LoginBottomSheet
+        ref={loginSheetRef}
+        onDismiss={() => loginSheetRef.current?.dismiss()}
+      />
     </View>
   );
 }

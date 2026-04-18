@@ -10,6 +10,8 @@ import {
 
 import { AuthUser, LoginResponse } from '@/services/authService';
 
+import { CacheService } from '@/services/cacheService';
+
 const TOKEN_KEY = 'agora_jwt';
 const REFRESH_TOKEN_KEY = 'agora_refresh_token';
 const USER_KEY = 'agora_user';
@@ -94,6 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadStoredAuth();
   }, []);
 
+  useEffect(() => {
+    if (state.token && state.isAuthenticating) {
+      setState((currentState) =>
+        currentState.token
+          ? { ...currentState, isAuthenticating: false }
+          : currentState,
+      );
+    }
+  }, [state.token, state.isAuthenticating]);
+
   const login = useCallback(async (response: LoginResponse) => {
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, response.access_token),
@@ -125,10 +137,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    CacheService.clearAll();
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
+      SecureStore.deleteItemAsync('agora_profile_cache'),
     ]);
     setState({
       token: null,

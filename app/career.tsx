@@ -1,6 +1,8 @@
 import { Button } from '@/components/Button';
 import { SearchInput } from '@/components/SearchInput';
+import { getCareerIcon } from '@/constants/careers';
 import { useSearch } from '@/hooks/useSearch';
+import { useCareers } from '@/hooks/useCareers';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { updateMyCareer } from '@/services/authService';
@@ -23,36 +25,34 @@ import {
 } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { Career, CAREERS } from '@/constants/careers';
+import type { Career } from '@/types/career';
 
 export default function CareerScreen() {
   const router = useRouter();
-  const { token, refreshToken, setTokens, updateUser, logout } = useAuth();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { token, updateUser, logout } = useAuth();
+  const { careers, loading, error, refetch } = useCareers();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const filteredCareers = useSearch(searchQuery, CAREERS, 'name');
+  const filteredCareers = useSearch(searchQuery, careers, 'name');
+
+  const loadingInitialCareers = loading && careers.length === 0;
+  const showErrorState =
+    !loadingInitialCareers && careers.length === 0 && !!error;
 
   const handleFinish = async () => {
     if (!selectedId || !token) return;
 
-    const selected = CAREERS.find((c) => c.id === selectedId);
+    const selected = careers.find((c) => c.id === selectedId);
     if (!selected) return;
 
     setIsSubmitting(true);
     try {
-      await updateMyCareer(selected.careerId, token, {
-        refreshToken: refreshToken ?? undefined,
-        onTokenRefreshed: (newAccess, newRefresh) => {
-          setTokens(newAccess, newRefresh).catch(() => {});
-        },
-        onRefreshFailed: () => {
-          logout().catch(() => {});
-        },
-      });
-      await updateUser({ id_career: selected.careerId });
+      await updateMyCareer(selected.id, token);
+      await updateUser({ id_career: selected.id });
       router.replace('/(tabs)/map');
     } catch {
       Alert.alert(
@@ -64,8 +64,15 @@ export default function CareerScreen() {
     }
   };
 
+  const handleRetry = async () => {
+    setIsRefreshing(true);
+    await refetch(true);
+    setIsRefreshing(false);
+  };
+
   const renderItem = ({ item }: { item: Career }) => {
     const isSelected = selectedId === item.id;
+    const icon = getCareerIcon(item.id);
     return (
       <Pressable
         onPress={() => setSelectedId(item.id)}
@@ -73,17 +80,39 @@ export default function CareerScreen() {
       >
         <View style={styles.careerContent}>
           <View style={styles.iconBackground}>
-            <ExpoImage
-              source={item.icon}
-              style={styles.careerIcon}
-              contentFit="contain"
-            />
+            {icon ? (
+              <ExpoImage
+                source={icon}
+                style={styles.careerIcon}
+                contentFit="contain"
+              />
+            ) : (
+              <Ionicons
+                name="school-outline"
+                size={20}
+                color={colors.bluePrimary}
+              />
+            )}
           </View>
           <Text style={styles.careerName}>{item.name}</Text>
         </View>
       </Pressable>
     );
   };
+
+  if (loadingInitialCareers) {
+    return (
+      <SafeAreaView
+        style={styles.container}
+        edges={['bottom', 'left', 'right']}
+      >
+        <StatusBar backgroundColor={colors.backgroundScreen} style="dark" />
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator color={colors.bluePrimary} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -117,21 +146,54 @@ export default function CareerScreen() {
       </View>
 
       {/* Search bar */}
-      <SearchInput
-        placeholder="Buscar carrera..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        containerStyle={styles.searchContainer}
-      />
+      {showErrorState ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorTitle}>
+            No se pudieron cargar las carreras
+          </Text>
+          <Text style={styles.errorSubtitle}>
+            {error ??
+              'Revisa que el backend esté encendido y que el teléfono pueda acceder a la red.'}
+          </Text>
+          <Button
+            text={isRefreshing ? 'Reintentando...' : 'Reintentar'}
+            onPress={handleRetry}
+            variant="primary"
+            size="large"
+            fullWidth
+            disabled={isRefreshing}
+            style={styles.retryButton}
+          />
+        </View>
+      ) : (
+        <SearchInput
+          placeholder="Buscar carrera..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          containerStyle={styles.searchContainer}
+        />
+      )}
 
       {/* Career list */}
       <FlatList
         data={filteredCareers}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         style={styles.list}
+        ListEmptyComponent={
+          loading || showErrorState ? null : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>
+                No hay carreras disponibles.
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                Intenta más tarde o revisa la conexión con el backend.
+              </Text>
+            </View>
+          )
+        }
       />
 
       {/* Footer button */}
@@ -158,6 +220,12 @@ export default function CareerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.backgroundScreen,
+  },
+  loadingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.backgroundScreen,
   },
 
@@ -215,6 +283,36 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
   },
+  errorCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray100,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 1,
+    gap: 10,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.gray950,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+    lineHeight: 20,
+  },
+  retryButton: {
+    borderRadius: 30,
+    backgroundColor: colors.bluePrimary,
+  },
 
   // List
   list: {
@@ -224,6 +322,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 4,
     gap: 12,
+  },
+  emptyState: {
+    paddingHorizontal: 16,
+    paddingTop: 28,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.gray950,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 
   // Career card

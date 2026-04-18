@@ -280,6 +280,7 @@ describe('LoginBottomSheet', () => {
   });
 
   it('microsoftResponse exchangeCodeAsync failure sets error', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     (exchangeCodeAsync as jest.Mock).mockRejectedValue(
       new Error('exchange failed'),
     );
@@ -296,6 +297,7 @@ describe('LoginBottomSheet', () => {
         'Error al intercambiar el token de Microsoft. Detalle: exchange failed',
       ),
     ).toBeTruthy();
+    errorSpy.mockRestore();
   });
 
   it('microsoftResponse success without idToken in exchange result sets error', async () => {
@@ -343,6 +345,7 @@ describe('LoginBottomSheet', () => {
   });
 
   it('googleResponse exchangeCodeAsync failure sets error', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     (exchangeCodeAsync as jest.Mock).mockRejectedValue(
       new Error('exchange failed'),
     );
@@ -353,6 +356,7 @@ describe('LoginBottomSheet', () => {
     await act(async () => {});
 
     expect(getByText('Error al intercambiar el token de Google.')).toBeTruthy();
+    errorSpy.mockRestore();
   });
 
   it('googleResponse success without idToken in exchange result sets error', async () => {

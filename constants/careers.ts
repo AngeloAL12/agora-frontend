@@ -1,105 +1,39 @@
-export interface Career {
-  id: string;
-  careerId: number;
-  name: string;
-  icon: any;
-}
+export const CAREER_ICONS: Record<number, number> = {
+  1: require('@/assets/icons/careers/bioquimica.svg'),
+  2: require('@/assets/icons/careers/semiconductores.svg'),
+  3: require('@/assets/icons/careers/contador.svg'),
+  4: require('@/assets/icons/careers/administracion.svg'),
+  5: require('@/assets/icons/careers/desarrollo_apps.svg'),
+  6: require('@/assets/icons/careers/electrica.svg'),
+  7: require('@/assets/icons/careers/electronica.svg'),
+  8: require('@/assets/icons/careers/energias_renovables.svg'),
+  9: require('@/assets/icons/careers/gestion_empresarial.svg'),
+  10: require('@/assets/icons/careers/industrial.svg'),
+  11: require('@/assets/icons/careers/logistica.svg'),
+  12: require('@/assets/icons/careers/materiales.svg'),
+  13: require('@/assets/icons/careers/mecatronica.svg'),
+  14: require('@/assets/icons/careers/mecanica.svg'),
+  15: require('@/assets/icons/careers/quimica.svg'),
+  16: require('@/assets/icons/careers/sistemas_computacionales.svg'),
+};
 
-export const CAREERS: Career[] = [
-  {
-    id: 'contador',
-    careerId: 3,
-    name: 'Contador Público',
-    icon: require('@/assets/icons/careers/contador.svg'),
-  },
-  {
-    id: 'administracion',
-    careerId: 4,
-    name: 'Ing. Administración',
-    icon: require('@/assets/icons/careers/administracion.svg'),
-  },
-  {
-    id: 'bioquimica',
-    careerId: 1,
-    name: 'Ing. Bioquímica',
-    icon: require('@/assets/icons/careers/bioquimica.svg'),
-  },
-  {
-    id: 'desarrollo_apps',
-    careerId: 5,
-    name: 'Ing. Desarrollo de Aplicaciones',
-    icon: require('@/assets/icons/careers/desarrollo_apps.svg'),
-  },
-  {
-    id: 'electrica',
-    careerId: 6,
-    name: 'Ing. Eléctrica',
-    icon: require('@/assets/icons/careers/electrica.svg'),
-  },
-  {
-    id: 'electronica',
-    careerId: 7,
-    name: 'Ing. Electrónica',
-    icon: require('@/assets/icons/careers/electronica.svg'),
-  },
-  {
-    id: 'energias_renovables',
-    careerId: 8,
-    name: 'Ing. Energías Renovables',
-    icon: require('@/assets/icons/careers/energias_renovables.svg'),
-  },
-  {
-    id: 'gestion_empresarial',
-    careerId: 9,
-    name: 'Ing. Gestión Empresarial',
-    icon: require('@/assets/icons/careers/gestion_empresarial.svg'),
-  },
-  {
-    id: 'industrial',
-    careerId: 10,
-    name: 'Ing. Industrial',
-    icon: require('@/assets/icons/careers/industrial.svg'),
-  },
-  {
-    id: 'logistica',
-    careerId: 11,
-    name: 'Ing. Logística',
-    icon: require('@/assets/icons/careers/logistica.svg'),
-  },
-  {
-    id: 'materiales',
-    careerId: 12,
-    name: 'Ing. Materiales',
-    icon: require('@/assets/icons/careers/materiales.svg'),
-  },
-  {
-    id: 'mecanica',
-    careerId: 14,
-    name: 'Ing. Mecánica',
-    icon: require('@/assets/icons/careers/mecanica.svg'),
-  },
-  {
-    id: 'mecatronica',
-    careerId: 13,
-    name: 'Ing. Mecatrónica',
-    icon: require('@/assets/icons/careers/mecatronica.svg'),
-  },
-  {
-    id: 'quimica',
-    careerId: 15,
-    name: 'Ing. Química',
-    icon: require('@/assets/icons/careers/quimica.svg'),
-  },
-  {
-    id: 'semiconductores',
-    careerId: 2,
-    name: 'Ing. Semiconductores',
-    icon: require('@/assets/icons/careers/semiconductores.svg'),
-  },
-  {
-    id: 'sistemas',
-    careerId: 16,
-    name: 'Ing. Sistemas Computacionales',
-    icon: require('@/assets/icons/careers/sistemas_computacionales.svg'),
-  },
-];
+export const getCareerIcon = (careerId: number) => CAREER_ICONS[careerId];
+
+export const CAREERS_LIST = [
+  { id: 1, name: 'Ingeniería Bioquímica' },
+  { id: 2, name: 'Ingeniería en Semiconductores' },
+  { id: 3, name: 'Contador Público' },
+  { id: 4, name: 'Licenciatura en Administración' },
+  { id: 5, name: 'Ingeniería en Desarrollo de Aplicaciones' },
+  { id: 6, name: 'Ingeniería Eléctrica' },
+  { id: 7, name: 'Ingeniería Electrónica' },
+  { id: 8, name: 'Ingeniería en Energías Renovables' },
+  { id: 9, name: 'Ingeniería en Gestión Empresarial' },
+  { id: 10, name: 'Ingeniería Industrial' },
+  { id: 11, name: 'Ingeniería en Logística' },
+  { id: 12, name: 'Ingeniería en Materiales' },
+  { id: 13, name: 'Ingeniería Mecatrónica' },
+  { id: 14, name: 'Ingeniería Mecánica' },
+  { id: 15, name: 'Ingeniería Química' },
+  { id: 16, name: 'Ingeniería en Sistemas Computacionales' },
+] as const;
