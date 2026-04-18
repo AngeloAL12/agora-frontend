@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "693837597429",
+    "project_id": "agora-c255b",
+    "storage_bucket": "agora-c255b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693837597429:android:1cec4fd096e51d3a4ed3bc",
+        "android_client_info": {
+          "package_name": "com.agora.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693837597429-bnedke77cs2h99c6bd70gikedta1q3s5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiF7DpTEUhtafY8Q3fZcy1AVdJLev5gsY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693837597429-bnedke77cs2h99c6bd70gikedta1q3s5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "693837597429-hds0b9m79q1b6uvboleqd4458lq1731a.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.agora.frontend"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
