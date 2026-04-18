@@ -14,6 +14,9 @@ type CreateComplaintPayload = {
   category: string;
   type: ComplaintType;
   token: string;
+  refreshToken?: string;
+  onTokenRefreshed?: (accessToken: string, refreshToken: string) => void;
+  onRefreshFailed?: () => void;
   id_building?: number;
   classroom?: string;
   images?: LocalImageFile[];
@@ -52,6 +55,9 @@ export async function createComplaint(payload: CreateComplaintPayload) {
     path: '/complaints',
     body: formData,
     token: payload.token,
+    refreshToken: payload.refreshToken,
+    onTokenRefreshed: payload.onTokenRefreshed,
+    onRefreshFailed: payload.onRefreshFailed,
     isMultipart: true,
   });
 }

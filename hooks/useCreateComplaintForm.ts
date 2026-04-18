@@ -19,7 +19,7 @@ type HandleSubmitParams = {
 };
 
 export function useCreateComplaintForm() {
-  const { token } = useAuth();
+  const { token, refreshToken, setTokens, logout } = useAuth();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -115,6 +115,13 @@ export function useCreateComplaintForm() {
         description,
         category,
         token,
+        refreshToken: refreshToken ?? undefined,
+        onTokenRefreshed: (newAccess, newRefresh) => {
+          setTokens(newAccess, newRefresh).catch(() => {});
+        },
+        onRefreshFailed: () => {
+          logout().catch(() => {});
+        },
         type: type === 'report' ? 'REPORT' : 'SUGGESTION',
         id_building: type === 'report' ? id_building : undefined,
         classroom: type === 'report' ? classroom : undefined,

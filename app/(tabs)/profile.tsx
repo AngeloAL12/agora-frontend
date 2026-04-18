@@ -87,7 +87,7 @@ const normalizeComplaintStatus = (status: string): string => {
 };
 
 export default function ProfileScreen() {
-  const { user, token, logout } = useAuth();
+  const { user, token, refreshToken, setTokens, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const {

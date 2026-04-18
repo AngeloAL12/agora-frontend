@@ -9,7 +9,11 @@ interface ChatBubbleProps {
   timestamp?: string;
 }
 
-export const ChatBubble = ({ sender, message, timestamp }: ChatBubbleProps) => {
+export const ChatBubble = React.memo(function ChatBubble({
+  sender,
+  message,
+  timestamp,
+}: ChatBubbleProps) {
   const isAssistant = sender === 'assistant';
 
   return (
@@ -128,7 +132,7 @@ export const ChatBubble = ({ sender, message, timestamp }: ChatBubbleProps) => {
       ) : null}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   wrapper: {

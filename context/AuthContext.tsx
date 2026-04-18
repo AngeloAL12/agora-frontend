@@ -13,10 +13,12 @@ import { AuthUser, LoginResponse } from '@/services/authService';
 import { CacheService } from '@/services/cacheService';
 
 const TOKEN_KEY = 'agora_jwt';
+const REFRESH_TOKEN_KEY = 'agora_refresh_token';
 const USER_KEY = 'agora_user';
 
 type AuthState = {
   token: string | null;
+  refreshToken: string | null;
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticating: boolean;
@@ -25,6 +27,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   login: (response: LoginResponse) => Promise<void>;
   logout: () => Promise<void>;
+  setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   updateUser: (patch: Partial<AuthUser>) => Promise<void>;
   startAuthentication: () => void;
   finishAuthentication: () => void;
@@ -35,6 +38,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     token: null,
+    refreshToken: null,
     user: null,
     isLoading: true,
     isAuthenticating: false,
@@ -43,10 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadStoredAuth() {
       try {
-        const [storedToken, storedUser] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
-          SecureStore.getItemAsync(USER_KEY),
-        ]);
+        const [storedToken, storedRefreshToken, storedUser] = await Promise.all(
+          [
+            SecureStore.getItemAsync(TOKEN_KEY),
+            SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
+            SecureStore.getItemAsync(USER_KEY),
+          ],
+        );
 
         setState((currentState) => {
           if (currentState.token && currentState.user) {
@@ -56,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (storedToken && storedUser) {
             return {
               token: storedToken,
+              refreshToken: storedRefreshToken,
               user: JSON.parse(storedUser) as AuthUser,
               isLoading: false,
               isAuthenticating: currentState.isAuthenticating,
@@ -64,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           return {
             token: null,
+            refreshToken: null,
             user: null,
             isLoading: false,
             isAuthenticating: currentState.isAuthenticating,
@@ -75,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? { ...currentState, isLoading: false }
             : {
                 token: null,
+                refreshToken: null,
                 user: null,
                 isLoading: false,
                 isAuthenticating: currentState.isAuthenticating,
@@ -99,25 +109,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (response: LoginResponse) => {
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, response.access_token),
+      SecureStore.setItemAsync(REFRESH_TOKEN_KEY, response.refresh_token),
       SecureStore.setItemAsync(USER_KEY, JSON.stringify(response.user)),
     ]);
     setState({
       token: response.access_token,
+      refreshToken: response.refresh_token,
       user: response.user,
       isLoading: false,
       isAuthenticating: false,
     });
   }, []);
 
+  const setTokens = useCallback(
+    async (accessToken: string, newRefreshToken: string) => {
+      await Promise.all([
+        SecureStore.setItemAsync(TOKEN_KEY, accessToken),
+        SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken),
+      ]);
+      setState((currentState) => ({
+        ...currentState,
+        token: accessToken,
+        refreshToken: newRefreshToken,
+      }));
+    },
+    [],
+  );
+
   const logout = useCallback(async () => {
     CacheService.clearAll();
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
       SecureStore.deleteItemAsync('agora_profile_cache'),
     ]);
     setState({
       token: null,
+      refreshToken: null,
       user: null,
       isLoading: false,
       isAuthenticating: false,
@@ -155,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...state,
         login,
         logout,
+        setTokens,
         updateUser,
         startAuthentication,
         finishAuthentication,

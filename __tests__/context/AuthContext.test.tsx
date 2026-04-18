@@ -43,6 +43,7 @@ describe('AuthContext', () => {
     };
     mockGetItemAsync
       .mockResolvedValueOnce('stored-jwt')
+      .mockResolvedValueOnce('stored-refresh')
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -64,6 +65,7 @@ describe('AuthContext', () => {
 
     const loginResponse = {
       access_token: 'new-jwt',
+      refresh_token: 'new-refresh',
       token_type: 'bearer',
       user: {
         id: 2,
@@ -110,6 +112,7 @@ describe('AuthContext', () => {
 
     const loginResponse = {
       access_token: 'fresh-jwt',
+      refresh_token: 'fresh-refresh',
       token_type: 'bearer',
       user: {
         id: 3,
@@ -138,6 +141,7 @@ describe('AuthContext', () => {
     const fakeUser = { id: 1, email: 'test@itmexicali.edu.mx', name: 'Test' };
     mockGetItemAsync
       .mockResolvedValueOnce('jwt')
+      .mockResolvedValueOnce('refresh-jwt')
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
     mockDeleteItemAsync.mockResolvedValue(undefined);
 
@@ -151,6 +155,7 @@ describe('AuthContext', () => {
     });
 
     expect(mockDeleteItemAsync).toHaveBeenCalledWith('agora_jwt');
+    expect(mockDeleteItemAsync).toHaveBeenCalledWith('agora_refresh_token');
     expect(mockDeleteItemAsync).toHaveBeenCalledWith('agora_user');
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
