@@ -66,6 +66,7 @@ describe('usePushNotifications', () => {
   });
 
   it('returns null token and status when not a physical device', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     mockIsDevice = false;
     mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
 
@@ -75,6 +76,7 @@ describe('usePushNotifications', () => {
       expect(result.current.expoPushToken).toBeNull();
       expect(result.current.permissionStatus).toBe('granted');
     });
+    logSpy.mockRestore();
   });
 
   it('returns null token when permission is denied', async () => {
