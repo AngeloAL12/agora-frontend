@@ -12,6 +12,8 @@ interface ScreenHeaderProps {
   showNotificationBell?: boolean;
   onNotificationPress?: () => void;
   align?: 'left' | 'center';
+  variant?: 'primary' | 'white';
+  containerStyle?: any; //
 }
 
 export const ScreenHeader = ({
@@ -22,8 +24,15 @@ export const ScreenHeader = ({
   showNotificationBell = false,
   onNotificationPress,
   align = 'center',
+  containerStyle,
+  variant = 'primary',
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
+
+  const isWhite = variant === 'white';
+  const bgColor = isWhite ? colors.white : colors.bluePrimary;
+  const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
+
   const hasHeaderRow = Boolean(
     title || leftAction || rightAction || showNotificationBell,
   );
@@ -33,14 +42,12 @@ export const ScreenHeader = ({
       onPress={onNotificationPress}
       disabled={!onNotificationPress}
       style={styles.notificationBell}
-      accessibilityRole={onNotificationPress ? 'button' : undefined}
-      accessibilityLabel={onNotificationPress ? 'Notificaciones' : undefined}
     >
       <ExpoImage
         source={require('@/assets/icons/notification_bell.svg')}
         style={styles.bellIcon}
         contentFit="contain"
-        tintColor={colors.white}
+        tintColor={textColor}
       />
     </Pressable>
   ) : null;
@@ -48,14 +55,23 @@ export const ScreenHeader = ({
   const resolvedRightAction = rightAction ?? notificationBell;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: bgColor },
+        containerStyle,
+      ]}
+    >
       {hasHeaderRow && (
         <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
           {align === 'center' ? (
             <>
               <View style={styles.slot}>{leftAction ?? null}</View>
               <Text
-                style={[styles.title, { textAlign: 'center' }]}
+                style={[
+                  styles.title,
+                  { textAlign: 'center', color: textColor },
+                ]}
                 numberOfLines={1}
               >
                 {title ?? ''}
@@ -69,7 +85,10 @@ export const ScreenHeader = ({
                   <View style={styles.leftActionItem}>{leftAction}</View>
                 )}
                 {title ? (
-                  <Text style={styles.titleLeft} numberOfLines={1}>
+                  <Text
+                    style={[styles.titleLeft, { color: textColor }]}
+                    numberOfLines={1}
+                  >
                     {title}
                   </Text>
                 ) : null}
@@ -90,7 +109,6 @@ export const ScreenHeader = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.bluePrimary,
     shadowColor: colors.blueSecondary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
@@ -105,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   innerLeft: {
-    height: 64, // Más altura según diseño
+    height: 64,
   },
   slot: {
     width: 40,
@@ -116,7 +134,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
     letterSpacing: -0.3,
   },
   leftContent: {
@@ -127,7 +144,6 @@ const styles = StyleSheet.create({
   titleLeft: {
     fontSize: 24,
     fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
     letterSpacing: -0.3,
   },
   leftActionItem: {
