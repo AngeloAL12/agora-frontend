@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 160, // Aumentado padding para que Cerrar Sesión quede por encima de la navbar
+    paddingBottom: 160,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginTop: 6,
-    zIndex: 2, // Place above line
+    zIndex: 2,
   },
   timelineLine: {
     width: 2,
@@ -573,12 +573,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     bottom: -10,
-    zIndex: 1, // Behind dot
-    marginLeft: 0, // Since parent width is 8 and content centered
+    zIndex: 1,
+    marginLeft: 0,
   },
   timelineContent: {
     flex: 1,
-    paddingBottom: 24, // Space between items
+    paddingBottom: 24,
   },
   timelineTitle: {
     fontSize: 14,

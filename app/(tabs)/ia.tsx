@@ -121,7 +121,6 @@ export default function IaScreen() {
       FLOATING_TAB_BAR_HEIGHT +
       9;
 
-  // spacerHeight (paddingBottom argument) keeps the input above the floating tab bar
   const renderContent = (paddingBottom: number) => (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -181,7 +180,6 @@ export default function IaScreen() {
         </View>
       </ScrollView>
 
-      {/* Full-bleed absolute positioning: lets ScrollView pass entirely underneath */}
       <View
         style={[
           styles.inputContainer,
@@ -217,12 +215,10 @@ export default function IaScreen() {
           behavior="padding"
           keyboardVerticalOffset={0}
         >
-          {/* spacerHeight = inputBottomPadding so input clears the floating tab bar */}
           {renderContent(inputBottomPadding)}
         </KeyboardAvoidingView>
       ) : (
         <Animated.View style={[styles.keyboardAvoiding, animatedKeyboardStyle]}>
-          {/* Android parent already adds paddingBottom, so spacer = 0 */}
           {renderContent(0)}
         </Animated.View>
       )}
@@ -249,9 +245,6 @@ const styles = StyleSheet.create({
   },
   welcomeContainer: {
     marginTop: 0,
-    // Mantiene su margen superior basado en paddingTop del padre,
-    // pero puedes acomodarlo si quieres despegarlo aún más del header:
-    // marginTop: 12,
   },
   springSpacer: {
     flex: 1,

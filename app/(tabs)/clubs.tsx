@@ -20,6 +20,7 @@ import { MyClubCard } from '@/components/clubs/MyClubCard';
 import { COLORS } from '@/constants/colors';
 import { useClubs } from '@/context/ClubsContext';
 import { Club } from '@/types/club';
+import { typography } from '@/constants/theme';
 
 export default function ClubsScreen() {
   const [searchText, setSearchText] = useState('');
@@ -61,26 +62,21 @@ export default function ClubsScreen() {
     );
   };
 
-  const handleOpenJoinedClub = (club: Club) => {
-    Alert.alert('Club', `Abrir detalle de ${club.title}`);
-  };
+  const handleCreateClub = () => {};
+  const handleNotifications = () => {};
 
-  const handleCreateClub = () => {
-    Alert.alert('Nuevo club', 'Crear club próximamente');
-  };
-
-  const handleNotifications = () => {
-    Alert.alert('Notificaciones', 'Pantalla futura');
-  };
-
-  // ✅ AQUÍ ESTÁ LA NAVEGACIÓN CORRECTA
   const handleViewAll = () => {
     router.push('/(tabs)/my-clubs');
   };
 
   const renderSearchInput = () => (
     <View style={styles.searchContainer}>
-      <Ionicons name="search-outline" size={20} color="#7A7A7A" />
+      <Ionicons
+        name="search-outline"
+        size={20}
+        color="#7A7A7A"
+        style={styles.searchIcon}
+      />
       <TextInput
         value={searchText}
         onChangeText={setSearchText}
@@ -124,7 +120,6 @@ export default function ClubsScreen() {
                     <View style={styles.row}>
                       <Text style={styles.mainTitle}>Mis clubes</Text>
 
-                      {/* 🔥 TEXTO CLICKABLE (NO BOTÓN) */}
                       <Pressable onPress={handleViewAll}>
                         <Text style={styles.viewAll}>Ver todos</Text>
                       </Pressable>
@@ -172,55 +167,77 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 160,
   },
-  recentSection: {
-    marginBottom: 12,
-  },
-  joinedSection: {
-    marginBottom: 10,
-  },
-  discoverHeader: {
-    marginBottom: 12,
-  },
+
+  recentSection: { marginBottom: 12 },
+  joinedSection: { marginBottom: 10 },
+  discoverHeader: { marginBottom: 12 },
+
   overline: {
     fontSize: 12,
     fontWeight: '600',
     color: '#192A56',
     letterSpacing: 1.2,
+    lineHeight: 16,
+    textTransform: 'uppercase',
+    alignSelf: 'stretch',
     marginBottom: 4,
   },
+
   mainTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#192A56',
+    lineHeight: 28,
+    letterSpacing: -0.5,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
-    color: COLORS.text,
+    color: '#191C1E',
+    lineHeight: 28,
   },
+
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   viewAll: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#233B6E',
+    color: '#192A56',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   searchContainer: {
-    height: 40,
-    backgroundColor: '#F1F3F5',
-    borderRadius: 14,
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingRight: 16,
+    paddingBottom: 14,
+    paddingLeft: 48,
+    position: 'relative',
+
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
+
+  searchIcon: {
+    position: 'absolute',
+    left: 16,
+  },
+
   input: {
     flex: 1,
-    marginLeft: 8,
     fontSize: 16,
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     paddingVertical: 0,
   },
 });

@@ -25,18 +25,9 @@ export const ScreenHeader = ({
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
   const hasTitle = Boolean(title && title.trim().length > 0);
-  const hasHeaderRow = Boolean(
-    hasTitle || leftAction || rightAction || showNotificationBell,
-  );
 
   const notificationBell = showNotificationBell ? (
-    <Pressable
-      onPress={onNotificationPress}
-      disabled={!onNotificationPress}
-      style={styles.notificationBell}
-      accessibilityRole={onNotificationPress ? 'button' : undefined}
-      accessibilityLabel={onNotificationPress ? 'Notificaciones' : undefined}
-    >
+    <Pressable onPress={onNotificationPress} style={styles.notificationBell}>
       <ExpoImage
         source={require('@/assets/icons/notification_bell.svg')}
         style={styles.bellIcon}
@@ -50,43 +41,10 @@ export const ScreenHeader = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {hasHeaderRow && hasTitle && (
-        <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
-          {align === 'center' ? (
-            <>
-              <View style={styles.slot}>{leftAction ?? null}</View>
-              <Text
-                style={[styles.title, { textAlign: 'center' }]}
-                numberOfLines={1}
-              >
-                {title}
-              </Text>
-              <View style={styles.slot}>{resolvedRightAction ?? null}</View>
-            </>
-          ) : (
-            <>
-              <View style={styles.leftContent}>
-                {leftAction && (
-                  <View style={styles.leftActionItem}>{leftAction}</View>
-                )}
-                <Text style={styles.titleLeft} numberOfLines={1}>
-                  {title}
-                </Text>
-              </View>
-              {resolvedRightAction && (
-                <View style={styles.rightActionItem}>
-                  {resolvedRightAction}
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      )}
-
       {searchInput && (
         <View style={styles.searchRow}>
           <View style={styles.searchInputContainer}>{searchInput}</View>
-          {resolvedRightAction && !hasTitle && (
+          {resolvedRightAction && (
             <View style={styles.searchBellContainer}>
               {resolvedRightAction}
             </View>
@@ -100,78 +58,24 @@ export const ScreenHeader = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.bluePrimary,
-    shadowColor: colors.blueSecondary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 4,
     paddingBottom: 14,
-  },
-
-  inner: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-  },
-
-  innerLeft: {
-    height: 64,
-  },
-
-  slot: {
-    width: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
-    letterSpacing: -0.3,
-  },
-
-  leftContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-
-  titleLeft: {
-    fontSize: 24,
-    fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
-    letterSpacing: -0.3,
-  },
-
-  leftActionItem: {
-    marginRight: 16,
-  },
-
-  rightActionItem: {
-    marginLeft: 16,
   },
 
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 16,
-    marginTop: 45,
-    gap: 12,
+    marginTop: 12,
   },
 
   searchInputContainer: {
     flex: 1,
-    maxWidth: '85%',
   },
 
   searchBellContainer: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 48,
+    marginLeft: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

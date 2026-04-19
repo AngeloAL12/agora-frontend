@@ -1,11 +1,22 @@
 export const COLORS = {
-  primary: '#1A468B',
+  primary: '#1E488F',
+  primaryDark: '#003172',
   accent: '#FDCB2D',
   background: '#F8F9FA',
   white: '#FFFFFF',
-
-  text: '#1F2937',
-  textSecondary: '#6B7280',
-
-  shadow: '#003172',
+  textPrimary: '#191C1E',
+  textSecondary: '#1F2937',
+  textTertiary: '#6B7280',
+  textBlue: '#192A56',
+  inputBackground: 'rgba(255,255,255,0.95)',
+  inputPlaceholder: '#7A7A7A',
+  link: '#233B6E',
+  card: '#FFFFFF',
+  border: '#E5E7EB',
+  shadow: '#000000',
+  shadowBlue: '#003172',
+  iconWhite: '#FFFFFF',
+  success: '#22C55E',
+  warning: '#F59E0B',
+  error: '#EF4444',
 };

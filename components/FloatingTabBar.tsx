@@ -4,6 +4,9 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+export const FLOATING_TAB_BAR_BOTTOM_OFFSET = 10;
+export const FLOATING_TAB_BAR_HEIGHT = 72;
+
 const HIDDEN_ROUTES = ['my-clubs'];
 
 const getAccessibilityLabel = (routeName: string) => {
@@ -104,12 +107,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 10,
+    bottom: FLOATING_TAB_BAR_BOTTOM_OFFSET,
     alignItems: 'center',
   },
   container: {
     width: 351,
-    height: 72,
+    height: FLOATING_TAB_BAR_HEIGHT,
     backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 9999,
     paddingHorizontal: 12,
