@@ -33,8 +33,16 @@ export const ScreenHeader = ({
   const bgColor = isWhite ? colors.white : colors.bluePrimary;
   const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
 
+  // When only a notification bell / rightAction exists (no title, no leftAction)
+  // AND a searchInput is also provided, suppress the separate title row so the
+  // action can live inline with the search bar (Figma clubs layout).
+  const onlyActionNoTitle =
+    !title && !leftAction && (!!rightAction || showNotificationBell);
   const hasHeaderRow = Boolean(
-    title || leftAction || rightAction || showNotificationBell,
+    title ||
+    leftAction ||
+    (onlyActionNoTitle && !searchInput) ||
+    (!onlyActionNoTitle && (rightAction || showNotificationBell)),
   );
 
   const notificationBell = showNotificationBell ? (
@@ -102,7 +110,27 @@ export const ScreenHeader = ({
           )}
         </View>
       )}
-      {searchInput && <View style={styles.searchWrapper}>{searchInput}</View>}
+      {searchInput && (
+        <View
+          style={[
+            styles.searchWrapper,
+            !hasHeaderRow && !!resolvedRightAction && styles.searchWrapperRow,
+          ]}
+        >
+          <View
+            style={
+              !hasHeaderRow && resolvedRightAction
+                ? styles.searchFlex
+                : undefined
+            }
+          >
+            {searchInput}
+          </View>
+          {!hasHeaderRow && resolvedRightAction && (
+            <View>{resolvedRightAction}</View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -153,8 +181,17 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   searchWrapper: {
-    paddingHorizontal: 24,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 4,
+  },
+  searchWrapperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  searchFlex: {
+    flex: 1,
   },
   notificationBell: {
     width: 36,
