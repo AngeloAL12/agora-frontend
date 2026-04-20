@@ -8,6 +8,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -61,13 +62,13 @@ export default function CreateClubFlow() {
       setStep(2);
     } else {
       Alert.alert('¡Éxito!', 'Club creado correctamente');
-      router.replace('/');
+      router.replace('/clubs');
     }
   };
 
   const handleBack = () => {
     if (step === 2) setStep(1);
-    else router.back();
+    else router.replace('/clubs');
   };
 
   return (
@@ -85,9 +86,9 @@ export default function CreateClubFlow() {
             borderBottomWidth: 0,
           }}
           leftAction={
-            <TouchableOpacity onPress={handleBack} style={{ padding: 8 }}>
+            <Pressable onPress={handleBack} style={{ padding: 8 }}>
               <Ionicons name="arrow-back" size={24} color="#192A56" />
-            </TouchableOpacity>
+            </Pressable>
           }
         />
 
