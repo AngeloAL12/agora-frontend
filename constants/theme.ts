@@ -27,6 +27,12 @@ export const colors = {
   statsBackground: 'rgba(255,255,255,0.1)',
   activityYellow: '#CBA800',
   activityGray: '#747782',
+  // Chat / Mensajes screen
+  chatBorder: '#ECEEF1',
+  chatTimestamp: '#747782',
+  unreadBadgeBg: '#003172',
+  botBadgeBg: '#FFE178',
+  botBadgeText: '#231B00',
 } as const;
 
 export const palette = {

@@ -7,12 +7,14 @@ interface ChatBubbleProps {
   sender: 'assistant' | 'user';
   message: string;
   timestamp?: string;
+  senderName?: string;
 }
 
 export const ChatBubble = React.memo(function ChatBubble({
   sender,
   message,
   timestamp,
+  senderName,
 }: ChatBubbleProps) {
   const isAssistant = sender === 'assistant';
 
@@ -23,6 +25,10 @@ export const ChatBubble = React.memo(function ChatBubble({
         isAssistant ? styles.wrapperAssistant : styles.wrapperUser,
       ]}
     >
+      {!isAssistant && senderName ? (
+        <Text style={styles.senderName}>{senderName}</Text>
+      ) : null}
+
       {/* Bubble */}
       <View
         style={[
@@ -192,5 +198,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.interMedium,
     color: colors.gray700,
     lineHeight: 15,
+  },
+  senderName: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.gray700,
+    marginBottom: 2,
+    paddingHorizontal: 4,
   },
 });
