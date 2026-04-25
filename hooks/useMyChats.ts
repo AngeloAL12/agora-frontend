@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClubChat } from '@/constants/chats';
+import { useAuth } from '@/context/AuthContext';
+import { clubChatManager } from '@/services/clubChatManager';
 import { useAuthRequest } from './useAuthRequest';
 
 interface ClubDetailResponse {
@@ -26,6 +28,7 @@ const IA_CHAT: ClubChat = {
 
 export function useMyChats() {
   const authRequest = useAuthRequest();
+  const { token, user } = useAuth();
   const [chats, setChats] = useState<ClubChat[]>([IA_CHAT]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,12 +50,17 @@ export function useMyChats() {
         timestamp: '',
       }));
       setChats([IA_CHAT, ...clubChats]);
+
+      if (token && user?.id) {
+        const clubIds = clubs.map((c) => String(c.id));
+        clubChatManager.init(clubIds, token, user.id);
+      }
     } catch {
       setError('No se pudieron cargar los chats.');
     } finally {
       setIsLoading(false);
     }
-  }, [authRequest]);
+  }, [authRequest, token, user]);
 
   useEffect(() => {
     fetchChats();
