@@ -1,4 +1,5 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -17,26 +18,39 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../../constants/theme';
+import { createClub } from '../../services/clubService'; // 👈 Ruta directa, sin fallas
+
+// La interface se queda aquí afuera
+interface ClubResponse {
+  id: number;
+  name: string;
+  description: string;
+  profile_image: string | null;
+  cover_image: string | null;
+  id_category: number;
+  id_leader: number;
+}
 
 export default function CreateClubFlow() {
   const router = useRouter();
+  const { token } = useAuth();
 
   const [step, setStep] = useState(1);
 
+  // Estados del Formulario
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [idCategory, setIdCategory] = useState<number>(1);
   const [clubType, setClubType] = useState('Abierto');
 
+  // Estados de Imágenes
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
 
   const pickImage = async (type: 'logo' | 'cover') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso denegado',
-        'Necesitamos acceso a tus fotos para subir la imagen.',
-      );
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tus fotos.');
       return;
     }
 
@@ -53,7 +67,7 @@ export default function CreateClubFlow() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!name.trim()) {
         Alert.alert('Faltan datos', 'Por favor, escribe el nombre del club.');
@@ -61,8 +75,49 @@ export default function CreateClubFlow() {
       }
       setStep(2);
     } else {
-      Alert.alert('¡Éxito!', 'Club creado correctamente');
-      router.replace('/clubs');
+      try {
+        if (!token) {
+          Alert.alert('Sesión expirada', 'Por favor inicia sesión de nuevo.');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('id_category', idCategory.toString());
+
+        if (logoUri) {
+          formData.append('profile_image', {
+            uri: logoUri,
+            name: 'photo.jpg',
+            type: 'image/jpeg',
+          } as any);
+        }
+
+        if (coverUri) {
+          formData.append('cover_image', {
+            uri: coverUri,
+            name: 'cover.jpg',
+            type: 'image/jpeg',
+          } as any);
+        }
+
+        // Llamamos al servicio (usamos ClubResponse para el tipado)
+        const result = (await createClub(formData, token)) as ClubResponse;
+
+        if (result && result.id) {
+          Alert.alert('¡Éxito!', 'Club creado correctamente', [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/clubs'), // 2. Al dar OK, regresamos a la lista
+            },
+          ]);
+        }
+      } catch (error: any) {
+        // Mostramos el error real del backend (ej: "Nombre ya existe")
+        const msg = error.detail || error.message || 'No se pudo crear el club';
+        Alert.alert('Atención', msg);
+      }
     }
   };
 
@@ -80,11 +135,7 @@ export default function CreateClubFlow() {
         <ScreenHeader
           title="Crear club"
           variant="white"
-          containerStyle={{
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
-          }}
+          containerStyle={{ elevation: 0, borderBottomWidth: 0 }}
           leftAction={
             <Pressable onPress={handleBack} style={{ padding: 8 }}>
               <Ionicons name="arrow-back" size={24} color="#192A56" />
@@ -130,7 +181,7 @@ export default function CreateClubFlow() {
                 <Text style={styles.label}>DESCRIPCIÓN</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Cuéntanos de que trata el club, sus objetivos y actividades..."
+                  placeholder="Cuéntanos de qué trata el club..."
                   placeholderTextColor="#43475180"
                   multiline
                   textAlignVertical="top"
@@ -141,7 +192,6 @@ export default function CreateClubFlow() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>TIPO</Text>
-
                 <View style={styles.typeCardsFrame}>
                   <TouchableOpacity
                     style={[
@@ -149,7 +199,6 @@ export default function CreateClubFlow() {
                       clubType === 'Abierto' && styles.typeCardSelected,
                     ]}
                     onPress={() => setClubType('Abierto')}
-                    activeOpacity={0.9}
                   >
                     <Text
                       style={[
@@ -162,14 +211,12 @@ export default function CreateClubFlow() {
                       Abierto
                     </Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
                     style={[
                       styles.typeCard,
                       clubType === 'Cerrado' && styles.typeCardSelected,
                     ]}
                     onPress={() => setClubType('Cerrado')}
-                    activeOpacity={0.9}
                   >
                     <Text
                       style={[
@@ -183,11 +230,6 @@ export default function CreateClubFlow() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                <Text style={styles.visibilityHelpText}>
-                  * Los clubes abiertos permiten que cualquier estudiante se una
-                  sin previa aprobación.
-                </Text>
               </View>
             </View>
           ) : (
@@ -206,7 +248,6 @@ export default function CreateClubFlow() {
                     </View>
                     <TouchableOpacity
                       style={styles.addButton}
-                      activeOpacity={0.8}
                       onPress={() => pickImage('logo')}
                     >
                       <View style={styles.plusCircle}>
@@ -252,7 +293,7 @@ export default function CreateClubFlow() {
         <View style={styles.footer}>
           <TouchableOpacity style={styles.mainButton} onPress={handleNext}>
             <Text style={styles.mainButtonText}>
-              {step === 1 ? 'Siguiente' : 'Crear'}
+              {step === 1 ? 'Siguiente' : 'Crear Club'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -279,8 +320,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.2,
     color: '#003172',
     textTransform: 'uppercase',
   },
@@ -300,26 +339,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.2,
     color: '#434751',
-    textTransform: 'uppercase',
     marginBottom: 8,
     alignSelf: 'flex-start',
-    width: '100%',
   },
   inputGroup: { width: '100%', maxWidth: 358, marginBottom: 20 },
   input: {
     width: '100%',
     backgroundColor: '#E0E3E6',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 16 : 12,
     fontSize: 16,
-    fontFamily: 'Inter',
-    fontWeight: '500',
     color: '#1A2138',
   },
   textArea: { height: 120, paddingVertical: 16 },
@@ -339,34 +370,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  typeCardSelected: {
-    backgroundColor: '#FFFFFF',
-  },
-  typeCardText: {
-    fontFamily: 'Inter',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  textSelected: {
-    fontWeight: '700',
-    color: '#003172',
-  },
-  textUnselected: {
-    fontWeight: '600',
-    color: '#434751',
-  },
-  visibilityHelpText: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
-    fontSize: 11,
-    lineHeight: 16.5,
-    color: '#64748B',
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
+  typeCardSelected: { backgroundColor: '#FFFFFF' },
+  typeCardText: { fontFamily: 'Inter', fontSize: 14 },
+  textSelected: { fontWeight: '700', color: '#003172' },
+  textUnselected: { fontWeight: '600', color: '#434751' },
+  visibilityHelpText: { fontSize: 11, color: '#64748B', marginTop: 8 },
   sectionContainer: { width: '100%', maxWidth: 358, marginBottom: 20 },
   sectionCard: {
     width: '100%',
@@ -397,7 +406,6 @@ const styles = StyleSheet.create({
     height: 110,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 1,
   },
   coverPlaceholder: { width: '65%', height: '65%' },
   fullImage: { width: '100%', height: '100%' },
@@ -414,10 +422,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     color: '#192A56',
-    textAlign: 'center',
     marginBottom: 8,
   },
-  helperText: { fontSize: 12, color: '#434751', textAlign: 'center' },
+  helperText: { fontSize: 12, color: '#434751' },
   footer: {
     width: '100%',
     paddingHorizontal: 16,

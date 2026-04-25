@@ -1,60 +1,47 @@
 import { ClubCard } from '@/components/ClubCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
+import { getAllClubs } from '@/services/clubService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-// Todos los clubs del usuario, del más reciente al más antiguo
-const ALL_MY_CLUBS_MOCK = [
-  {
-    id: 11,
-    name: 'Equipo de Básquetbol',
-    nextEvent: 'Mañana',
-    profile_image: null,
-    created_at: '2026-04-19T23:31:34.510350Z',
-  },
-  {
-    id: 10,
-    name: 'Club de Robótica',
-    nextEvent: 'Jueves',
-    profile_image: null,
-    created_at: '2026-04-18T10:00:00.000000Z',
-  },
-  {
-    id: 12,
-    name: 'Skibidis',
-    nextEvent: undefined,
-    profile_image:
-      'https://devimages.angelolo.lat/clubs/1/profile/bff7a643-5cc3-4aec-8ec9-53f04b336849.JPG',
-    created_at: '2026-04-17T08:00:00.000000Z',
-  },
-  {
-    id: 13,
-    name: 'Club de futbol',
-    nextEvent: undefined,
-    profile_image: null,
-    created_at: '2026-04-10T08:00:00.000000Z',
-  },
-  {
-    id: 14,
-    name: 'Club de beisbol',
-    nextEvent: undefined,
-    profile_image: null,
-    created_at: '2026-03-01T08:00:00.000000Z',
-  },
-];
-
 export default function MyClubsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollPaddingBottom = insets.bottom + 130;
+
+  const [clubs, setClubs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClubs = async () => {
+      try {
+        const data = await getAllClubs();
+        setClubs(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error cargando mis clubes:', error);
+        setClubs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClubs();
+  }, []);
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
@@ -71,7 +58,7 @@ export default function MyClubsScreen() {
         }}
         leftAction={
           <Pressable
-            onPress={() => router.push('/clubs')}
+            onPress={() => router.back()}
             hitSlop={8}
             style={({ pressed }) => [pressed && { opacity: 0.7 }]}
           >
@@ -81,31 +68,49 @@ export default function MyClubsScreen() {
       />
 
       <View style={styles.content}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: scrollPaddingBottom },
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
+        {loading ? (
+          <View style={styles.loadingCenter}>
+            <ActivityIndicator size="large" color={colors.bluePrimary} />
+            <Text style={styles.loadingText}>Cargando tus clubes...</Text>
           </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: scrollPaddingBottom },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
+            </View>
 
-          <View style={styles.list}>
-            {ALL_MY_CLUBS_MOCK.map((club) => (
-              <ClubCard
-                key={club.id}
-                name={club.name}
-                nextEvent={club.nextEvent}
-                imageSource={
-                  club.profile_image ? { uri: club.profile_image } : undefined
-                }
-                onPress={() => {}}
-              />
-            ))}
-          </View>
-        </ScrollView>
+            <View style={styles.list}>
+              {clubs.map((club) => (
+                <ClubCard
+                  key={club.id}
+                  name={club.name}
+                  nextEvent={club.nextEvent}
+                  imageSource={
+                    club.profile_image ? { uri: club.profile_image } : undefined
+                  }
+                  onPress={() =>
+                    router.push({
+                      pathname: '/club/[id]' as any,
+                      params: { id: club.id },
+                    })
+                  }
+                />
+              ))}
+
+              {clubs.length === 0 && (
+                <Text style={styles.emptyText}>
+                  Aún no formas parte de ningún club.
+                </Text>
+              )}
+            </View>
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -135,5 +140,21 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 16,
+  },
+  loadingCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+    marginTop: 24,
   },
 });
