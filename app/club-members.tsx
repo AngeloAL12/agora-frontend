@@ -4,6 +4,8 @@ import { colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
+import { HeaderBackButton } from '@/components/HeaderBackButton';
+
 import {
   Image,
   Pressable,
@@ -55,11 +57,11 @@ export default function ClubMembersScreen() {
 
       <ScreenHeader
         title="Miembros"
-        leftAction={
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.blueDark} />
-          </Pressable>
-        }
+        align="center"
+        variant="white"
+        containerStyle={styles.header}
+        leftAction={<HeaderBackButton color={colors.blueDark} />}
+        rightAction={<View style={styles.headerSide} />}
       />
       <ScrollView
         contentContainerStyle={styles.container}
@@ -67,7 +69,7 @@ export default function ClubMembersScreen() {
       >
         <SearchInput
           placeholder="Buscar miembros..."
-          containerStyle={{ marginBottom: 16 }}
+          containerStyle={styles.searchInput}
         />
 
         <View style={styles.filters}>
@@ -126,15 +128,10 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 50,
-    backgroundColor: '#FCFBFB',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-
+    backgroundColor: colors.white,
     paddingHorizontal: 24,
+    elevation: 0,
+    shadowOpacity: 0,
   },
 
   leftIcon: {
@@ -169,7 +166,9 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
 
   filters: {
@@ -296,5 +295,13 @@ const styles = StyleSheet.create({
   },
   roleHighlight: {
     color: '#003172',
+  },
+  headerSide: {
+    width: 32,
+    height: 32,
+  },
+  searchInput: {
+    marginTop: 0,
+    marginBottom: 16,
   },
 });

@@ -1,14 +1,15 @@
+import { HeaderBackButton } from '@/components/HeaderBackButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { colors, typography } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
   Image,
-  Pressable,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -16,14 +17,54 @@ import {
   View,
 } from 'react-native';
 
+type DateTarget = 'start' | 'end';
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('es-MX', {
+    month: 'long',
+    day: '2-digit',
+  });
+
+const addDays = (date: Date, days: number) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
+
 export default function ClubCreateEventScreen() {
   const successSheetRef = useRef<BottomSheetModal>(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(addDays(new Date(), 2));
+
+  const [dateTarget, setDateTarget] = useState<DateTarget | null>(null);
+  const [tempDate, setTempDate] = useState(new Date());
+
+  const openDatePicker = (target: DateTarget) => {
+    setDateTarget(target);
+    setTempDate(target === 'start' ? startDate : endDate);
+  };
+
+  const closeDatePicker = () => {
+    setDateTarget(null);
+  };
+
+  const saveDate = () => {
+    if (dateTarget === 'start') {
+      setStartDate(tempDate);
+    }
+
+    if (dateTarget === 'end') {
+      setEndDate(tempDate);
+    }
+
+    closeDatePicker();
+  };
+
   const handleCreateEvent = () => {
-    if (!name.trim() || !description.trim()) return;
     successSheetRef.current?.present();
   };
 
@@ -38,26 +79,15 @@ export default function ClubCreateEventScreen() {
 
   return (
     <View style={styles.safeArea}>
+      <StatusBar style="dark" backgroundColor={colors.whiteSoft} />
+
       <ScreenHeader
         title="Crear evento"
-        leftAction={
-          <Pressable
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/clubs' as any);
-              }
-            }}
-            hitSlop={8}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={colors.blueSecondary}
-            />
-          </Pressable>
-        }
+        align="center"
+        variant="white"
+        containerStyle={styles.header}
+        leftAction={<HeaderBackButton color={colors.blueDark} />}
+        rightAction={<View style={styles.headerSide} />}
       />
 
       <View style={styles.container}>
@@ -86,8 +116,13 @@ export default function ClubCreateEventScreen() {
         <View style={styles.dateContainer}>
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>INICIO</Text>
-            <TouchableOpacity style={styles.dateSelect} activeOpacity={0.8}>
-              <Text style={styles.dateText}>Abril 06</Text>
+
+            <TouchableOpacity
+              style={styles.dateSelect}
+              activeOpacity={0.8}
+              onPress={() => openDatePicker('start')}
+            >
+              <Text style={styles.dateText}>{formatDate(startDate)}</Text>
               <Image
                 source={require('@/assets/icons/SVG.png')}
                 style={styles.dateIcon}
@@ -97,8 +132,13 @@ export default function ClubCreateEventScreen() {
 
           <View style={styles.dateField}>
             <Text style={styles.dateLabel}>FINAL</Text>
-            <TouchableOpacity style={styles.dateSelect} activeOpacity={0.8}>
-              <Text style={styles.dateText}>Abril 08</Text>
+
+            <TouchableOpacity
+              style={styles.dateSelect}
+              activeOpacity={0.8}
+              onPress={() => openDatePicker('end')}
+            >
+              <Text style={styles.dateText}>{formatDate(endDate)}</Text>
               <Image
                 source={require('@/assets/icons/SVG.png')}
                 style={styles.dateIcon}
@@ -123,6 +163,42 @@ export default function ClubCreateEventScreen() {
         </LinearGradient>
       </View>
 
+      <Modal transparent visible={dateTarget !== null} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.dateModal}>
+            <Text style={styles.modalTitle}>Seleccionar fecha</Text>
+
+            <Text style={styles.modalDate}>{formatDate(tempDate)}</Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => setTempDate(addDays(tempDate, -1))}
+              >
+                <Text style={styles.modalOptionText}>Día anterior</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => setTempDate(addDays(tempDate, 1))}
+              >
+                <Text style={styles.modalOptionText}>Día siguiente</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity onPress={closeDatePicker}>
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={saveDate}>
+                <Text style={styles.saveText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <SuccessBottomSheet
         ref={successSheetRef}
         title="¡Bien hecho!"
@@ -138,12 +214,24 @@ export default function ClubCreateEventScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.whiteSoft,
+  },
+  header: {
+    height: 50,
+    backgroundColor: colors.whiteSoft,
+    paddingHorizontal: 24,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  headerSide: {
+    width: 32,
+    height: 32,
   },
   container: {
     flex: 1,
     paddingHorizontal: 22,
-    paddingTop: 12,
+    paddingTop: 56,
+    gap: 5,
   },
   label: {
     height: 16,
@@ -159,7 +247,7 @@ const styles = StyleSheet.create({
   input: {
     height: 51,
     borderRadius: 8,
-    backgroundColor: '#E3E7EA',
+    backgroundColor: colors.gray100,
     paddingHorizontal: 12,
     fontSize: 16,
     color: colors.gray950,
@@ -195,7 +283,7 @@ const styles = StyleSheet.create({
   dateSelect: {
     height: 52,
     borderRadius: 12,
-    backgroundColor: '#E3E7EA',
+    backgroundColor: colors.gray100,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -206,6 +294,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.black,
     fontFamily: typography.fontFamily.interMedium,
+    textTransform: 'capitalize',
   },
   dateIcon: {
     width: 16,
@@ -232,5 +321,63 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 28,
     fontFamily: typography.fontFamily.manropeBold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  dateModal: {
+    width: '100%',
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    color: colors.gray950,
+    fontFamily: typography.fontFamily.manropeBold,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalDate: {
+    fontSize: 20,
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.manropeBold,
+    textAlign: 'center',
+    textTransform: 'capitalize',
+    marginBottom: 20,
+  },
+  modalActions: {
+    gap: 10,
+  },
+  modalOption: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: colors.gray950,
+    fontFamily: typography.fontFamily.interMedium,
+  },
+  modalFooter: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelText: {
+    fontSize: 14,
+    color: colors.gray700,
+    fontFamily: typography.fontFamily.interMedium,
+  },
+  saveText: {
+    fontSize: 14,
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.interBold,
   },
 });

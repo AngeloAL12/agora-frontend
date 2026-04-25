@@ -100,7 +100,11 @@ export default function MyClubsScreen() {
                 imageSource={
                   club.profile_image ? { uri: club.profile_image } : undefined
                 }
-                onPress={() => {}}
+                onPress={() => {
+                  if (club.name === 'Club de Robótica') {
+                    router.push('/club-detail' as any);
+                  }
+                }}
               />
             ))}
           </View>

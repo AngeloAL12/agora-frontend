@@ -90,7 +90,7 @@ export const ScreenHeader = ({
             <>
               <View style={styles.leftContent}>
                 {leftAction && (
-                  <View style={styles.leftActionItem}>{leftAction}</View>
+                  <View style={styles.leftAction}>{leftAction}</View>
                 )}
                 {title ? (
                   <Text
@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
+    paddingLeft: 1,
   },
   innerLeft: {
     height: 64,
@@ -202,5 +203,11 @@ const styles = StyleSheet.create({
   bellIcon: {
     width: 36,
     height: 36,
+  },
+  leftAction: {
+    width: 40,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingLeft: 0,
   },
 });

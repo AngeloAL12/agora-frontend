@@ -41,7 +41,10 @@
               "scheme": "com.googleusercontent.apps.93837597429-cba0e642fc22383ti1bvfc6o17crehqh"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -86,7 +89,8 @@
           "photosPermission": "Se requiere acceso a la galería para adjuntar fotos a los reportes.",
           "cameraPermission": "Se requiere acceso a la cámara para tomar fotos para los reportes."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
