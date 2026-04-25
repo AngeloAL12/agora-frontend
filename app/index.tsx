@@ -29,9 +29,7 @@ export default function IndexScreen() {
           setHomeRoute(HOME_ROUTE_BY_KEY[homeScreen]);
         }
       })
-      .catch(() => {
-        // default to map
-      });
+      .catch(() => {});
 
     return () => {
       mounted = false;

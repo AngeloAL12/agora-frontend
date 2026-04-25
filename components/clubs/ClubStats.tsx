@@ -1,12 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ClubStatsProps {
   members: number;
   publications: number;
+  onPressMembers?: () => void;
 }
-
 interface StatItemProps {
   value: number;
   label: string;
@@ -21,13 +20,14 @@ const StatItem = ({ value, label }: StatItemProps) => {
   );
 };
 
-const ClubStats = ({ members, publications }: ClubStatsProps) => {
+const ClubStats = ({
+  members,
+  publications,
+  onPressMembers,
+}: ClubStatsProps) => {
   return (
     <View style={styles.statsRow}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => router.push('/club-members')}
-      >
+      <TouchableOpacity activeOpacity={0.8} onPress={onPressMembers}>
         <StatItem value={members} label="MIEMBROS" />
       </TouchableOpacity>
 

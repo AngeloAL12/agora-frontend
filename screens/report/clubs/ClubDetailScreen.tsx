@@ -82,6 +82,7 @@ const ClubDetailScreen = () => {
           <ClubStats
             members={club.stats.members}
             publications={club.stats.publications}
+            onPressMembers={() => router.push('/club-members')}
           />
 
           <ClubTabs activeTab={activeTab} onChangeTab={setActiveTab} />
