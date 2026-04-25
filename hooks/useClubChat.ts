@@ -154,7 +154,16 @@ export function useClubChat(clubId: string): UseClubChatReturn {
         const incoming = mapMessage(payload as ClubMessageResponse);
         setMessages((prev) => {
           if (prev.some((m) => m.id === incoming.id)) return prev;
-          const next = [...prev, incoming];
+          // Replace optimistic message sent by current user with the confirmed one
+          const optimisticIdx = incoming.isMe
+            ? prev.findLastIndex(
+                (m) => m.id.startsWith('opt_') && m.text === incoming.text,
+              )
+            : -1;
+          const next =
+            optimisticIdx !== -1
+              ? prev.map((m, i) => (i === optimisticIdx ? incoming : m))
+              : [...prev, incoming];
           sessionMessagesByClub[clubId] = next;
           if (!incoming.isMe) {
             chatSummaryStore.updateWithUnread(
