@@ -26,7 +26,6 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
-import { CLUB_CHATS_MOCK } from '@/constants/chats';
 import { colors, typography } from '@/constants/theme';
 import { useClubChat } from '@/hooks/useClubChat';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,10 +34,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 export default function ClubChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const resolvedId = Array.isArray(id) ? id[0] : (id ?? '');
-
-  const chat = CLUB_CHATS_MOCK.find((c) => c.id === resolvedId);
+  const chatName = Array.isArray(name) ? name[0] : (name ?? 'Chat');
 
   const {
     messages,
@@ -119,11 +117,7 @@ export default function ClubChatScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-        <ScreenHeader
-          title={chat?.name ?? 'Chat'}
-          align="left"
-          leftAction={backAction}
-        />
+        <ScreenHeader title={chatName} align="left" leftAction={backAction} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.bluePrimary} />
         </View>
@@ -198,11 +192,7 @@ export default function ClubChatScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
-      <ScreenHeader
-        title={chat?.name ?? 'Chat'}
-        align="left"
-        leftAction={backAction}
-      />
+      <ScreenHeader title={chatName} align="left" leftAction={backAction} />
 
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
