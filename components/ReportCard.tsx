@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingVertical: 5,
     paddingHorizontal: 12,
-    borderRadius: 12, // Pills más redonditas
+    borderRadius: 12,
   },
   badgeText: {
     fontSize: 11,

@@ -1,3 +1,4 @@
+import { SearchInput } from '@/components/SearchInput';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -7,18 +8,41 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-const members = [
-  { id: '1', name: 'Angelo Alvarado', role: 'Administrador', avatar: 'AA' },
-  { id: '2', name: 'Sofía Martínez', role: 'Moderador', avatar: 'SM' },
-  { id: '3', name: 'Carlos Mendoza', role: 'Miembro', avatar: 'CM' },
-  { id: '4', name: 'Diego Torres', role: 'Miembro', avatar: 'DT' },
-  { id: '5', name: 'Lucía Ramirez', role: 'Miembro', avatar: 'LR' },
-  { id: '6', name: 'Elena Gómez', role: 'Miembro', avatar: 'EG' },
+const MEMBERS = [
+  {
+    id: 1,
+    name: 'Angelo Alvarado',
+    role: 'Administrador',
+    initials: 'AA',
+    image: require('@/assets/images/AlejandroRivera.png'),
+  },
+  {
+    id: 2,
+    name: 'Sofía Martínez',
+    role: 'Moderador',
+    initials: 'SM',
+    image: require('@/assets/images/SofíaMartínez.png'),
+  },
+  { id: 3, name: 'Carlos Mendoza', role: 'Miembro', initials: 'CM' },
+  {
+    id: 4,
+    name: 'Diego Torres',
+    role: 'Miembro',
+    initials: 'DT',
+    image: require('@/assets/images/DiegoTorres.png'),
+  },
+  { id: 5, name: 'Lucía Ramírez', role: 'Miembro', initials: 'LR' },
+  {
+    id: 6,
+    name: 'Elena Gómez',
+    role: 'Miembro',
+    initials: 'EG',
+    image: require('@/assets/images/ElenaGómez.png'),
+  },
 ];
 
 export default function ClubMembersScreen() {
@@ -28,8 +52,16 @@ export default function ClubMembersScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerIcon}
+          style={styles.leftIcon}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/club-robotica-test' as any);
+            }
+          }}
+          activeOpacity={0.8}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Image
             source={require('@/assets/icons/regreso.png')}
@@ -39,45 +71,62 @@ export default function ClubMembersScreen() {
 
         <Text style={styles.headerTitle}>Miembros</Text>
 
-        <View style={styles.headerIcon} />
+        <View style={styles.headerRightSpacer} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            placeholder="Buscar miembros..."
-            placeholderTextColor="#8A9099"
-            style={styles.searchInput}
-          />
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <SearchInput
+          placeholder="Buscar miembros..."
+          containerStyle={{ marginBottom: 16 }}
+        />
 
         <View style={styles.filters}>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.filterButtonActive]}
-          >
-            <Text style={styles.filterTextActive}>Todos (42)</Text>
-          </TouchableOpacity>
+          <View style={styles.activeChip}>
+            <Text style={styles.activeChipText}>Todos (42)</Text>
+          </View>
 
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Administradores</Text>
-          </TouchableOpacity>
+          <View style={styles.inactiveChip}>
+            <Text style={styles.inactiveChipText}>Administradores</Text>
+          </View>
         </View>
 
-        <View style={styles.list}>
-          {members.map((member) => (
-            <View key={member.id} style={styles.memberCard}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{member.avatar}</Text>
-              </View>
+        {MEMBERS.map((member) => (
+          <View key={member.id} style={styles.card}>
+            <View style={styles.avatar}>
+              {member.image ? (
+                <Image source={member.image} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>{member.initials}</Text>
+              )}
+            </View>
 
-              <View>
-                <Text style={styles.memberName}>{member.name}</Text>
-                <Text style={styles.memberRole}>◉ {member.role}</Text>
+            <View>
+              <Text style={styles.name}>{member.name}</Text>
+              <View style={styles.roleRow}>
+                {(member.role === 'Administrador' ||
+                  member.role === 'Moderador') && (
+                  <Image
+                    source={require('@/assets/icons/Admin.png')}
+                    style={styles.roleIcon}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.role,
+                    (member.role === 'Administrador' ||
+                      member.role === 'Moderador') &&
+                      styles.roleHighlight,
+                  ]}
+                >
+                  {member.role}
+                </Text>
               </View>
             </View>
-          ))}
-        </View>
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -87,123 +136,179 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    paddingTop: StatusBar.currentHeight || 0,
   },
+
   header: {
-    height: 56,
-    backgroundColor: '#FFFFFF',
+    height: 50,
+    backgroundColor: '#FCFBFB',
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+
+    paddingHorizontal: 24,
   },
-  headerIcon: {
+
+  leftIcon: {
+    position: 'absolute',
+    left: 16,
+    top: 0,
+    bottom: 0,
     width: 32,
     height: 32,
     justifyContent: 'center',
+    alignItems: 'center',
   },
+
   backIcon: {
     width: 16,
     height: 16,
     resizeMode: 'contain',
-    tintColor: '#003172',
+    tintColor: '#192A56',
   },
+
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    fontSize: 20,
     fontWeight: '700',
+    lineHeight: 28,
     color: '#192A56',
+    letterSpacing: -0.5,
   },
+
   container: {
-    flex: 1,
-    paddingHorizontal: 16,
+    padding: 16,
   },
-  searchBox: {
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F7F8FA',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    marginTop: 8,
-  },
-  searchIcon: {
-    fontSize: 18,
-    color: '#8A9099',
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#191C1E',
-  },
+
   filters: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  filterButtonActive: {
-    backgroundColor: '#003172',
-    borderColor: '#003172',
-  },
-  filterText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#434751',
-  },
-  filterTextActive: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  list: {
-    gap: 12,
-    paddingBottom: 32,
-  },
-  memberCard: {
-    minHeight: 72,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-
-    shadowColor: '#003172',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    marginBottom: 16,
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#E8EEF8',
+
+  activeChip: {
+    backgroundColor: '#1E488F',
+    height: 32,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
+
+  activeChipText: {
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-    color: '#003172',
+    lineHeight: 16,
+    textAlign: 'center',
   },
-  memberName: {
-    fontSize: 13,
-    fontWeight: '700',
+
+  inactiveChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  inactiveChipText: {
     color: '#191C1E',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
+    textAlign: 'center',
   },
-  memberRole: {
-    marginTop: 3,
-    fontSize: 11,
+
+  card: {
+    width: '100%',
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderColor: '#ECEEF1',
+    padding: 16,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    backgroundColor: '#E6ECF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  avatarText: {
+    color: '#003172',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
+  name: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#191C1E',
+    lineHeight: 24,
+  },
+
+  role: {
+    fontSize: 14,
+    color: '#003172',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  roleDot: {
+    color: '#434751',
+    fontWeight: '400',
+  },
+
+  headerRightSpacer: {
+    width: 24,
+    height: 50,
+  },
+
+  roleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+
+  roleIcon: {
+    width: 12,
+    height: 12,
+    resizeMode: 'contain',
+    tintColor: '#003172',
+    marginRight: 6,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+  },
+  roleHighlight: {
     color: '#003172',
   },
 });

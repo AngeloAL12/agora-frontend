@@ -145,7 +145,6 @@ export default function CareerScreen() {
         <Text style={styles.title}>Selecciona tu{'\n'}Ingeniería</Text>
       </View>
 
-      {/* Search bar */}
       {showErrorState ? (
         <View style={styles.errorCard}>
           <Text style={styles.errorTitle}>
@@ -196,7 +195,6 @@ export default function CareerScreen() {
         }
       />
 
-      {/* Footer button */}
       <View style={styles.footer}>
         {isSubmitting ? (
           <View style={styles.loadingButton}>
@@ -314,7 +312,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bluePrimary,
   },
 
-  // List
   list: {
     flex: 1,
   },
@@ -343,7 +340,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Career card
   careerCard: {
     backgroundColor: colors.white,
     borderRadius: 12,
@@ -384,7 +380,6 @@ const styles = StyleSheet.create({
     color: colors.gray950,
   },
 
-  // Footer
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,

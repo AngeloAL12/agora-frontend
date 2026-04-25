@@ -1,6 +1,6 @@
 import { ClubEvent } from '@/types/club';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ClubEventCardProps {
   event: ClubEvent;
@@ -17,7 +17,14 @@ const ClubEventCard = ({ event, onPress }: ClubEventCardProps) => {
 
       <View style={styles.info}>
         <Text style={styles.title}>{event.title}</Text>
-        <Text style={styles.time}>◷ {event.time}</Text>
+
+        <View style={styles.timeRow}>
+          <Image
+            source={require('@/assets/icons/clock.png')}
+            style={styles.timeIcon}
+          />
+          <Text style={styles.time}>{event.time}</Text>
+        </View>
       </View>
 
       <Text style={styles.chevron}>›</Text>
@@ -72,17 +79,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '700',
     color: '#191C1E',
-    lineHeight: 20,
+    lineHeight: 28,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  timeIcon: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+    tintColor: '#434751',
+    marginRight: 4,
   },
   time: {
-    marginTop: 6,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '400',
     color: '#434751',
-    lineHeight: 14,
+    lineHeight: 16,
   },
   chevron: {
     fontSize: 24,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ClubHeaderInfoProps {
   initials: string;
@@ -13,7 +13,7 @@ const ClubHeaderInfo = ({
   initials,
   name,
   description,
-  isMember,
+  isMember = false,
   onPressMember,
 }: ClubHeaderInfoProps) => {
   return (
@@ -27,6 +27,7 @@ const ClubHeaderInfo = ({
           style={styles.memberButton}
           activeOpacity={0.8}
           onPress={onPressMember}
+          disabled={isMember}
         >
           <Text style={styles.memberButtonText}>
             {isMember ? 'Miembro' : 'Unirse'}

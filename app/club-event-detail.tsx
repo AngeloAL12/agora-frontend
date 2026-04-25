@@ -1,14 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
+  Image,
+  Platform,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Image,
-  Platform,
 } from 'react-native';
 
 const STATUS_BAR_HEIGHT =
@@ -25,12 +25,20 @@ export default function ClubEventDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#1E488F" />
 
-      {/* 🔵 HEADER */}
       <View style={styles.header}>
         {/* 🔙 BACK */}
         <TouchableOpacity
           style={styles.headerIcon}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace({
+                pathname: '/club-robotica-test',
+                params: { tab: 'eventos' },
+              } as any);
+            }
+          }}
           activeOpacity={0.8}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -40,14 +48,11 @@ export default function ClubEventDetailScreen() {
           />
         </TouchableOpacity>
 
-        {/* 🧠 TITLE */}
         <Text style={styles.headerTitle}>Detalles del evento</Text>
 
-        {/* 👻 ESPACIADOR */}
         <View style={styles.headerIcon} />
       </View>
 
-      {/* 📦 CONTENIDO */}
       <View style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.label}>NOMBRE</Text>

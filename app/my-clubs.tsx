@@ -11,7 +11,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-// Todos los clubs del usuario, del más reciente al más antiguo
 const ALL_MY_CLUBS_MOCK = [
   {
     id: 11,

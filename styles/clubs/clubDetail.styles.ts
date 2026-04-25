@@ -1,6 +1,4 @@
-import { StyleSheet, Platform, StatusBar as RNStatusBar } from 'react-native';
-
-import { router } from 'expo-router';
+import { Platform, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
 
 const STATUS_BAR_HEIGHT =
   Platform.OS === 'android' ? RNStatusBar.currentHeight || 0 : 0;
@@ -42,19 +40,19 @@ export const clubDetailStyles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    right: 16,
-    bottom: 18,
-    width: 44,
-    height: 44,
+    right: 24,
+    bottom: 32,
+    width: 56,
+    height: 56,
     borderRadius: 12,
     backgroundColor: '#F4C400',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 5,
+    elevation: 8,
     shadowColor: '#000000',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 10 },
   },
   floatingButtonText: {
     fontSize: 24,
@@ -73,5 +71,21 @@ export const clubDetailStyles = StyleSheet.create({
     width: 16,
     height: 16,
     resizeMode: 'contain',
+  },
+
+  floatingButtonIcon: {
+    width: 15,
+    height: 15,
+    resizeMode: 'contain',
+  },
+  notificationIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
   },
 });

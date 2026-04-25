@@ -62,9 +62,9 @@ const ClubPostCard = ({
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={onPressShare}>
-          <Text style={styles.footerAction}>↗</Text>
-        </TouchableOpacity>
+        <View style={styles.postFooter}>
+          <View style={styles.postFooterLeft}></View>
+        </View>
       </View>
     </View>
   );

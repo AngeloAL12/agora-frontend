@@ -7,7 +7,7 @@ export const CLUB_DETAIL_MOCK: ClubDetail = {
   coverImage:
     'https://images.unsplash.com/photo-1561144257-e32e8efc6c4f?auto=format&fit=crop&w=1200&q=80',
   initials: 'AA',
-  isMember: true,
+  isMember: false,
   stats: {
     members: 42,
     publications: 156,

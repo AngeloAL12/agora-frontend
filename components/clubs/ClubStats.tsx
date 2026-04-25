@@ -24,7 +24,6 @@ const StatItem = ({ value, label }: StatItemProps) => {
 const ClubStats = ({ members, publications }: ClubStatsProps) => {
   return (
     <View style={styles.statsRow}>
-      {/* 🔥 CLICK EN MIEMBROS */}
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => router.push('/club-members')}
@@ -32,7 +31,6 @@ const ClubStats = ({ members, publications }: ClubStatsProps) => {
         <StatItem value={members} label="MIEMBROS" />
       </TouchableOpacity>
 
-      {/* PUBLICACIONES (sin acción por ahora) */}
       <StatItem value={publications} label="PUBLICACIONES" />
     </View>
   );

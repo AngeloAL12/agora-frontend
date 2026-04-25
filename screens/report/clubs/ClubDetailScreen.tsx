@@ -1,30 +1,43 @@
-import React, { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
+  Image,
   SafeAreaView,
   ScrollView,
   StatusBar,
-  Text,
   TouchableOpacity,
   View,
-  Image,
 } from 'react-native';
 
 import ClubBanner from '@/components/clubs/ClubBanner';
+import ClubEventCard from '@/components/clubs/ClubEventCard';
 import ClubHeaderInfo from '@/components/clubs/ClubHeaderInfo';
 import ClubPostCard from '@/components/clubs/ClubPostCard';
 import ClubStats from '@/components/clubs/ClubStats';
 import ClubTabs from '@/components/clubs/ClubTabs';
-
-import ClubEventCard from '@/components/clubs/ClubEventCard';
 import { CLUB_DETAIL_MOCK } from '@/constants/clubs';
 import { clubDetailStyles as styles } from '@/styles/clubs/clubDetail.styles';
 import { ClubTabKey } from '@/types/club';
-import { router } from 'expo-router';
 
 const ClubDetailScreen = () => {
-  const [activeTab, setActiveTab] = useState<ClubTabKey>('publicaciones');
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
 
   const club = CLUB_DETAIL_MOCK;
+
+  const [activeTab, setActiveTab] = useState<ClubTabKey>('publicaciones');
+  const [joined, setJoined] = useState(club.isMember);
+
+  useEffect(() => {
+    if (tab === 'eventos') {
+      setActiveTab('eventos');
+    }
+  }, [tab]);
+
+  const handleFloatingButtonPress = () => {
+    if (activeTab === 'eventos') {
+      router.push('/club-create-event' as any);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -44,7 +57,10 @@ const ClubDetailScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.headerIcon} activeOpacity={0.8}>
-            <Text style={styles.headerIconText}>🔔</Text>
+            <Image
+              source={require('@/assets/images/campana.png')}
+              style={styles.notificationIcon}
+            />
           </TouchableOpacity>
         </View>
 
@@ -59,7 +75,8 @@ const ClubDetailScreen = () => {
             initials={club.initials}
             name={club.name}
             description={club.description}
-            isMember={club.isMember}
+            isMember={joined}
+            onPressMember={() => setJoined(true)}
           />
 
           <ClubStats
@@ -86,7 +103,7 @@ const ClubDetailScreen = () => {
                       pathname: '/club-event-detail',
                       params: {
                         title: event.title,
-                        date: `22 de ${event.month}, 2026`,
+                        date: `${event.day} de ${event.month}, 2026`,
                         description:
                           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. In at libero nibh. Integer faucibus elementum ligula ac fermentum. Duis ultrices urna ac orci posuere dictum. Pellentesque convallis porttitor odio eget vulputate.',
                       },
@@ -98,9 +115,18 @@ const ClubDetailScreen = () => {
           )}
         </ScrollView>
 
-        <TouchableOpacity style={styles.floatingButton} activeOpacity={0.8}>
-          <Text style={styles.floatingButtonText}>＋</Text>
-        </TouchableOpacity>
+        {joined && (
+          <TouchableOpacity
+            style={styles.floatingButton}
+            activeOpacity={0.8}
+            onPress={handleFloatingButtonPress}
+          >
+            <Image
+              source={require('@/assets/images/Crear.png')}
+              style={styles.floatingButtonIcon}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
