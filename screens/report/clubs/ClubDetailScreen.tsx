@@ -69,7 +69,7 @@ const ClubDetailScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <ClubBanner />
+          <ClubBanner imageUrl={club.coverImage} />
 
           <ClubHeaderInfo
             initials={club.initials}

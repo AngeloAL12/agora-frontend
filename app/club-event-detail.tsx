@@ -1,18 +1,9 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import {
-  Image,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-
-const STATUS_BAR_HEIGHT =
-  Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function ClubEventDetailScreen() {
   const { title, date, description } = useLocalSearchParams<{
@@ -22,36 +13,24 @@ export default function ClubEventDetailScreen() {
   }>();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E488F" />
-
-      <View style={styles.header}>
-        {/* 🔙 BACK */}
-        <TouchableOpacity
-          style={styles.headerIcon}
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace({
-                pathname: '/club-robotica-test',
-                params: { tab: 'eventos' },
-              } as any);
-            }
-          }}
-          activeOpacity={0.8}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Image
-            source={require('@/assets/icons/regreso.png')}
-            style={styles.backIcon}
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Detalles del evento</Text>
-
-        <View style={styles.headerIcon} />
-      </View>
+    <View style={styles.safeArea}>
+      <ScreenHeader
+        title="Detalles del evento"
+        leftAction={
+          <Pressable
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/clubs' as any);
+              }
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </Pressable>
+        }
+      />
 
       <View style={styles.container}>
         <View style={styles.card}>
@@ -68,85 +47,46 @@ export default function ClubEventDetailScreen() {
           </Text>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#1E488F',
+    backgroundColor: colors.bluePrimary,
   },
-
-  header: {
-    height: 50 + STATUS_BAR_HEIGHT,
-    paddingTop: STATUS_BAR_HEIGHT,
-    backgroundColor: '#1E488F',
-
-    flexDirection: 'row',
-    alignItems: 'center',
-
-    paddingHorizontal: 24,
-  },
-
-  headerIcon: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  backIcon: {
-    width: 16,
-    height: 16,
-    resizeMode: 'contain',
-    tintColor: '#FFFFFF',
-  },
-
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
   container: {
     flex: 1,
-    backgroundColor: '#F5F6F8',
+    backgroundColor: colors.white,
     padding: 16,
   },
-
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
-
   label: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#8A9099',
+    color: colors.gray700,
     letterSpacing: 1,
     marginBottom: 8,
   },
-
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#003172',
+    color: colors.bluePrimary,
     marginBottom: 8,
   },
-
   date: {
     fontSize: 12,
-    color: '#434751',
+    color: colors.gray700,
   },
-
   description: {
     fontSize: 14,
     lineHeight: 22,
-    color: '#191C1E',
+    color: colors.gray950,
   },
 });

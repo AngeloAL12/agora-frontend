@@ -1,14 +1,12 @@
 import React from 'react';
 import { Image, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
-const ClubBanner = () => {
-  return (
-    <Image
-      source={require('@/assets/images/robotica-banner.png')}
-      style={styles.image}
-    />
-  );
+interface ClubBannerProps {
+  imageUrl: string;
+}
+
+const ClubBanner = ({ imageUrl }: ClubBannerProps) => {
+  return <Image source={{ uri: imageUrl }} style={styles.image} />;
 };
 
 export default ClubBanner;

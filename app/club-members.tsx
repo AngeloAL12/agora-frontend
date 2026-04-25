@@ -1,14 +1,17 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchInput } from '@/components/SearchInput';
+import { colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import {
   Image,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -50,30 +53,14 @@ export default function ClubMembersScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.leftIcon}
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/club-robotica-test' as any);
-            }
-          }}
-          activeOpacity={0.8}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Image
-            source={require('@/assets/icons/regreso.png')}
-            style={styles.backIcon}
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Miembros</Text>
-
-        <View style={styles.headerRightSpacer} />
-      </View>
-
+      <ScreenHeader
+        title="Miembros"
+        leftAction={
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={colors.blueDark} />
+          </Pressable>
+        }
+      />
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -136,7 +123,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop: StatusBar.currentHeight || 0,
   },
 
   header: {

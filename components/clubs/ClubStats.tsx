@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { colors } from '@/constants/theme';
 
 interface ClubStatsProps {
   members: number;
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(195,198,210,0.2)',
+    borderColor: colors.borderSubtle,
   },
 
   statItem: {
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#192A56',
+    color: colors.blueDark,
     lineHeight: 24,
     marginBottom: 2,
     textAlign: 'center',
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 10,
     fontWeight: '400',
-    color: 'rgba(67,71,81,0.7)',
+    color: colors.gray700,
     lineHeight: 15,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
