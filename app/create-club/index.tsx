@@ -18,18 +18,7 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../../constants/theme';
-import { createClub } from '../../services/clubService'; // 👈 Ruta directa, sin fallas
-
-// La interface se queda aquí afuera
-interface ClubResponse {
-  id: number;
-  name: string;
-  description: string;
-  profile_image: string | null;
-  cover_image: string | null;
-  id_category: number;
-  id_leader: number;
-}
+import { ClubResponse, createClub } from '../../services/clubService';
 
 export default function CreateClubFlow() {
   const router = useRouter();
@@ -37,13 +26,11 @@ export default function CreateClubFlow() {
 
   const [step, setStep] = useState(1);
 
-  // Estados del Formulario
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [idCategory, setIdCategory] = useState<number>(1);
   const [clubType, setClubType] = useState('Abierto');
 
-  // Estados de Imágenes
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
 
@@ -86,12 +73,15 @@ export default function CreateClubFlow() {
         formData.append('description', description);
         formData.append('id_category', idCategory.toString());
 
+        // Se agrega el tipo de club al payload
+        formData.append('club_type', clubType);
+
         if (logoUri) {
           formData.append('profile_image', {
             uri: logoUri,
             name: 'photo.jpg',
             type: 'image/jpeg',
-          } as any);
+          } as unknown as Blob);
         }
 
         if (coverUri) {
@@ -99,23 +89,22 @@ export default function CreateClubFlow() {
             uri: coverUri,
             name: 'cover.jpg',
             type: 'image/jpeg',
-          } as any);
+          } as unknown as Blob);
         }
 
-        // Llamamos al servicio (usamos ClubResponse para el tipado)
         const result = (await createClub(formData, token)) as ClubResponse;
 
         if (result && result.id) {
           Alert.alert('¡Éxito!', 'Club creado correctamente', [
             {
               text: 'OK',
-              onPress: () => router.replace('/clubs'), // 2. Al dar OK, regresamos a la lista
+              onPress: () => router.replace('/clubs'),
             },
           ]);
         }
-      } catch (error: any) {
-        // Mostramos el error real del backend (ej: "Nombre ya existe")
-        const msg = error.detail || error.message || 'No se pudo crear el club';
+      } catch (error: unknown) {
+        const e = error as { detail?: string; message?: string };
+        const msg = e.detail || e.message || 'No se pudo crear el club';
         Alert.alert('Atención', msg);
       }
     }
@@ -230,6 +219,12 @@ export default function CreateClubFlow() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+                {/* Texto de ayuda restaurado */}
+                <Text style={styles.visibilityHelpText}>
+                  {clubType === 'Abierto'
+                    ? 'Los clubes abiertos permiten que cualquier estudiante se una sin previa aprobación.'
+                    : 'Los clubes cerrados requieren aprobación del líder para nuevos miembros.'}
+                </Text>
               </View>
             </View>
           ) : (

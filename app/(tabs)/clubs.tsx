@@ -5,11 +5,11 @@ import { SearchInput } from '@/components/SearchInput';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSearch } from '@/hooks/useSearch';
-import { getAllClubs, joinClub } from '@/services/clubService'; // 👈 Importamos joinClub
+import { getAllClubs, getMyClubs, joinClub } from '@/services/clubService';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,35 +24,59 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+export interface ClubResponse {
+  id: number;
+  name: string;
+  description: string;
+  profile_image: string | null;
+  cover_image: string | null;
+  id_category: number;
+  id_leader: number;
+  members_count?: number;
+  nextEvent?: string;
+}
+
 export default function ClubsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
   const { token } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [realClubs, setRealClubs] = useState<any[]>([]);
+  const [discoverClubs, setDiscoverClubs] = useState<ClubResponse[]>([]);
+  const [myClubs, setMyClubs] = useState<ClubResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 👇 1. Sacamos loadClubs AFUERA del useEffect
-  const loadClubs = async () => {
+  const loadData = async () => {
     try {
-      const data = await getAllClubs();
-      setRealClubs(Array.isArray(data) ? data : []);
+      if (!token) return;
+      const [allClubsData, myClubsData] = await Promise.all([
+        getAllClubs().catch(() => []),
+        getMyClubs(token).catch((error) => {
+          console.warn(
+            'getMyClubs dio error (Seguro es el 404 del backend):',
+            error,
+          );
+          return [];
+        }),
+      ]);
+
+      setDiscoverClubs(Array.isArray(allClubsData) ? allClubsData : []);
+      setMyClubs(Array.isArray(myClubsData) ? myClubsData : []);
     } catch (error) {
-      console.error('Error cargando clubes:', error);
-      setRealClubs([]);
+      console.error('Error general cargando clubes:', error);
+      setDiscoverClubs([]);
+      setMyClubs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 👇 2. El useEffect ahora solo llama a la función cuando entras
-  useEffect(() => {
-    loadClubs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [token]),
+  );
 
-  // 3. Función para el botón Amarillo de "Unirse"
   const handleJoin = async (id: number, name: string) => {
     try {
       if (!token) {
@@ -62,25 +86,20 @@ export default function ClubsScreen() {
 
       await joinClub(id, token);
       Alert.alert('¡Excelente!', `Te has unido al club: ${name} 🎉`);
+      await loadData();
+    } catch (error: unknown) {
+      const e = error as { status?: number; detail?: string; message?: string };
 
-      // 👇 4. ¡LA MAGIA! Refrescamos la lista para que la pantalla se actualice sola
-      await loadClubs();
-    } catch (e: any) {
-      const errorText =
-        JSON.stringify(e) + (e?.message || '') + (e?.detail || '');
-
-      if (errorText.includes('Ya eres miembro')) {
+      if (e?.status === 400 || e?.detail?.toLowerCase().includes('miembro')) {
         Alert.alert('Aviso', '¡Ya formas parte de este club! 😎');
       } else {
-        Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
+        Alert.alert('Ups', e?.detail || 'No pudimos procesar tu solicitud.');
       }
     }
   };
 
-  // Protegemos el slice y el search para que no truene si realClubs es undefined
-  const clubsList = Array.isArray(realClubs) ? realClubs : [];
-  const filteredDiscoverClubs = useSearch(searchQuery, clubsList, 'name');
-  const filteredMyClubs = useSearch(searchQuery, clubsList.slice(0, 2), 'name');
+  const filteredDiscoverClubs = useSearch(searchQuery, discoverClubs, 'name');
+  const filteredMyClubs = useSearch(searchQuery, myClubs, 'name');
 
   const scrollPaddingBottom = insets.bottom + 130;
   const fabBottom = insets.bottom + 96;
