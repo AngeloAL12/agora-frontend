@@ -17,6 +17,17 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(summaries)).catch(
+      () => {},
+    );
+  }, 500);
+}
+
 export const chatSummaryStore = {
   get(chatId: string): ChatSummary | undefined {
     return summaries[chatId];
@@ -33,9 +44,7 @@ export const chatSummaryStore = {
       [chatId]: { lastMessage, timestamp, unreadCount: prev?.unreadCount ?? 0 },
     };
     notify();
-    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(summaries)).catch(
-      () => {},
-    );
+    schedulePersist();
   },
 
   updateWithUnread(chatId: string, lastMessage: string, timestamp: string) {
@@ -49,9 +58,7 @@ export const chatSummaryStore = {
       },
     };
     notify();
-    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(summaries)).catch(
-      () => {},
-    );
+    schedulePersist();
   },
 
   markRead(chatId: string) {
@@ -61,9 +68,15 @@ export const chatSummaryStore = {
     if (current.unreadCount === 0 && prev !== undefined) return;
     summaries = { ...summaries, [chatId]: { ...current, unreadCount: 0 } };
     notify();
-    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(summaries)).catch(
-      () => {},
-    );
+    schedulePersist();
+  },
+
+  clear() {
+    summaries = {};
+    if (persistTimer) clearTimeout(persistTimer);
+    persistTimer = null;
+    notify();
+    SecureStore.deleteItemAsync(STORAGE_KEY).catch(() => {});
   },
 
   subscribe(listener: Listener): () => void {

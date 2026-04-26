@@ -40,6 +40,12 @@ interface UseClubChatReturn {
 // Session-level message cache keyed by clubId — survives navigation within the same app session.
 const sessionMessagesByClub: Record<string, ClubMessage[]> = {};
 
+export function clearSessionMessageCache() {
+  for (const key of Object.keys(sessionMessagesByClub)) {
+    delete sessionMessagesByClub[key];
+  }
+}
+
 function formatNowTimestamp(): string {
   const now = new Date();
   const h = now.getHours();

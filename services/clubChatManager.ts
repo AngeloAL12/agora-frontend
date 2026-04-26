@@ -30,8 +30,9 @@ export function formatIncomingTimestamp(isoString: string): string {
 }
 
 function toWssUrl(clubId: string): string {
+  const base = BASE_URL.replace(/\/$/, '');
   return (
-    BASE_URL.replace(/^https?:\/\//, (m) =>
+    base.replace(/^https?:\/\//, (m) =>
       m.startsWith('https') ? 'wss://' : 'ws://',
     ) + `/clubs/${clubId}/chat`
   );

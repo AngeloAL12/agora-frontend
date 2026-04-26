@@ -50,21 +50,24 @@ export function useMyChats() {
         timestamp: '',
       }));
       setChats([IA_CHAT, ...clubChats]);
-
-      if (token && user?.id) {
-        const clubIds = clubs.map((c) => String(c.id));
-        clubChatManager.init(clubIds, token, user.id);
-      }
     } catch {
       setError('No se pudieron cargar los chats.');
     } finally {
       setIsLoading(false);
     }
-  }, [authRequest, token, user]);
+  }, [authRequest]);
 
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
+
+  useEffect(() => {
+    if (!token || !user?.id) return;
+    const clubIds = chats.filter((c) => c.type === 'club').map((c) => c.id);
+    if (clubIds.length > 0) {
+      clubChatManager.init(clubIds, token, user.id);
+    }
+  }, [token, user?.id, chats]);
 
   return { chats, isLoading, error, refetch: fetchChats };
 }
