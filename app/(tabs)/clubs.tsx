@@ -14,8 +14,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { NotificationsModal } from '@/components/NotificationsModal';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/context/AuthContext';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 
 // Mock basado en el response de GET /clubs
 const DISCOVER_CLUBS_MOCK = [
@@ -76,13 +75,12 @@ const MY_CLUBS_MOCK = [
 export default function ClubsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token } = useAuth();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
-  const { notifications, loading: notificationsLoading } = useNotifications(
-    token,
-    undefined,
-    3,
-  );
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
 
   const hasMemberships = true;
 
@@ -200,6 +198,7 @@ export default function ClubsScreen() {
         onDismiss={() => setNotificationsVisible(false)}
         notifications={notifications}
         loading={notificationsLoading}
+        onNotificationPress={markRead}
       />
     </SafeAreaView>
   );

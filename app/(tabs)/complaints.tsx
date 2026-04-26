@@ -1,8 +1,7 @@
 import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors } from '@/constants/theme';
-import { useAuth } from '@/context/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -26,13 +25,12 @@ import { useComplaints } from '../../hooks/useComplaints';
 
 export default function ComplaintsScreen() {
   const router = useRouter();
-  const { token } = useAuth();
   const { reports, loading, refetch } = useComplaints();
-  const { notifications, loading: notificationsLoading } = useNotifications(
-    token,
-    undefined,
-    3,
-  );
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
   const [filter, setFilter] = useState<'Todos' | 'Pendientes' | 'Resueltos'>(
     'Todos',
   );
@@ -236,6 +234,7 @@ export default function ComplaintsScreen() {
         onDismiss={() => setNotificationsVisible(false)}
         notifications={notifications}
         loading={notificationsLoading}
+        onNotificationPress={markRead}
       />
     </SafeAreaView>
   );

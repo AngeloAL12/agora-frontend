@@ -35,9 +35,8 @@ import { SuggestedQuestionsSection } from '@/components/ia/SuggestedQuestionsSec
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { WelcomeSection } from '@/components/ia/WelcomeSection';
 import { colors, typography } from '@/constants/theme';
-import { useAuth } from '@/context/AuthContext';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useChat } from '@/hooks/useChat';
-import { useNotifications } from '@/hooks/useNotifications';
 
 const SUGGESTED_QUESTIONS = [
   { id: '1', text: '¿Cómo encuentro el edificio E?' },
@@ -49,7 +48,6 @@ const WELCOME_MESSAGE =
 
 export default function IaScreen() {
   const insets = useSafeAreaInsets();
-  const { token } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -67,11 +65,11 @@ export default function IaScreen() {
     handleSuggestedQuestion,
     clearError,
   } = useChat();
-  const { notifications, loading: notificationsLoading } = useNotifications(
-    token,
-    undefined,
-    3,
-  );
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
 
   const scrollToEnd = useCallback(() => {
     setTimeout(
@@ -247,6 +245,7 @@ export default function IaScreen() {
         onDismiss={() => setNotificationsVisible(false)}
         notifications={notifications}
         loading={notificationsLoading}
+        onNotificationPress={markRead}
       />
     </SafeAreaView>
   );
