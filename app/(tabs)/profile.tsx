@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { getMe, UserMeResponse } from '../../services/authService';
+import { getMe, UserProfileResponse } from '../../services/authService';
 import { useComplaints } from '../../hooks/useComplaints';
 import { useFocusEffect } from '@react-navigation/native';
 import * as SecureStore from 'expo-secure-store';
@@ -96,7 +96,7 @@ export default function ProfileScreen() {
     refetch: refetchComplaints,
   } = useComplaints();
 
-  const [meData, setMeData] = useState<UserMeResponse | null>(null);
+  const [meData, setMeData] = useState<UserProfileResponse | null>(null);
   const [isLoadingMe, setIsLoadingMe] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<ProfileCache | null>(null);
   const avatarSource =

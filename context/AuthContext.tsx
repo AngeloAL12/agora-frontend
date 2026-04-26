@@ -56,6 +56,15 @@ function parseStoredUser(raw: string | null): AuthUser | null {
   }
 }
 
+function ignoreAsyncResult(
+  result: Promise<unknown> | undefined,
+): Promise<void> {
+  return Promise.resolve(result).then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     token: null,
@@ -138,23 +147,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadStoredAuth();
   }, []);
 
-  useEffect(() => {
-    if (state.token && state.isAuthenticating) {
-      setState((currentState) =>
-        currentState.token
-          ? { ...currentState, isAuthenticating: false }
-          : currentState,
-      );
-    }
-  }, [state.token, state.isAuthenticating]);
-
   const login = useCallback(async (response: LoginResponse) => {
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, response.access_token),
       SecureStore.setItemAsync(REFRESH_TOKEN_KEY, response.refresh_token),
       SecureStore.setItemAsync(USER_KEY, JSON.stringify(response.user)),
     ]);
-    await SecureStore.deleteItemAsync(DEMO_MODE_KEY).catch(() => {});
+    await ignoreAsyncResult(SecureStore.deleteItemAsync(DEMO_MODE_KEY));
     setState({
       token: response.access_token,
       refreshToken: response.refresh_token,
@@ -171,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         SecureStore.setItemAsync(TOKEN_KEY, accessToken),
         SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken),
       ]);
-      await SecureStore.deleteItemAsync(DEMO_MODE_KEY).catch(() => {});
+      await ignoreAsyncResult(SecureStore.deleteItemAsync(DEMO_MODE_KEY));
       setState((currentState) => ({
         ...currentState,
         token: accessToken,
@@ -205,8 +204,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((currentState) => {
       if (!currentState.user) return currentState;
       const updatedUser = { ...currentState.user, ...patch };
-      SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser)).catch(
-        () => {},
+      void ignoreAsyncResult(
+        SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser)),
       );
       return { ...currentState, user: updatedUser };
     });

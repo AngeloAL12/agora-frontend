@@ -2,7 +2,7 @@ import { CAREERS_LIST, getCareerIcon } from '@/constants/careers';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/services/api';
-import { getMe, UserMeResponse } from '@/services/authService';
+import { getMe, UserProfileResponse } from '@/services/authService';
 import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage, type ImageSource } from 'expo-image';
@@ -270,7 +270,7 @@ export default function EditInfoScreen() {
         } as unknown as Blob);
       }
 
-      await apiRequest<UserMeResponse>({
+      await apiRequest<UserProfileResponse>({
         method: 'PATCH',
         path: '/users/me',
         token,
