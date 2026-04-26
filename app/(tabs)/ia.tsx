@@ -27,6 +27,7 @@ import {
   FLOATING_TAB_BAR_HEIGHT,
 } from '@/components/FloatingTabBar';
 
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
@@ -34,6 +35,7 @@ import { SuggestedQuestionsSection } from '@/components/ia/SuggestedQuestionsSec
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { WelcomeSection } from '@/components/ia/WelcomeSection';
 import { colors, typography } from '@/constants/theme';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useChat } from '@/hooks/useChat';
 
 const SUGGESTED_QUESTIONS = [
@@ -49,6 +51,7 @@ export default function IaScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
   // Natural height of the ChatInput widget (no tab-bar padding, so it stays stable)
   const [chatInputHeight, setChatInputHeight] = useState(58);
 
@@ -62,6 +65,11 @@ export default function IaScreen() {
     handleSuggestedQuestion,
     clearError,
   } = useChat();
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
 
   const scrollToEnd = useCallback(() => {
     setTimeout(
@@ -209,7 +217,12 @@ export default function IaScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
-      <ScreenHeader title="Búfalo IA" align="left" showNotificationBell />
+      <ScreenHeader
+        title="Búfalo IA"
+        align="left"
+        showNotificationBell
+        onNotificationPress={() => setNotificationsVisible(true)}
+      />
 
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
@@ -226,6 +239,14 @@ export default function IaScreen() {
           {renderContent(0)}
         </Animated.View>
       )}
+
+      <NotificationsModal
+        visible={notificationsVisible}
+        onDismiss={() => setNotificationsVisible(false)}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onNotificationPress={markRead}
+      />
     </SafeAreaView>
   );
 }

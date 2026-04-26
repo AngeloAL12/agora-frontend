@@ -1,10 +1,6 @@
 import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
-
-import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -17,8 +13,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { getMe, UserProfileResponse } from '../../services/authService';
 import { useComplaints } from '../../hooks/useComplaints';
-import { getMe, UserMeResponse } from '../../services/authService';
+import { useFocusEffect } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
 // SVG Icons
 const editIcon = require('@/assets/icons/profile/edit.svg');
@@ -97,7 +96,7 @@ export default function ProfileScreen() {
     refetch: refetchComplaints,
   } = useComplaints();
 
-  const [meData, setMeData] = useState<UserMeResponse | null>(null);
+  const [meData, setMeData] = useState<UserProfileResponse | null>(null);
   const [isLoadingMe, setIsLoadingMe] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<ProfileCache | null>(null);
   const avatarSource =
@@ -171,6 +170,7 @@ export default function ProfileScreen() {
 
     try {
       const remoteMe = await getMe(token);
+
       CacheService.setMeData(remoteMe, token);
       setMeData(remoteMe);
     } catch (err) {

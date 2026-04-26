@@ -1,12 +1,12 @@
 import { Complaint } from '@/hooks/useComplaints';
-import { UserMeResponse } from './authService';
+import { UserProfileResponse } from './authService';
 
 interface SessionCache<T> {
   data: T;
   token: string;
 }
 
-let meDataCache: SessionCache<UserMeResponse> | null = null;
+let meDataCache: SessionCache<UserProfileResponse> | null = null;
 let complaintsCache: SessionCache<Complaint[]> | null = null;
 
 export const CacheService = {
@@ -16,7 +16,7 @@ export const CacheService = {
     }
     return null;
   },
-  setMeData: (data: UserMeResponse, token: string) => {
+  setMeData: (data: UserProfileResponse, token: string) => {
     meDataCache = { data, token };
   },
   clearMeData: () => {

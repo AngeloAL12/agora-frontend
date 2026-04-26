@@ -1,5 +1,7 @@
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors } from '@/constants/theme';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -24,10 +26,16 @@ import { useComplaints } from '../../hooks/useComplaints';
 export default function ComplaintsScreen() {
   const router = useRouter();
   const { reports, loading, refetch } = useComplaints();
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
   const [filter, setFilter] = useState<'Todos' | 'Pendientes' | 'Resueltos'>(
     'Todos',
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -58,7 +66,12 @@ export default function ComplaintsScreen() {
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
       <StatusBar backgroundColor="#1E488F" style="light" />
 
-      <ScreenHeader title="Reportes" align="left" showNotificationBell />
+      <ScreenHeader
+        title="Reportes"
+        align="left"
+        showNotificationBell
+        onNotificationPress={() => setNotificationsVisible(true)}
+      />
 
       <View style={styles.content}>
         <ScrollView
@@ -215,6 +228,14 @@ export default function ComplaintsScreen() {
       >
         <Ionicons name="add" size={32} color="#2E323C" />
       </Pressable>
+
+      <NotificationsModal
+        visible={notificationsVisible}
+        onDismiss={() => setNotificationsVisible(false)}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onNotificationPress={markRead}
+      />
     </SafeAreaView>
   );
 }

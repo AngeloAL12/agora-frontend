@@ -27,6 +27,15 @@ export const colors = {
   statsBackground: 'rgba(255,255,255,0.1)',
   activityYellow: '#CBA800',
   activityGray: '#747782',
+  reportPending: '#E5E7E9',
+  reportPendingText: '#1A1A1A',
+  reportInProgress: '#FDEB71',
+  reportInProgressText: '#3E2723',
+  reportResolved: '#D4EFDF',
+  reportResolvedText: '#145A32',
+  reportRejected: '#FADBD8',
+  reportRejectedText: '#78281F',
+  notifBodyText: '#566573',
 } as const;
 
 export const palette = {

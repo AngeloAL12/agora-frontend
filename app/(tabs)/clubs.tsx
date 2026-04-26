@@ -13,6 +13,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { NotificationsModal } from '@/components/NotificationsModal';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 
 // Mock basado en el response de GET /clubs
 const DISCOVER_CLUBS_MOCK = [
@@ -73,6 +75,12 @@ const MY_CLUBS_MOCK = [
 export default function ClubsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
 
   const hasMemberships = true;
 
@@ -95,6 +103,7 @@ export default function ClubsScreen() {
       <ScreenHeader
         align="left"
         showNotificationBell
+        onNotificationPress={() => setNotificationsVisible(true)}
         searchInput={
           <SearchInput
             placeholder="Buscar clubes..."
@@ -184,6 +193,13 @@ export default function ClubsScreen() {
       >
         <Ionicons name="add" size={32} color={colors.gray900} />
       </Pressable>
+      <NotificationsModal
+        visible={notificationsVisible}
+        onDismiss={() => setNotificationsVisible(false)}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onNotificationPress={markRead}
+      />
     </SafeAreaView>
   );
 }
