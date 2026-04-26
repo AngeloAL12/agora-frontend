@@ -18,6 +18,10 @@ function cacheKey(category: NotificationCategory | undefined, limit: number) {
   return `${category ?? 'ALL'}|${limit}`;
 }
 
+export function clearNotificationsCache() {
+  notificationsCache.clear();
+}
+
 export function useNotifications(
   token: string | null,
   category?: NotificationCategory,
@@ -29,7 +33,7 @@ export function useNotifications(
   const [notifications, setNotifications] = useState<NotificationItem[]>(
     cached ?? [],
   );
-  const [loading, setLoading] = useState(!cached); // skip loading if we already have data
+  const [loading, setLoading] = useState(!!token && !cached); // no token = no fetch = no loading
   const [error, setError] = useState<string | null>(null);
   const debounceTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(
     new Map(),

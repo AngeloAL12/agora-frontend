@@ -1,10 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { useNotifications } from '../../hooks/useNotifications';
-
+import {
+  clearNotificationsCache,
+  useNotifications,
+} from '../../hooks/useNotifications';
 import { getNotifications } from '../../services/notificationsService';
 
 jest.mock('../../services/notificationsService', () => ({
   getNotifications: jest.fn(),
+  markNotificationRead: jest.fn(),
 }));
 
 const mockGetNotifications = getNotifications as jest.Mock;
@@ -23,6 +26,10 @@ const MOCK_ITEMS = [
 ];
 
 describe('useNotifications', () => {
+  beforeEach(() => {
+    clearNotificationsCache();
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
