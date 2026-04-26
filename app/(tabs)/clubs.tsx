@@ -1,80 +1,36 @@
 import { ClubCard } from '@/components/ClubCard';
 import { ClubDiscoveryItem } from '@/components/ClubDiscoveryItem';
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchInput } from '@/components/SearchInput';
 import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useSearch } from '@/hooks/useSearch';
+import { getAllClubs, getMyClubs, joinClub } from '@/services/clubService';
+import { ClubResponse } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { NotificationsModal } from '@/components/NotificationsModal';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-
-// Mock basado en el response de GET /clubs
-const DISCOVER_CLUBS_MOCK = [
-  {
-    id: 1,
-    name: 'Skibidis',
-    profile_image:
-      'https://devimages.angelolo.lat/clubs/1/profile/bff7a643-5cc3-4aec-8ec9-53f04b336849.JPG',
-    memberCount: 42,
-  },
-  {
-    id: 2,
-    name: 'Huerto Universitario',
-    profile_image: null,
-    memberCount: 15,
-  },
-  {
-    id: 3,
-    name: 'Robótica Mexicali',
-    profile_image: null,
-    memberCount: 88,
-  },
-  {
-    id: 4,
-    name: 'Club de programación',
-    profile_image: null,
-    memberCount: 88,
-  },
-  {
-    id: 5,
-    name: 'Club de futbol',
-    profile_image: null,
-    memberCount: 88,
-  },
-  {
-    id: 6,
-    name: 'Club de beisbol',
-    profile_image: null,
-    memberCount: 88,
-  },
-];
-
-// Clubs del usuario (máximo 2 en el home, completos en my-clubs)
-const MY_CLUBS_MOCK = [
-  {
-    id: 10,
-    name: 'Club de Robótica',
-    nextEvent: 'Jueves',
-    profile_image: null,
-  },
-  {
-    id: 11,
-    name: 'Equipo de Básquetbol',
-    profile_image: null,
-  },
-];
 
 export default function ClubsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const {
     notifications,
@@ -82,19 +38,69 @@ export default function ClubsScreen() {
     markRead,
   } = useNotificationsContext();
 
-  const hasMemberships = true;
-
   const [searchQuery, setSearchQuery] = useState('');
+  const [discoverClubs, setDiscoverClubs] = useState<ClubResponse[]>([]);
+  const [myClubs, setMyClubs] = useState<ClubResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredMyClubs = useSearch(searchQuery, MY_CLUBS_MOCK, 'name');
-  const filteredDiscoverClubs = useSearch(
-    searchQuery,
-    DISCOVER_CLUBS_MOCK,
-    'name',
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      if (!token) return;
+      const [allClubsData, myClubsData] = await Promise.all([
+        getAllClubs(token).catch(() => [] as ClubResponse[]),
+        getMyClubs(token).catch(() => [] as ClubResponse[]),
+      ]);
+      const myClubIds = new Set(myClubsData.map((c) => c.id));
+      setDiscoverClubs(allClubsData.filter((c) => !myClubIds.has(c.id)));
+      setMyClubs(myClubsData);
+    } catch {
+      setDiscoverClubs([]);
+      setMyClubs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [token]),
   );
+
+  const handleJoin = async (id: number, name: string) => {
+    try {
+      if (!token) {
+        Alert.alert('Espera', 'Cargando tu sesión...');
+        return;
+      }
+      await joinClub(id, token);
+      Alert.alert('¡Excelente!', `Te has unido al club: ${name}`);
+      await loadData();
+    } catch (error: unknown) {
+      const e = error as { status?: number; detail?: string; message?: string };
+      if (e?.status === 400 || e?.detail?.toLowerCase().includes('miembro')) {
+        Alert.alert('Aviso', '¡Ya formas parte de este club!');
+      } else {
+        Alert.alert('Ups', e?.detail || 'No pudimos procesar tu solicitud.');
+      }
+    }
+  };
+
+  const filteredDiscoverClubs = useSearch(searchQuery, discoverClubs, 'name');
+  const filteredMyClubs = useSearch(searchQuery, myClubs, 'name');
 
   const scrollPaddingBottom = insets.bottom + 130;
   const fabBottom = insets.bottom + 96;
+
+  if (loading) {
+    return (
+      <View style={styles.loadingCenter}>
+        <ActivityIndicator size="large" color={colors.bluePrimary} />
+        <Text style={styles.loadingText}>Conectando con Agora...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
@@ -122,42 +128,48 @@ export default function ClubsScreen() {
             { paddingBottom: scrollPaddingBottom },
           ]}
         >
-          {/* ── Mis clubes (solo si tiene membresías) ── */}
-          {hasMemberships && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <View>
-                  <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
-                  <Text style={styles.sectionTitle}>Mis clubes</Text>
-                </View>
-                <Pressable onPress={() => router.push('/my-clubs')} hitSlop={8}>
-                  <Text style={styles.seeAllText}>Ver todos</Text>
-                </Pressable>
+          {/* ── Mis clubes ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
+                <Text style={styles.sectionTitle}>Mis clubes</Text>
               </View>
-
-              <View style={styles.cardList}>
-                {filteredMyClubs
-
-                  .slice(0, searchQuery ? undefined : 2)
-                  .map((club) => (
-                    <ClubCard
-                      key={club.id}
-                      name={club.name}
-                      nextEvent={club.nextEvent}
-                      imageSource={
-                        club.profile_image
-                          ? { uri: club.profile_image }
-                          : undefined
-                      }
-                      onPress={() => {}}
-                    />
-                  ))}
-                {filteredMyClubs.length === 0 && (
-                  <Text style={styles.emptyText}>Sin resultados</Text>
-                )}
-              </View>
+              <Pressable
+                onPress={() => router.push('/my-clubs' as never)}
+                hitSlop={8}
+              >
+                <Text style={styles.seeAllText}>Ver todos</Text>
+              </Pressable>
             </View>
-          )}
+
+            <View style={styles.cardList}>
+              {filteredMyClubs
+                .slice(0, searchQuery ? undefined : 2)
+                .map((club) => (
+                  <ClubCard
+                    key={club.id}
+                    name={club.name}
+                    imageSource={
+                      club.profile_image
+                        ? { uri: club.profile_image }
+                        : undefined
+                    }
+                    onPress={() =>
+                      router.push({
+                        pathname: '/club/[id]' as never,
+                        params: { id: club.id },
+                      })
+                    }
+                  />
+                ))}
+              {filteredMyClubs.length === 0 && (
+                <Text style={styles.emptyText}>
+                  No estás en ningún club aún
+                </Text>
+              )}
+            </View>
+          </View>
 
           {/* ── Descubrir ── */}
           <View style={styles.section}>
@@ -168,15 +180,26 @@ export default function ClubsScreen() {
 
             <View style={styles.discoverList}>
               {filteredDiscoverClubs.map((club) => (
-                <ClubDiscoveryItem
+                <Pressable
                   key={club.id}
-                  name={club.name}
-                  memberCount={club.memberCount}
-                  imageSource={
-                    club.profile_image ? { uri: club.profile_image } : undefined
+                  onPress={() =>
+                    router.push({
+                      pathname: '/club/[id]' as never,
+                      params: { id: club.id },
+                    })
                   }
-                  onJoin={() => {}}
-                />
+                >
+                  <ClubDiscoveryItem
+                    name={club.name}
+                    memberCount={club.members_count ?? 0}
+                    imageSource={
+                      club.profile_image
+                        ? { uri: club.profile_image }
+                        : undefined
+                    }
+                    onJoin={() => handleJoin(club.id, club.name)}
+                  />
+                </Pressable>
               ))}
               {filteredDiscoverClubs.length === 0 && (
                 <Text style={styles.emptyText}>Sin resultados</Text>
@@ -186,10 +209,9 @@ export default function ClubsScreen() {
         </ScrollView>
       </View>
 
-      {/* FAB — mismo patrón que Reportes */}
       <Pressable
         style={[styles.fab, { bottom: fabBottom }]}
-        onPress={() => router.push('/create-club')}
+        onPress={() => router.push('/create-club' as never)}
       >
         <Ionicons name="add" size={32} color={colors.gray900} />
       </Pressable>
@@ -205,29 +227,17 @@ export default function ClubsScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: colors.whiteSoft,
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-  },
-  section: {
-    marginBottom: 16,
-  },
+  mainContainer: { flex: 1, backgroundColor: colors.whiteSoft },
+  content: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 24 },
+  section: { marginBottom: 16 },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 16,
   },
-  sectionHeaderCol: {
-    marginBottom: 16,
-  },
+  sectionHeaderCol: { marginBottom: 16 },
   sectionLabel: {
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
@@ -248,18 +258,25 @@ const styles = StyleSheet.create({
     color: colors.blueDark,
     marginBottom: 4,
   },
-  cardList: {
-    gap: 16,
-  },
-  discoverList: {
-    gap: 12,
-  },
+  cardList: { gap: 16 },
+  discoverList: { gap: 12 },
   emptyText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.interRegular,
     color: colors.gray700,
     textAlign: 'center',
     paddingVertical: 12,
+  },
+  loadingCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.whiteSoft,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
   },
   fab: {
     position: 'absolute',
