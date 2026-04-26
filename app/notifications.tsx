@@ -32,14 +32,14 @@ const ICON_MAP: Record<NotificationEventType, string> = {
 };
 
 const ICON_BG_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: '#DBEAFE',
+  COMPLAINT_SUBMITTED: '#EAF7EF',
   COMPLAINT_IN_PROGRESS: '#DBEAFE',
   COMPLAINT_RESOLVED: '#D4EFDF',
   COMPLAINT_REJECTED: '#FADBD8',
 };
 
 const ICON_TINT_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: colors.bluePrimary,
+  COMPLAINT_SUBMITTED: colors.reportResolvedText,
   COMPLAINT_IN_PROGRESS: colors.bluePrimary,
   COMPLAINT_RESOLVED: colors.reportResolvedText,
   COMPLAINT_REJECTED: colors.reportRejectedText,

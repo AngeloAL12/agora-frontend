@@ -25,10 +25,10 @@ const ICON_MAP: Record<NotificationEventType, string> = {
 };
 
 const ICON_BG_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: colors.reportPending,
-  COMPLAINT_IN_PROGRESS: colors.reportInProgress,
-  COMPLAINT_RESOLVED: colors.reportResolved,
-  COMPLAINT_REJECTED: colors.reportRejected,
+  COMPLAINT_SUBMITTED: '#EAF7EF',
+  COMPLAINT_IN_PROGRESS: '#DBEAFE',
+  COMPLAINT_RESOLVED: '#D4EFDF',
+  COMPLAINT_REJECTED: '#FADBD8',
 };
 
 const formatRelativeTime = (value: string): string => {
