@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiRequest } from '../services/api';
+import { useAuthRequest } from './useAuthRequest';
 
 export interface ComplaintImage {
   id: number;
@@ -26,6 +26,7 @@ const complaintCache: Record<string, ComplaintDetail> = {};
 
 export const useComplaintDetail = (id: string | undefined | null) => {
   const { token } = useAuth();
+  const authRequest = useAuthRequest();
   const [complaint, setComplaint] = useState<ComplaintDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +44,9 @@ export const useComplaintDetail = (id: string | undefined | null) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await apiRequest<ComplaintDetail>({
+        const data = await authRequest<ComplaintDetail>({
           method: 'GET',
           path: `/complaints/${id}`,
-          token: token,
         });
         complaintCache[id] = data;
         setComplaint(data);
@@ -57,7 +57,7 @@ export const useComplaintDetail = (id: string | undefined | null) => {
         setLoading(false);
       }
     },
-    [id, token],
+    [id, token, authRequest],
   );
 
   useEffect(() => {

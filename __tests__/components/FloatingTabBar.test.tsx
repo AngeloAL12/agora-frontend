@@ -110,6 +110,7 @@ describe('FloatingTabBar', () => {
   });
 
   it('renders even if a route icon is not mapped', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const props = createProps([
       'map',
       'complaints',
@@ -122,5 +123,6 @@ describe('FloatingTabBar', () => {
     const { getByRole } = render(<FloatingTabBar {...props} />);
 
     expect(getByRole('tab', { name: 'extra' })).toBeTruthy();
+    warnSpy.mockRestore();
   });
 });

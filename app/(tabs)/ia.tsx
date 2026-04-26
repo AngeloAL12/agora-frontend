@@ -4,6 +4,8 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -115,11 +117,11 @@ export default function IaScreen() {
     };
   });
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isCloseToBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
-    setIsAtBottom(isCloseToBottom);
+    if (isCloseToBottom !== isAtBottom) setIsAtBottom(isCloseToBottom);
   };
 
   const inputBottomPadding = keyboardVisible
@@ -128,11 +130,6 @@ export default function IaScreen() {
       FLOATING_TAB_BAR_BOTTOM_OFFSET +
       FLOATING_TAB_BAR_HEIGHT +
       9;
-
-  const handleSendAndScroll = () => {
-    handleSend();
-    scrollToEnd();
-  };
 
   // spacerHeight (paddingBottom argument) keeps the input above the floating tab bar
   const renderContent = (paddingBottom: number) => (
@@ -158,6 +155,7 @@ export default function IaScreen() {
         <SuggestedQuestionsSection
           questions={SUGGESTED_QUESTIONS}
           onQuestionPress={handleSuggestedQuestion}
+          visible={messages.length === 0}
         />
 
         <View style={styles.chatSection}>
@@ -204,7 +202,7 @@ export default function IaScreen() {
         <ChatInput
           value={input}
           onChangeText={setInput}
-          onSend={handleSendAndScroll}
+          onSend={() => handleSend()}
           onAttach={() =>
             Alert.alert(
               'Próximamente',

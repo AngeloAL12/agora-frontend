@@ -28,6 +28,7 @@ import {
   SUGGESTION_CATEGORIES,
 } from '@/constants/report';
 import { colors } from '@/constants/theme';
+import { CacheService } from '@/services/cacheService';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
 import { ReportType } from '@/types/report';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -138,6 +139,8 @@ export default function CreateReportScreen() {
       id_building: isSuggestion ? undefined : selectedLocation.id,
       classroom: isSuggestion ? undefined : classroom,
       onSuccess: (id: number) => {
+        CacheService.clearComplaints();
+        CacheService.clearMeData();
         setCreatedReportId(id);
         successBottomSheetRef.current?.present();
         setClassroom('');

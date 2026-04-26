@@ -25,10 +25,10 @@ const ICON_MAP: Record<NotificationEventType, string> = {
 };
 
 const ICON_BG_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: '#DBEAFE',
-  COMPLAINT_IN_PROGRESS: '#DBEAFE',
-  COMPLAINT_RESOLVED: '#DCFCE7',
-  COMPLAINT_REJECTED: '#FEE2E2',
+  COMPLAINT_SUBMITTED: colors.reportPending,
+  COMPLAINT_IN_PROGRESS: colors.reportInProgress,
+  COMPLAINT_RESOLVED: colors.reportResolved,
+  COMPLAINT_REJECTED: colors.reportRejected,
 };
 
 const formatRelativeTime = (value: string): string => {
@@ -70,6 +70,7 @@ export function NotificationsModal({
       <Pressable style={styles.overlay} onPress={onDismiss} />
       <View style={styles.container}>
         <View style={styles.header}>
+          <View style={{ width: 32 }} />
           <Text style={styles.title}>Notificaciones</Text>
           <Pressable
             style={({ pressed }) => [
@@ -152,7 +153,7 @@ export function NotificationsModal({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   container: {
     position: 'absolute',
@@ -174,6 +175,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray100,
   },
   title: {
     fontSize: 18,

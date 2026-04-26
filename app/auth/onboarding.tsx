@@ -1,13 +1,20 @@
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { Image as ExpoImage } from 'expo-image';
 import LoginBottomSheet from '@/components/LoginBottomSheet';
 import { colors, typography } from '@/constants/theme';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 export default function Onboarding() {
   const loginSheetRef = useRef<BottomSheetModal>(null);
+  const { height } = useWindowDimensions();
 
   const handleOpenLogin = () => {
     loginSheetRef.current?.present();
@@ -17,7 +24,7 @@ export default function Onboarding() {
     <View style={styles.container}>
       <Text style={styles.school}>TecNM Mexicali</Text>
 
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { maxHeight: height * 0.4 }]}>
         <ExpoImage
           source={require('@/assets/images/loginOverviewCard.png')}
           style={styles.image}
@@ -52,7 +59,10 @@ export default function Onboarding() {
         </Pressable>
       </View>
 
-      <LoginBottomSheet ref={loginSheetRef} />
+      <LoginBottomSheet
+        ref={loginSheetRef}
+        onDismiss={() => loginSheetRef.current?.dismiss()}
+      />
     </View>
   );
 }
@@ -77,7 +87,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    maxHeight: 400,
+    maxHeight: undefined,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 21,

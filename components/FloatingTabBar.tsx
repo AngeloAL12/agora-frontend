@@ -28,7 +28,6 @@ const TAB_ICONS = {
 };
 
 const FALLBACK_ICON = complaintsIcon;
-
 const ICON_WRAPPER_SIZE = 46;
 export const FLOATING_TAB_BAR_HEIGHT = 70;
 export const FLOATING_TAB_BAR_BOTTOM_OFFSET = 8;
@@ -40,34 +39,36 @@ export function FloatingTabBar({
   insets,
 }: BottomTabBarProps) {
   const tabCenters = useRef<number[]>([]);
-
   const indicatorTranslateX = useRef(new Animated.Value(0)).current;
   const [indicatorReady, setIndicatorReady] = useState(false);
 
+  const currentRouteKey = state.routes[state.index]?.key;
+  const focusedOptions = currentRouteKey
+    ? descriptors[currentRouteKey]?.options
+    : null;
+  const tabStyle = focusedOptions?.tabBarStyle as any;
+  const isHidden = tabStyle?.display === 'none';
+
   useEffect(() => {
-    if (!indicatorReady) return;
+    if (!indicatorReady || isHidden) return;
     const center = tabCenters.current[state.index];
     if (center == null) return;
 
-    const targetTranslateX = center - ICON_WRAPPER_SIZE / 2;
-
     Animated.spring(indicatorTranslateX, {
-      toValue: targetTranslateX,
+      toValue: center - ICON_WRAPPER_SIZE / 2,
       useNativeDriver: true,
       damping: 20,
       stiffness: 200,
       mass: 0.8,
     }).start();
-  }, [state.index, indicatorReady, indicatorTranslateX]);
+  }, [state.index, indicatorReady, isHidden]);
 
   const handleTabLayout = (index: number) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
     tabCenters.current[index] = x + width / 2;
-
-    const allMeasured = state.routes.every((_, routeIndex) =>
-      Number.isFinite(tabCenters.current[routeIndex]),
+    const allMeasured = state.routes.every((_, i) =>
+      Number.isFinite(tabCenters.current[i]),
     );
-
     if (allMeasured) {
       const initialCenter = tabCenters.current[state.index];
       if (initialCenter != null) {
@@ -76,6 +77,8 @@ export function FloatingTabBar({
       }
     }
   };
+
+  if (isHidden) return null;
 
   return (
     <View
@@ -100,20 +103,12 @@ export function FloatingTabBar({
           const mappedIcon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
           const icon = mappedIcon ?? FALLBACK_ICON;
 
-          if (!mappedIcon && __DEV__) {
-            console.warn(
-              `[FloatingTabBar] Missing icon mapping for route "${route.name}".`,
-            );
-          }
-
           const descriptor = descriptors[route.key];
-          const optionLabel = descriptor.options.tabBarLabel;
+          const optionLabel = descriptor?.options.tabBarLabel;
           const label =
             typeof optionLabel === 'string'
               ? optionLabel
-              : (descriptor.options.title ?? route.name);
-
-          const customSize = 24;
+              : (descriptor?.options.title ?? route.name);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -121,9 +116,7 @@ export function FloatingTabBar({
               target: route.key,
               canPreventDefault: true,
             });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
+            if (!event.defaultPrevented) navigation.navigate(route.name);
           };
 
           return (
@@ -133,15 +126,14 @@ export function FloatingTabBar({
               style={styles.tabItem}
               onLayout={handleTabLayout(index)}
               accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
               accessibilityLabel={label}
-              accessibilityHint={`Abre la sección ${label}`}
+              accessibilityState={{ selected: isActive }}
             >
               <View style={styles.iconWrapper}>
                 <ExpoImage
                   source={icon}
                   style={[
-                    { width: customSize, height: customSize },
+                    { width: 24, height: 24 },
                     { tintColor: isActive ? colors.white : colors.gray700 },
                   ]}
                   contentFit="contain"

@@ -12,6 +12,8 @@ interface ScreenHeaderProps {
   showNotificationBell?: boolean;
   onNotificationPress?: () => void;
   align?: 'left' | 'center';
+  variant?: 'primary' | 'white';
+  containerStyle?: any; //
 }
 
 export const ScreenHeader = ({
@@ -22,10 +24,25 @@ export const ScreenHeader = ({
   showNotificationBell = false,
   onNotificationPress,
   align = 'center',
+  containerStyle,
+  variant = 'primary',
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
+
+  const isWhite = variant === 'white';
+  const bgColor = isWhite ? colors.white : colors.bluePrimary;
+  const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
+
+  // When only a notification bell / rightAction exists (no title, no leftAction)
+  // AND a searchInput is also provided, suppress the separate title row so the
+  // action can live inline with the search bar (Figma clubs layout).
+  const onlyActionNoTitle =
+    !title && !leftAction && (!!rightAction || showNotificationBell);
   const hasHeaderRow = Boolean(
-    title || leftAction || rightAction || showNotificationBell,
+    title ||
+    leftAction ||
+    (onlyActionNoTitle && !searchInput) ||
+    (!onlyActionNoTitle && (rightAction || showNotificationBell)),
   );
 
   const notificationBell = showNotificationBell ? (
@@ -33,14 +50,12 @@ export const ScreenHeader = ({
       onPress={onNotificationPress}
       disabled={!onNotificationPress}
       style={styles.notificationBell}
-      accessibilityRole={onNotificationPress ? 'button' : undefined}
-      accessibilityLabel={onNotificationPress ? 'Notificaciones' : undefined}
     >
       <ExpoImage
         source={require('@/assets/icons/notification_bell.svg')}
         style={styles.bellIcon}
         contentFit="contain"
-        tintColor={colors.white}
+        tintColor={textColor}
       />
     </Pressable>
   ) : null;
@@ -48,14 +63,23 @@ export const ScreenHeader = ({
   const resolvedRightAction = rightAction ?? notificationBell;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: bgColor },
+        containerStyle,
+      ]}
+    >
       {hasHeaderRow && (
         <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
           {align === 'center' ? (
             <>
               <View style={styles.slot}>{leftAction ?? null}</View>
               <Text
-                style={[styles.title, { textAlign: 'center' }]}
+                style={[
+                  styles.title,
+                  { textAlign: 'center', color: textColor },
+                ]}
                 numberOfLines={1}
               >
                 {title ?? ''}
@@ -69,7 +93,10 @@ export const ScreenHeader = ({
                   <View style={styles.leftActionItem}>{leftAction}</View>
                 )}
                 {title ? (
-                  <Text style={styles.titleLeft} numberOfLines={1}>
+                  <Text
+                    style={[styles.titleLeft, { color: textColor }]}
+                    numberOfLines={1}
+                  >
                     {title}
                   </Text>
                 ) : null}
@@ -83,14 +110,33 @@ export const ScreenHeader = ({
           )}
         </View>
       )}
-      {searchInput && <View style={styles.searchWrapper}>{searchInput}</View>}
+      {searchInput && (
+        <View
+          style={[
+            styles.searchWrapper,
+            !hasHeaderRow && !!resolvedRightAction && styles.searchWrapperRow,
+          ]}
+        >
+          <View
+            style={
+              !hasHeaderRow && resolvedRightAction
+                ? styles.searchFlex
+                : undefined
+            }
+          >
+            {searchInput}
+          </View>
+          {!hasHeaderRow && resolvedRightAction && (
+            <View>{resolvedRightAction}</View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.bluePrimary,
     shadowColor: colors.blueSecondary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
@@ -105,7 +151,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   innerLeft: {
-    height: 64, // Más altura según diseño
+    height: 64,
   },
   slot: {
     width: 40,
@@ -116,7 +162,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
     letterSpacing: -0.3,
   },
   leftContent: {
@@ -127,7 +172,6 @@ const styles = StyleSheet.create({
   titleLeft: {
     fontSize: 24,
     fontFamily: typography.fontFamily.manropeExtraBold,
-    color: colors.white,
     letterSpacing: -0.3,
   },
   leftActionItem: {
@@ -137,8 +181,17 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   searchWrapper: {
-    paddingHorizontal: 24,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 4,
+  },
+  searchWrapperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  searchFlex: {
+    flex: 1,
   },
   notificationBell: {
     width: 36,

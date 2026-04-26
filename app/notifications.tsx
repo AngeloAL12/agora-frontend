@@ -34,8 +34,15 @@ const ICON_MAP: Record<NotificationEventType, string> = {
 const ICON_BG_MAP: Record<NotificationEventType, string> = {
   COMPLAINT_SUBMITTED: '#DBEAFE',
   COMPLAINT_IN_PROGRESS: '#DBEAFE',
-  COMPLAINT_RESOLVED: '#DCFCE7',
-  COMPLAINT_REJECTED: '#FEE2E2',
+  COMPLAINT_RESOLVED: '#D4EFDF',
+  COMPLAINT_REJECTED: '#FADBD8',
+};
+
+const ICON_TINT_MAP: Record<NotificationEventType, string> = {
+  COMPLAINT_SUBMITTED: colors.bluePrimary,
+  COMPLAINT_IN_PROGRESS: colors.bluePrimary,
+  COMPLAINT_RESOLVED: colors.reportResolvedText,
+  COMPLAINT_REJECTED: colors.reportRejectedText,
 };
 
 const formatRelativeTime = (value: string): string => {
@@ -187,7 +194,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundScreen,
+    backgroundColor: colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -204,33 +211,42 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
     gap: 10,
-    backgroundColor: colors.bluePrimary,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.white,
   },
   tab: {
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   tabActive: {
-    backgroundColor: colors.white,
-    borderColor: colors.white,
+    backgroundColor: colors.bluePrimary,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   tabText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.interSemiBold,
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.gray700,
   },
   tabTextActive: {
-    color: colors.bluePrimary,
+    color: colors.white,
   },
   scroll: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   loadingContainer: {
     paddingTop: 60,
@@ -248,9 +264,16 @@ const styles = StyleSheet.create({
   },
   list: {
     backgroundColor: colors.white,
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginHorizontal: 0,
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 0,
+    paddingHorizontal: 16,
+  },
+  itemCard: {
+    backgroundColor: colors.white,
     borderRadius: 16,
+    marginBottom: 10,
     paddingHorizontal: 16,
   },
   notifItem: {

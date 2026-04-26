@@ -11,12 +11,15 @@ interface Question {
 interface SuggestedQuestionsSectionProps {
   questions: Question[];
   onQuestionPress: (text: string) => void;
+  visible?: boolean;
 }
 
 export const SuggestedQuestionsSection = ({
   questions,
   onQuestionPress,
+  visible = true,
 }: SuggestedQuestionsSectionProps) => {
+  if (!visible) return null;
   return (
     <View style={styles.container}>
       {/* Section header */}

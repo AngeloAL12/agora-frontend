@@ -1,3 +1,4 @@
+import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
@@ -9,14 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { getMe, UserMeResponse } from '../../services/authService';
-import { router } from 'expo-router';
 import { useComplaints } from '../../hooks/useComplaints';
+import { useFocusEffect } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
 // SVG Icons
 const editIcon = require('@/assets/icons/profile/edit.svg');
@@ -81,12 +82,11 @@ const normalizeComplaintStatus = (status: string): string => {
   if (normalized === 'IN_PROGRESS') return 'En proceso';
   if (normalized === 'RESOLVED') return 'Resuelto';
   if (normalized === 'REJECTED') return 'Rechazado';
-
-  return status;
+  return 'Pendiente';
 };
 
 export default function ProfileScreen() {
-  const { user, token, logout } = useAuth();
+  const { user, token, refreshToken, setTokens, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const {
@@ -100,15 +100,15 @@ export default function ProfileScreen() {
   const [isLoadingMe, setIsLoadingMe] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<ProfileCache | null>(null);
   const avatarSource =
-    cachedProfile?.avatar_url ?? meData?.avatar_url ?? meData?.photo ?? null;
+    meData?.avatar_url ?? meData?.photo ?? cachedProfile?.avatar_url ?? null;
   const resolvedName =
-    cachedProfile?.full_name ||
     meData?.full_name ||
     meData?.name ||
+    cachedProfile?.full_name ||
     user?.name ||
     'Usuario';
   const resolvedCareer =
-    cachedProfile?.career || meData?.career || 'Sin asignar';
+    meData?.career || cachedProfile?.career || 'Sin asignar';
 
   const recentActivity = useMemo<ActivityItem[]>(() => {
     return [...recentComplaints]
@@ -149,6 +149,17 @@ export default function ProfileScreen() {
 
   const fetchMe = useCallback(async () => {
     if (!token) return;
+
+    // session-aware cache check
+    const cachedMe = CacheService.getMeData(token);
+    if (cachedMe !== null) {
+      setMeData(cachedMe);
+      // Still load cache from SecureStore for consistency
+      const cachedRaw = await SecureStore.getItemAsync(PROFILE_CACHE_KEY);
+      setCachedProfile(parseProfileCache(cachedRaw));
+      return;
+    }
+
     setIsLoadingMe(true);
     try {
       const cachedRaw = await SecureStore.getItemAsync(PROFILE_CACHE_KEY);
@@ -159,6 +170,8 @@ export default function ProfileScreen() {
 
     try {
       const remoteMe = await getMe(token);
+
+      CacheService.setMeData(remoteMe, token);
       setMeData(remoteMe);
     } catch (err) {
       console.log('Error fetching me:', err);
@@ -335,7 +348,14 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{resolvedName}</Text>
+              <Text
+                style={styles.userName}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {resolvedName}
+              </Text>
               <Text style={styles.userCareer}>{resolvedCareer}</Text>
             </View>
 
@@ -481,6 +501,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: -0.6,
     marginBottom: 4,
+    textAlign: 'center',
   },
   userCareer: {
     fontSize: 14,
