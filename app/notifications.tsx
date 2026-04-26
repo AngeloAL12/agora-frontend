@@ -1,6 +1,17 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
+import {
+  NOTIFICATION_ICON_BG_MAP,
+  NOTIFICATION_ICON_MAP,
+} from '@/constants/notificationIcons';
+import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import type { NotificationCategory } from '@/types/notification';
+import { formatRelativeTime } from '@/utils/formatRelativeTime';
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,50 +25,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, typography } from '@/constants/theme';
-import { useAuth } from '@/context/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
-import type {
-  NotificationCategory,
-  NotificationEventType,
-} from '@/types/notification';
-
-const ICON_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: require('@/assets/notifications/sent.svg') as string,
-  COMPLAINT_IN_PROGRESS:
-    require('@/assets/notifications/updatedreport.svg') as string,
-  COMPLAINT_RESOLVED: require('@/assets/notifications/resolved.svg') as string,
-  COMPLAINT_REJECTED: require('@/assets/notifications/refused.svg') as string,
-};
-
-const ICON_BG_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: '#EAF7EF',
-  COMPLAINT_IN_PROGRESS: '#DBEAFE',
-  COMPLAINT_RESOLVED: '#D4EFDF',
-  COMPLAINT_REJECTED: '#FADBD8',
-};
-
-const ICON_TINT_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: colors.reportResolvedText,
-  COMPLAINT_IN_PROGRESS: colors.bluePrimary,
-  COMPLAINT_RESOLVED: colors.reportResolvedText,
-  COMPLAINT_REJECTED: colors.reportRejectedText,
-};
-
-const formatRelativeTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.round(diffMs / 60000);
-  const diffHours = Math.round(diffMinutes / 60);
-  const diffDays = Math.round(diffHours / 24);
-  if (diffMinutes < 1) return 'Justo ahora';
-  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
-  if (diffHours < 24) return `${diffHours}h atrás`;
-  if (diffDays === 1) return 'Ayer';
-  return `${diffDays} días atrás`;
-};
 
 const TABS: { label: string; value: NotificationCategory | 'ALL' }[] = [
   { label: 'Todos', value: 'ALL' },
@@ -78,7 +45,17 @@ export default function NotificationsScreen() {
     category,
     50,
   );
+  const { markRead: markReadContext } = useNotificationsContext();
+  const [localRead, setLocalRead] = useState<Set<number>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
+
+  const handleNotificationPress = useCallback(
+    (id: number) => {
+      setLocalRead((prev) => new Set(prev).add(id));
+      markReadContext(id);
+    },
+    [markReadContext],
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -88,39 +65,12 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Notificaciones</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader
+        title="Notificaciones"
+        showBackButton={true}
+        backButtonColor={colors.white}
+      />
 
-      {/* Tabs */}
-      <View style={styles.tabsRow}>
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab.value}
-            style={[styles.tab, activeTab === tab.value && styles.tabActive]}
-            onPress={() => setActiveTab(tab.value)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab.value && styles.tabTextActive,
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Content */}
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -133,6 +83,24 @@ export default function NotificationsScreen() {
           />
         }
       >
+        <View style={[styles.tabsRow, { marginTop: insets.top > 0 ? 16 : 16 }]}>
+          {TABS.map((tab) => (
+            <Pressable
+              key={tab.value}
+              style={[styles.tab, activeTab === tab.value && styles.tabActive]}
+              onPress={() => setActiveTab(tab.value)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.value && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={colors.bluePrimary} size="large" />
@@ -154,36 +122,53 @@ export default function NotificationsScreen() {
               const isLast = index === notifications.length - 1;
               return (
                 <View key={item.id}>
-                  <View style={styles.notifItem}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        { backgroundColor: ICON_BG_MAP[item.event_type] },
-                      ]}
-                    >
-                      <ExpoImage
-                        source={ICON_MAP[item.event_type]}
-                        style={styles.icon}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View style={styles.notifContent}>
-                      <View style={styles.notifHeader}>
-                        <Text style={styles.notifTitle}>{item.title}</Text>
-                        <Text style={styles.notifTime}>
-                          {formatRelativeTime(item.created_at)}
-                        </Text>
+                  <Pressable
+                    style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                    onPress={() => handleNotificationPress(item.id)}
+                  >
+                    <View style={styles.notifItem}>
+                      <View
+                        style={[
+                          styles.iconContainer,
+                          {
+                            backgroundColor:
+                              NOTIFICATION_ICON_BG_MAP[item.event_type],
+                          },
+                        ]}
+                      >
+                        <ExpoImage
+                          source={NOTIFICATION_ICON_MAP[item.event_type]}
+                          style={styles.icon}
+                          contentFit="contain"
+                        />
+                        {!item.is_read && !localRead.has(item.id) && (
+                          <View style={styles.unreadDot} />
+                        )}
                       </View>
-                      <Text style={styles.notifBody}>{item.body}</Text>
+                      <View style={styles.notifContent}>
+                        <View style={styles.notifHeader}>
+                          <Text style={styles.notifTitle}>{item.title}</Text>
+                          <Text style={styles.notifTime}>
+                            {formatRelativeTime(item.created_at)}
+                          </Text>
+                        </View>
+                        <Text style={styles.notifBody}>{item.body}</Text>
+                      </View>
                     </View>
-                  </View>
-                  {!isLast && <View style={styles.divider} />}
+                  </Pressable>
+                  {!isLast && (
+                    <View style={styles.dividerContainer}>
+                      <View style={styles.divider} />
+                    </View>
+                  )}
                 </View>
               );
             })}
-            <Text style={styles.endLabel}>
-              FIN DE LAS NOTIFICACIONES RECIENTES
-            </Text>
+            <View style={styles.endLabelContainer}>
+              <Text style={styles.endLabel}>
+                FIN DE LAS NOTIFICACIONES RECIENTES
+              </Text>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -196,53 +181,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    backgroundColor: colors.bluePrimary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: typography.fontFamily.manropeBold,
-    color: colors.white,
-  },
   tabsRow: {
     flexDirection: 'row',
-    marginHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 24,
     marginTop: 16,
     marginBottom: 8,
-    padding: 12,
-    gap: 10,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.white,
+    gap: 8,
   },
   tab: {
     paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 999,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     backgroundColor: colors.white,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 0,
   },
   tabActive: {
     backgroundColor: colors.bluePrimary,
+    borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
   },
   tabText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.interSemiBold,
-    color: colors.gray700,
+    color: '#566573',
   },
   tabTextActive: {
     color: colors.white,
+    fontFamily: typography.fontFamily.interBold,
   },
   scroll: {
     flex: 1,
@@ -264,72 +236,84 @@ const styles = StyleSheet.create({
   },
   list: {
     backgroundColor: colors.white,
-    marginHorizontal: 0,
     marginTop: 8,
     marginBottom: 16,
-    borderRadius: 0,
-    paddingHorizontal: 16,
-  },
-  itemCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    marginBottom: 10,
-    paddingHorizontal: 16,
   },
   notifItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingVertical: 16,
-    gap: 14,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   icon: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.bluePrimary,
   },
   notifContent: {
     flex: 1,
+    gap: 4,
   },
   notifHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
   },
   notifTitle: {
     fontSize: 14,
     fontFamily: typography.fontFamily.manropeBold,
-    color: colors.gray900,
+    color: colors.gray950,
     flex: 1,
     marginRight: 8,
   },
   notifTime: {
-    fontSize: 11,
-    fontFamily: typography.fontFamily.interRegular,
-    color: colors.gray700,
+    fontSize: 10,
+    fontFamily: typography.fontFamily.interMedium,
+    color: '#747782',
   },
   notifBody: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: typography.fontFamily.interRegular,
-    color: '#566573',
-    lineHeight: 18,
+    color: '#434751',
+    lineHeight: 16.5,
+  },
+  dividerContainer: {
+    paddingHorizontal: 16,
   },
   divider: {
     height: 1,
     backgroundColor: colors.gray100,
   },
+  endLabelContainer: {
+    alignItems: 'center',
+    paddingBottom: 32,
+    paddingTop: 32,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray100,
+    marginHorizontal: 32,
+    marginTop: 16,
+  },
   endLabel: {
-    textAlign: 'center',
-    fontSize: 11,
-    fontFamily: typography.fontFamily.interSemiBold,
-    color: colors.gray700,
-    letterSpacing: 0.5,
-    paddingVertical: 20,
+    fontSize: 10,
+    fontFamily: typography.fontFamily.interRegular,
+    color: 'rgba(116,119,130,0.6)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });

@@ -10,46 +10,20 @@ import {
   Text,
   View,
 } from 'react-native';
+import {
+  NOTIFICATION_ICON_BG_MAP,
+  NOTIFICATION_ICON_MAP,
+} from '@/constants/notificationIcons';
 import { colors, typography } from '@/constants/theme';
-import type {
-  NotificationEventType,
-  NotificationItem,
-} from '@/types/notification';
-
-const ICON_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: require('@/assets/notifications/sent.svg') as string,
-  COMPLAINT_IN_PROGRESS:
-    require('@/assets/notifications/updatedreport.svg') as string,
-  COMPLAINT_RESOLVED: require('@/assets/notifications/resolved.svg') as string,
-  COMPLAINT_REJECTED: require('@/assets/notifications/refused.svg') as string,
-};
-
-const ICON_BG_MAP: Record<NotificationEventType, string> = {
-  COMPLAINT_SUBMITTED: '#EAF7EF',
-  COMPLAINT_IN_PROGRESS: '#DBEAFE',
-  COMPLAINT_RESOLVED: '#D4EFDF',
-  COMPLAINT_REJECTED: '#FADBD8',
-};
-
-const formatRelativeTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.round(diffMs / 60000);
-  const diffHours = Math.round(diffMinutes / 60);
-  const diffDays = Math.round(diffHours / 24);
-  if (diffMinutes < 1) return 'Justo ahora';
-  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
-  if (diffHours < 24) return `${diffHours}h atrás`;
-  if (diffDays === 1) return 'Ayer';
-  return `${diffDays} días atrás`;
-};
+import type { NotificationItem } from '@/types/notification';
+import { formatRelativeTime } from '@/utils/formatRelativeTime';
 
 interface NotificationsModalProps {
   visible: boolean;
   onDismiss: () => void;
   notifications: NotificationItem[];
   loading?: boolean;
+  onNotificationPress?: (id: number) => void;
 }
 
 export function NotificationsModal({
@@ -57,9 +31,8 @@ export function NotificationsModal({
   onDismiss,
   notifications,
   loading = false,
+  onNotificationPress,
 }: NotificationsModalProps) {
-  const recent = notifications.slice(0, 3);
-
   return (
     <Modal
       visible={visible}
@@ -92,40 +65,49 @@ export function NotificationsModal({
             <View style={styles.loadingContainer}>
               <ActivityIndicator color={colors.bluePrimary} />
             </View>
-          ) : recent.length === 0 ? (
+          ) : notifications.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 No tienes notificaciones por ahora
               </Text>
             </View>
           ) : (
-            recent.map((item, index) => {
-              const isLast = index === recent.length - 1;
+            notifications.map((item, index) => {
+              const isLast = index === notifications.length - 1;
               return (
                 <View key={item.id}>
-                  <View style={styles.notifItem}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        { backgroundColor: ICON_BG_MAP[item.event_type] },
-                      ]}
-                    >
-                      <ExpoImage
-                        source={ICON_MAP[item.event_type]}
-                        style={styles.icon}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View style={styles.notifContent}>
-                      <View style={styles.notifHeader}>
-                        <Text style={styles.notifTitle}>{item.title}</Text>
-                        <Text style={styles.notifTime}>
-                          {formatRelativeTime(item.created_at)}
-                        </Text>
+                  <Pressable
+                    style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                    onPress={() => onNotificationPress?.(item.id)}
+                  >
+                    <View style={styles.notifItem}>
+                      <View
+                        style={[
+                          styles.iconContainer,
+                          {
+                            backgroundColor:
+                              NOTIFICATION_ICON_BG_MAP[item.event_type],
+                          },
+                        ]}
+                      >
+                        <ExpoImage
+                          source={NOTIFICATION_ICON_MAP[item.event_type]}
+                          style={styles.icon}
+                          contentFit="contain"
+                        />
+                        {!item.is_read && <View style={styles.unreadDot} />}
                       </View>
-                      <Text style={styles.notifBody}>{item.body}</Text>
+                      <View style={styles.notifContent}>
+                        <View style={styles.notifHeader}>
+                          <Text style={styles.notifTitle}>{item.title}</Text>
+                          <Text style={styles.notifTime}>
+                            {formatRelativeTime(item.created_at)}
+                          </Text>
+                        </View>
+                        <Text style={styles.notifBody}>{item.body}</Text>
+                      </View>
                     </View>
-                  </View>
+                  </Pressable>
                   {!isLast && <View style={styles.divider} />}
                 </View>
               );
@@ -231,6 +213,15 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
   },
+  unreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.bluePrimary,
+  },
   notifContent: {
     flex: 1,
   },
@@ -255,7 +246,7 @@ const styles = StyleSheet.create({
   notifBody: {
     fontSize: 13,
     fontFamily: typography.fontFamily.interRegular,
-    color: '#566573',
+    color: colors.notifBodyText,
     lineHeight: 18,
   },
   divider: {

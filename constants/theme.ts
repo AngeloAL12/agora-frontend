@@ -35,6 +35,7 @@ export const colors = {
   reportResolvedText: '#145A32',
   reportRejected: '#FADBD8',
   reportRejectedText: '#78281F',
+  notifBodyText: '#566573',
 } as const;
 
 export const palette = {

@@ -5,6 +5,22 @@ import type {
   NotificationListResponse,
 } from '@/types/notification';
 
+export function resolveNotificationHref(
+  notification: NotificationItem,
+): string {
+  if (typeof notification.reference_id === 'number') {
+    return `/complaint/${notification.reference_id}`;
+  }
+  return '/notifications';
+}
+
+export async function getUnreadNotificationsCount(
+  token: string,
+): Promise<number> {
+  const response = await getNotifications(token);
+  return response.items.filter((n) => !n.is_read).length;
+}
+
 export async function getNotifications(
   token: string,
   params?: {
