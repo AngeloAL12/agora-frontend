@@ -87,6 +87,9 @@ export type UserMeResponse = {
   email: string;
   role: string;
   name: string;
+};
+
+export type UserProfileResponse = UserMeResponse & {
   full_name?: string;
   clubs_count: number;
   complaints_count: number;
@@ -99,8 +102,8 @@ export type UserMeResponse = {
 export async function getMe(
   accessToken: string,
   opts?: AuthOptions,
-): Promise<UserMeResponse> {
-  return apiRequest<UserMeResponse>({
+): Promise<UserProfileResponse> {
+  return apiRequest<UserProfileResponse>({
     method: 'GET',
     path: '/users/me',
     token: accessToken,

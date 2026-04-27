@@ -1,5 +1,7 @@
 import { colors, typography } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import { router } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +15,10 @@ interface ScreenHeaderProps {
   onNotificationPress?: () => void;
   align?: 'left' | 'center';
   variant?: 'primary' | 'white';
-  containerStyle?: any; //
+  containerStyle?: any;
+  showBackButton?: boolean;
+  backButtonColor?: string;
+  backButtonPosition?: 'left' | 'right';
 }
 
 export const ScreenHeader = ({
@@ -26,6 +31,9 @@ export const ScreenHeader = ({
   align = 'center',
   containerStyle,
   variant = 'primary',
+  showBackButton = false,
+  backButtonColor = colors.black,
+  backButtonPosition = 'left',
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
 
@@ -60,7 +68,31 @@ export const ScreenHeader = ({
     </Pressable>
   ) : null;
 
-  const resolvedRightAction = rightAction ?? notificationBell;
+  const backButton = showBackButton ? (
+    <Pressable
+      style={({ pressed }) => [
+        ,
+        { opacity: pressed ? 0.6 : 1 },
+        styles.backButton,
+      ]}
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/profile'); // Fallback if no history
+        }
+      }}
+    >
+      <Ionicons name="arrow-back" size={24} color={backButtonColor} />
+    </Pressable>
+  ) : null;
+
+  const resolvedLeftAction =
+    showBackButton && backButtonPosition === 'left' ? backButton : leftAction;
+  const resolvedRightAction =
+    showBackButton && backButtonPosition === 'right'
+      ? backButton
+      : (rightAction ?? notificationBell);
 
   return (
     <View
@@ -74,7 +106,7 @@ export const ScreenHeader = ({
         <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
           {align === 'center' ? (
             <>
-              <View style={styles.slot}>{leftAction ?? null}</View>
+              <View style={styles.slot}>{resolvedLeftAction ?? null}</View>
               <Text
                 style={[
                   styles.title,
@@ -84,13 +116,16 @@ export const ScreenHeader = ({
               >
                 {title ?? ''}
               </Text>
+
               <View style={styles.slot}>{resolvedRightAction ?? null}</View>
             </>
           ) : (
             <>
               <View style={styles.leftContent}>
-                {leftAction && (
-                  <View style={styles.leftActionItem}>{leftAction}</View>
+                {resolvedLeftAction && (
+                  <View style={styles.leftActionItem}>
+                    {resolvedLeftAction}
+                  </View>
                 )}
                 {title ? (
                   <Text
@@ -202,5 +237,9 @@ const styles = StyleSheet.create({
   bellIcon: {
     width: 36,
     height: 36,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8, // Optional: slightly offset to align with edge better
   },
 });

@@ -22,6 +22,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
@@ -29,6 +30,7 @@ import { SuggestedQuestionsSection } from '@/components/ia/SuggestedQuestionsSec
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { WelcomeSection } from '@/components/ia/WelcomeSection';
 import { colors, typography } from '@/constants/theme';
+import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useChat } from '@/hooks/useChat';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -47,6 +49,7 @@ export default function IaChatScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [chatInputHeight, setChatInputHeight] = useState(58);
 
   const {
@@ -59,6 +62,11 @@ export default function IaChatScreen() {
     handleSuggestedQuestion,
     clearError,
   } = useChat();
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
 
   const scrollToEnd = useCallback(() => {
     setTimeout(
@@ -210,6 +218,7 @@ export default function IaChatScreen() {
         align="left"
         leftAction={backAction}
         showNotificationBell
+        onNotificationPress={() => setNotificationsVisible(true)}
       />
 
       {Platform.OS === 'ios' ? (
@@ -225,6 +234,14 @@ export default function IaChatScreen() {
           {renderContent(0)}
         </Animated.View>
       )}
+
+      <NotificationsModal
+        visible={notificationsVisible}
+        onDismiss={() => setNotificationsVisible(false)}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onNotificationPress={markRead}
+      />
     </SafeAreaView>
   );
 }

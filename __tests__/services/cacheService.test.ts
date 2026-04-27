@@ -1,11 +1,11 @@
 import { Complaint } from '@/hooks/useComplaints';
-import { UserMeResponse } from '@/services/authService';
+import { UserProfileResponse } from '@/services/authService';
 import { CacheService } from '@/services/cacheService';
 
 const tokenA = 'token-a';
 const tokenB = 'token-b';
 
-const meData: UserMeResponse = {
+const meData: UserProfileResponse = {
   id: 1,
   email: 'user@example.com',
   role: 'student',

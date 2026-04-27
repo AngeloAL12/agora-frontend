@@ -1,8 +1,11 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuth } from '@/context/AuthContext';
+import { createClub, getClubCategories } from '@/services/clubService';
+import { ClubCategory } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -20,23 +23,27 @@ import { theme } from '../../constants/theme';
 
 export default function CreateClubFlow() {
   const router = useRouter();
+  const { token } = useAuth();
 
   const [step, setStep] = useState(1);
-
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [clubType, setClubType] = useState('Abierto');
-
+  const [idCategory, setIdCategory] = useState<number | null>(null);
+  const [categories, setCategories] = useState<ClubCategory[]>([]);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    getClubCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
 
   const pickImage = async (type: 'logo' | 'cover') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso denegado',
-        'Necesitamos acceso a tus fotos para subir la imagen.',
-      );
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tus fotos.');
       return;
     }
 
@@ -53,16 +60,62 @@ export default function CreateClubFlow() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!name.trim()) {
         Alert.alert('Faltan datos', 'Por favor, escribe el nombre del club.');
         return;
       }
+      if (!idCategory) {
+        Alert.alert('Faltan datos', 'Selecciona una categoría para el club.');
+        return;
+      }
       setStep(2);
     } else {
-      Alert.alert('¡Éxito!', 'Club creado correctamente');
-      router.replace('/clubs');
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+        if (!token) {
+          Alert.alert('Sesión expirada', 'Por favor inicia sesión de nuevo.');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('id_category', idCategory!.toString());
+
+        if (logoUri) {
+          formData.append('profile_image', {
+            uri: logoUri,
+            name: 'photo.jpg',
+            type: 'image/jpeg',
+          } as unknown as Blob);
+        }
+
+        if (coverUri) {
+          formData.append('cover_image', {
+            uri: coverUri,
+            name: 'cover.jpg',
+            type: 'image/jpeg',
+          } as unknown as Blob);
+        }
+
+        const result = await createClub(formData, token);
+        if (result?.id) {
+          Alert.alert('¡Éxito!', 'Club creado correctamente', [
+            { text: 'OK', onPress: () => router.replace('/clubs') },
+          ]);
+        }
+      } catch (error: unknown) {
+        const e = error as { detail?: string; message?: string };
+        Alert.alert(
+          'Atención',
+          e.detail || e.message || 'No se pudo crear el club',
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -80,11 +133,7 @@ export default function CreateClubFlow() {
         <ScreenHeader
           title="Crear club"
           variant="white"
-          containerStyle={{
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
-          }}
+          containerStyle={{ elevation: 0, borderBottomWidth: 0 }}
           leftAction={
             <Pressable onPress={handleBack} style={{ padding: 8 }}>
               <Ionicons name="arrow-back" size={24} color="#192A56" />
@@ -130,7 +179,7 @@ export default function CreateClubFlow() {
                 <Text style={styles.label}>DESCRIPCIÓN</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Cuéntanos de que trata el club, sus objetivos y actividades..."
+                  placeholder="Cuéntanos de qué trata el club, sus objetivos y actividades..."
                   placeholderTextColor="#43475180"
                   multiline
                   textAlignVertical="top"
@@ -140,54 +189,29 @@ export default function CreateClubFlow() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>TIPO</Text>
-
-                <View style={styles.typeCardsFrame}>
-                  <TouchableOpacity
-                    style={[
-                      styles.typeCard,
-                      clubType === 'Abierto' && styles.typeCardSelected,
-                    ]}
-                    onPress={() => setClubType('Abierto')}
-                    activeOpacity={0.9}
-                  >
-                    <Text
+                <Text style={styles.label}>CATEGORÍA</Text>
+                <View style={styles.categoryGrid}>
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
                       style={[
-                        styles.typeCardText,
-                        clubType === 'Abierto'
-                          ? styles.textSelected
-                          : styles.textUnselected,
+                        styles.categoryChip,
+                        idCategory === cat.id && styles.categoryChipSelected,
                       ]}
+                      onPress={() => setIdCategory(cat.id)}
                     >
-                      Abierto
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.typeCard,
-                      clubType === 'Cerrado' && styles.typeCardSelected,
-                    ]}
-                    onPress={() => setClubType('Cerrado')}
-                    activeOpacity={0.9}
-                  >
-                    <Text
-                      style={[
-                        styles.typeCardText,
-                        clubType === 'Cerrado'
-                          ? styles.textSelected
-                          : styles.textUnselected,
-                      ]}
-                    >
-                      Cerrado
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          idCategory === cat.id &&
+                            styles.categoryChipTextSelected,
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-
-                <Text style={styles.visibilityHelpText}>
-                  * Los clubes abiertos permiten que cualquier estudiante se una
-                  sin previa aprobación.
-                </Text>
               </View>
             </View>
           ) : (
@@ -206,7 +230,6 @@ export default function CreateClubFlow() {
                     </View>
                     <TouchableOpacity
                       style={styles.addButton}
-                      activeOpacity={0.8}
                       onPress={() => pickImage('logo')}
                     >
                       <View style={styles.plusCircle}>
@@ -250,9 +273,20 @@ export default function CreateClubFlow() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.mainButton} onPress={handleNext}>
+          <TouchableOpacity
+            style={[
+              styles.mainButton,
+              isSubmitting && styles.mainButtonDisabled,
+            ]}
+            onPress={handleNext}
+            disabled={isSubmitting}
+          >
             <Text style={styles.mainButtonText}>
-              {step === 1 ? 'Siguiente' : 'Crear'}
+              {step === 1
+                ? 'Siguiente'
+                : isSubmitting
+                  ? 'Creando...'
+                  : 'Crear Club'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -279,8 +313,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.2,
     color: '#003172',
     textTransform: 'uppercase',
   },
@@ -300,72 +332,47 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.2,
     color: '#434751',
-    textTransform: 'uppercase',
     marginBottom: 8,
     alignSelf: 'flex-start',
-    width: '100%',
   },
   inputGroup: { width: '100%', maxWidth: 358, marginBottom: 20 },
   input: {
     width: '100%',
     backgroundColor: '#E0E3E6',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 16 : 12,
     fontSize: 16,
-    fontFamily: 'Inter',
-    fontWeight: '500',
     color: '#1A2138',
   },
   textArea: { height: 120, paddingVertical: 16 },
-  typeCardsFrame: {
-    width: 358,
-    height: 52,
-    borderRadius: 16,
-    padding: 6,
-    backgroundColor: '#F2F4F7',
+  categoryGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  typeCard: {
-    width: 173,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F2F4F7',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  typeCardSelected: {
-    backgroundColor: '#FFFFFF',
+  categoryChipSelected: {
+    backgroundColor: '#192A56',
+    borderColor: '#192A56',
   },
-  typeCardText: {
+  categoryChipText: {
     fontFamily: 'Inter',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  textSelected: {
-    fontWeight: '700',
-    color: '#003172',
-  },
-  textUnselected: {
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     color: '#434751',
   },
-  visibilityHelpText: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
-    fontSize: 11,
-    lineHeight: 16.5,
-    color: '#64748B',
-    marginTop: 8,
-    alignSelf: 'flex-start',
+  categoryChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   sectionContainer: { width: '100%', maxWidth: 358, marginBottom: 20 },
   sectionCard: {
@@ -397,7 +404,6 @@ const styles = StyleSheet.create({
     height: 110,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 1,
   },
   coverPlaceholder: { width: '65%', height: '65%' },
   fullImage: { width: '100%', height: '100%' },
@@ -414,10 +420,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     color: '#192A56',
-    textAlign: 'center',
     marginBottom: 8,
   },
-  helperText: { fontSize: 12, color: '#434751', textAlign: 'center' },
+  helperText: { fontSize: 12, color: '#434751' },
   footer: {
     width: '100%',
     paddingHorizontal: 16,
@@ -433,6 +438,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  mainButtonDisabled: {
+    opacity: 0.6,
   },
   mainButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });

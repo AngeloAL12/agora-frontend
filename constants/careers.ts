@@ -18,7 +18,6 @@ export const CAREER_ICONS: Record<number, number> = {
 };
 
 export const getCareerIcon = (careerId: number) => CAREER_ICONS[careerId];
-
 export const CAREERS_LIST = [
   { id: 1, name: 'Ingeniería Bioquímica' },
   { id: 2, name: 'Ingeniería en Semiconductores' },

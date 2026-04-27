@@ -2,7 +2,7 @@ import { CAREERS_LIST, getCareerIcon } from '@/constants/careers';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { apiRequest } from '@/services/api';
-import { getMe, UserMeResponse } from '@/services/authService';
+import { getMe, UserProfileResponse } from '@/services/authService';
 import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage, type ImageSource } from 'expo-image';
@@ -44,7 +44,6 @@ const extractStudentId = (email: string): string => {
 };
 
 const LockIcon = require('@/assets/icons/profile/lock.svg') as ImageSource;
-
 const findCareerIdByName = (name: string | null | undefined) => {
   if (!name) return null;
   const normalizedName = name.toLowerCase().trim();
@@ -88,7 +87,6 @@ export default function EditInfoScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const selectFieldRef = useRef<View>(null);
-
   const [fullName, setFullName] = useState(user?.name || '');
   const [selectedCareerId, setSelectedCareerId] = useState<number | null>(
     user?.id_career ?? null,
@@ -272,7 +270,7 @@ export default function EditInfoScreen() {
         } as unknown as Blob);
       }
 
-      await apiRequest<UserMeResponse>({
+      await apiRequest<UserProfileResponse>({
         method: 'PATCH',
         path: '/users/me',
         token,

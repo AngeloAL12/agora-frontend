@@ -1,6 +1,5 @@
 import LoginBottomSheet from '@/components/LoginBottomSheet';
 import { colors, typography } from '@/constants/theme';
-import { useAuth } from '@/context/AuthContext';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +13,6 @@ import {
 } from 'react-native';
 
 export default function Onboarding() {
-  const { login } = useAuth();
   const loginSheetRef = useRef<BottomSheetModal>(null);
   const { height } = useWindowDimensions();
 
@@ -120,6 +118,7 @@ const styles = StyleSheet.create({
   },
   buttonSection: {
     width: '100%',
+    gap: 12,
   },
   buttonWrapper: {
     width: '100%',

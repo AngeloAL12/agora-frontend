@@ -1,10 +1,11 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { NotificationsProvider } from '@/context/NotificationsContext';
 import { useAppFonts } from '@/hooks/useFonts';
 import { useNotificationsPreference } from '@/hooks/useNotificationsPreference';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { savePushToken } from '@/services/authService';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -30,9 +31,11 @@ function AppContent() {
   }, [token, expoPushToken, refreshToken, setTokens, logout]);
 
   return (
-    <BottomSheetModalProvider>
-      <Slot />
-    </BottomSheetModalProvider>
+    <NotificationsProvider>
+      <BottomSheetModalProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </BottomSheetModalProvider>
+    </NotificationsProvider>
   );
 }
 

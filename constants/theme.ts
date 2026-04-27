@@ -33,6 +33,15 @@ export const colors = {
   unreadBadgeBg: '#003172',
   botBadgeBg: '#FFE178',
   botBadgeText: '#231B00',
+  reportPending: '#E5E7E9',
+  reportPendingText: '#1A1A1A',
+  reportInProgress: '#FDEB71',
+  reportInProgressText: '#3E2723',
+  reportResolved: '#D4EFDF',
+  reportResolvedText: '#145A32',
+  reportRejected: '#FADBD8',
+  reportRejectedText: '#78281F',
+  notifBodyText: '#566573',
 } as const;
 
 export const palette = {
