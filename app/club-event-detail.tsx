@@ -1,49 +1,47 @@
+import { HeaderBackButton } from '@/components/HeaderBackButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+
+const calendarIcon = require('@/assets/icons/Calendario.svg');
 
 export default function ClubEventDetailScreen() {
   const { title, date, description } = useLocalSearchParams<{
     title: string;
     date: string;
-    description: string;
+    description?: string;
   }>();
 
   return (
     <View style={styles.safeArea}>
       <ScreenHeader
         title="Detalles del evento"
-        leftAction={
-          <Pressable
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/clubs' as any);
-              }
-            }}
-            hitSlop={8}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </Pressable>
-        }
+        variant="primary"
+        leftAction={<HeaderBackButton color={colors.white} />}
       />
 
       <View style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.label}>NOMBRE</Text>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.date}>⌚ {date}</Text>
+
+          <View style={styles.dateRow}>
+            <ExpoImage
+              source={calendarIcon}
+              style={styles.dateIcon}
+              contentFit="contain"
+            />
+            <Text style={styles.date}>{date}</Text>
+          </View>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>DESCRIPCIÓN</Text>
           <Text style={styles.description}>
-            {description ||
-              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. In at libero nibh. Integer faucibus elementum ligula ac fermentum. Duis ultrices urna ac orci posuere dictum. Pellentesque convallis porttitor odio eget vulputate.'}
+            {description || 'Sin descripción'}
           </Text>
         </View>
       </View>
@@ -58,11 +56,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.backgroundScreen,
     padding: 16,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.whiteSoft,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -80,8 +78,19 @@ const styles = StyleSheet.create({
     color: colors.bluePrimary,
     marginBottom: 8,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  dateIcon: {
+    width: 10.5,
+    height: 11.67,
+    tintColor: colors.gray700,
+  },
   date: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.gray700,
   },
   description: {

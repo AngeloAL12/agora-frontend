@@ -1,6 +1,8 @@
+import { colors } from '@/constants/theme';
 import { ClubEvent } from '@/types/club';
+import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ClubEventCardProps {
   event: ClubEvent;
@@ -19,9 +21,10 @@ const ClubEventCard = ({ event, onPress }: ClubEventCardProps) => {
         <Text style={styles.title}>{event.title}</Text>
 
         <View style={styles.timeRow}>
-          <Image
-            source={require('@/assets/icons/clock.png')}
+          <ExpoImage
+            source={require('@/assets/icons/reloj.svg')}
             style={styles.timeIcon}
+            contentFit="contain"
           />
           <Text style={styles.time}>{event.time}</Text>
         </View>
@@ -38,73 +41,81 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     minHeight: 114,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(195,198,210,0.15)',
+    borderColor: colors.borderSubtle,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
 
-    shadowColor: '#003172',
+    shadowColor: colors.blueSecondary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
     shadowRadius: 24,
     elevation: 3,
   },
+
   dateBox: {
     width: 56,
     height: 64,
     borderRadius: 8,
-    backgroundColor: '#EEF1F5',
+    backgroundColor: colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   month: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#003172',
+    color: colors.blueSecondary,
     textTransform: 'uppercase',
     lineHeight: 14,
   },
+
   day: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#003172',
+    color: colors.blueSecondary,
     lineHeight: 30,
   },
+
   info: {
     flex: 1,
     justifyContent: 'center',
   },
+
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#191C1E',
+    color: colors.gray950,
     lineHeight: 28,
   },
+
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
   },
+
   timeIcon: {
-    width: 14,
-    height: 14,
-    resizeMode: 'contain',
-    tintColor: '#434751',
-    marginRight: 4,
+    width: 12,
+    height: 12,
+    tintColor: colors.gray700,
+    marginRight: 6,
   },
+
   time: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#434751',
+    color: colors.gray700,
     lineHeight: 16,
   },
+
   chevron: {
     fontSize: 24,
-    color: '#B8C1D1',
+    color: colors.borderColor,
     lineHeight: 24,
   },
 });

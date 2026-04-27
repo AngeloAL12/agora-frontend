@@ -2,11 +2,20 @@ import React from 'react';
 import { Image, StyleSheet } from 'react-native';
 
 interface ClubBannerProps {
-  imageUrl: string;
+  coverImage?: string;
 }
 
-const ClubBanner = ({ imageUrl }: ClubBannerProps) => {
-  return <Image source={{ uri: imageUrl }} style={styles.image} />;
+const ClubBanner = ({ coverImage }: ClubBannerProps) => {
+  return (
+    <Image
+      source={
+        coverImage
+          ? { uri: coverImage }
+          : require('@/assets/images/post-robotica.png')
+      }
+      style={styles.image}
+    />
+  );
 };
 
 export default ClubBanner;

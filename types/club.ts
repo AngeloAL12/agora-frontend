@@ -34,4 +34,5 @@ export interface ClubEvent {
   day: string;
   title: string;
   time: string;
+  description?: string;
 }

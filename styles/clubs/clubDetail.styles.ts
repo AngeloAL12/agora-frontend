@@ -1,3 +1,4 @@
+import { colors } from '@/constants/theme';
 import { Platform, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
 
 const STATUS_BAR_HEIGHT =
@@ -6,16 +7,16 @@ const STATUS_BAR_HEIGHT =
 export const clubDetailStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0D47A1',
+    backgroundColor: colors.blueDark,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F5F6F8',
+    backgroundColor: colors.white,
   },
   header: {
     height: 56 + STATUS_BAR_HEIGHT,
     paddingTop: STATUS_BAR_HEIGHT,
-    backgroundColor: '#1E488F',
+    backgroundColor: colors.bluePrimary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -28,7 +29,7 @@ export const clubDetailStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerIconText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 22,
     fontWeight: '600',
   },
@@ -45,11 +46,11 @@ export const clubDetailStyles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 12,
-    backgroundColor: '#F4C400',
+    backgroundColor: colors.yellow,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#000000',
+    shadowColor: colors.black,
     shadowOpacity: 0.1,
     shadowRadius: 15,
     shadowOffset: { width: 0, height: 10 },
@@ -57,7 +58,7 @@ export const clubDetailStyles = StyleSheet.create({
   floatingButtonText: {
     fontSize: 24,
     fontWeight: '500',
-    color: '#1E2A3A',
+    color: colors.gray900,
     marginTop: -1,
   },
 
@@ -86,6 +87,6 @@ export const clubDetailStyles = StyleSheet.create({
     justifyContent: 'center',
 
     resizeMode: 'contain',
-    tintColor: '#FFFFFF',
+    tintColor: colors.white,
   },
 });

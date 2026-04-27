@@ -5,7 +5,6 @@ import { colors, typography } from '@/constants/theme';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
   Image,
@@ -25,9 +24,21 @@ const formatDate = (date: Date) =>
     day: '2-digit',
   });
 
+const formatMonth = (date: Date) =>
+  date.toLocaleDateString('es-MX', {
+    month: 'long',
+    year: 'numeric',
+  });
+
 const addDays = (date: Date, days: number) => {
   const nextDate = new Date(date);
   nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
+
+const addMonths = (date: Date, months: number) => {
+  const nextDate = new Date(date);
+  nextDate.setMonth(nextDate.getMonth() + months);
   return nextDate;
 };
 
@@ -37,8 +48,10 @@ export default function ClubCreateEventScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(addDays(new Date(), 2));
+  const initialStartDate = new Date(2026, 3, 26);
+
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(addDays(initialStartDate, 2));
 
   const [dateTarget, setDateTarget] = useState<DateTarget | null>(null);
   const [tempDate, setTempDate] = useState(new Date());
@@ -65,6 +78,10 @@ export default function ClubCreateEventScreen() {
   };
 
   const handleCreateEvent = () => {
+    if (!name.trim() || !description.trim()) {
+      return;
+    }
+
     successSheetRef.current?.present();
   };
 
@@ -79,8 +96,6 @@ export default function ClubCreateEventScreen() {
 
   return (
     <View style={styles.safeArea}>
-      <StatusBar style="dark" backgroundColor={colors.whiteSoft} />
-
       <ScreenHeader
         title="Crear evento"
         align="center"
@@ -169,6 +184,26 @@ export default function ClubCreateEventScreen() {
             <Text style={styles.modalTitle}>Seleccionar fecha</Text>
 
             <Text style={styles.modalDate}>{formatDate(tempDate)}</Text>
+
+            <View style={styles.monthContainer}>
+              <TouchableOpacity
+                style={styles.monthButton}
+                activeOpacity={0.8}
+                onPress={() => setTempDate(addMonths(tempDate, -1))}
+              >
+                <Text style={styles.monthButtonText}>Mes anterior</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.monthText}>{formatMonth(tempDate)}</Text>
+
+              <TouchableOpacity
+                style={styles.monthButton}
+                activeOpacity={0.8}
+                onPress={() => setTempDate(addMonths(tempDate, 1))}
+              >
+                <Text style={styles.monthButtonText}>Mes siguiente</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -324,7 +359,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.black + '80',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -348,7 +383,30 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.manropeBold,
     textAlign: 'center',
     textTransform: 'capitalize',
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  monthContainer: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  monthButton: {
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthButtonText: {
+    fontSize: 14,
+    color: colors.gray950,
+    fontFamily: typography.fontFamily.interMedium,
+  },
+  monthText: {
+    fontSize: 15,
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.interBold,
+    textAlign: 'center',
+    textTransform: 'capitalize',
   },
   modalActions: {
     gap: 10,

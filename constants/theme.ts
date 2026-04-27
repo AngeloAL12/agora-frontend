@@ -27,6 +27,8 @@ export const colors = {
   statsBackground: 'rgba(255,255,255,0.1)',
   activityYellow: '#CBA800',
   activityGray: '#747782',
+  borderColor: '#D1D5DB',
+  gray200: '#ECEEF1',
 } as const;
 
 export const palette = {

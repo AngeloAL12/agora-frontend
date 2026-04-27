@@ -1,6 +1,7 @@
 import { ClubPost } from '@/types/club';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { colors } from '@/constants/theme';
 
 interface ClubPostCardProps {
   post: ClubPost;
@@ -75,7 +76,7 @@ export default ClubPostCard;
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     paddingTop: 10,
     paddingBottom: 12,
   },
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 9999,
-    backgroundColor: '#D8E2FF',
+    backgroundColor: colors.primaryContainer,
 
     alignItems: 'center',
     justifyContent: 'center',
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   postAvatarText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#003172',
+    color: colors.blueSecondary,
     textAlign: 'center',
   },
   postAuthorInfo: {
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
   postAuthor: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E2A3A',
+    color: colors.gray900,
   },
   postMeta: {
     fontSize: 8,
-    color: '#6C7480',
+    color: colors.activityGray,
     marginTop: 1,
   },
   postImage: {
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     fontSize: 12,
     lineHeight: 18,
-    color: '#6C7480',
+    color: colors.activityGray,
   },
   postFooter: {
     marginTop: 12,
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   footerAction: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#434751',
+    color: colors.gray700,
     lineHeight: 16,
   },
 

@@ -31,7 +31,7 @@ export const ScreenHeader = ({
 
   const isWhite = variant === 'white';
   const bgColor = isWhite ? colors.white : colors.bluePrimary;
-  const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
+  const textColor = isWhite ? colors.blueDark : colors.white;
 
   // When only a notification bell / rightAction exists (no title, no leftAction)
   // AND a searchInput is also provided, suppress the separate title row so the
@@ -160,10 +160,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    flex: 1,
     fontSize: 20,
-    fontFamily: typography.fontFamily.manropeExtraBold,
-    letterSpacing: -0.3,
+    fontWeight: '700',
+    lineHeight: 28,
+    color: colors.white,
+    textAlign: 'center',
   },
   leftContent: {
     flexDirection: 'row',
