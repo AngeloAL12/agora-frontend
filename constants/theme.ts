@@ -42,6 +42,11 @@ export const colors = {
   reportRejected: '#FADBD8',
   reportRejectedText: '#78281F',
   notifBodyText: '#566573',
+  // Clubs
+  eventDateBg: '#E6E8EB',
+  searchPlaceholder: '#6B7280',
+  statsLabel: 'rgba(67,71,81,0.7)',
+  borderSubtle20: 'rgba(195,198,210,0.2)',
 } as const;
 
 export const palette = {
