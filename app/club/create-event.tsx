@@ -1,11 +1,12 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { DatePicker } from '@s77rt/react-native-date-picker';
+import type { DatePickerHandle } from '@s77rt/react-native-date-picker';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +22,16 @@ import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { createClubEvent } from '@/services/clubService';
 
+function formatDate(date: Date): string {
+  return date.toLocaleString('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function CreateEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -28,11 +39,13 @@ export default function CreateEventScreen() {
   const { token } = useAuth();
 
   const successRef = useRef<BottomSheetModal>(null);
+  const startPickerRef = useRef<DatePickerHandle>(null);
+  const endPickerRef = useRef<DatePickerHandle>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -40,18 +53,14 @@ export default function CreateEventScreen() {
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = 'El nombre es requerido';
     if (!description.trim()) e.description = 'La descripción es requerida';
-    if (!startDate.trim()) e.startDate = 'La fecha de inicio es requerida';
-    else {
-      const d = new Date(startDate);
-      if (isNaN(d.getTime())) e.startDate = 'Formato inválido (ej. 2026-05-20)';
-      else if (d <= new Date()) e.startDate = 'La fecha debe ser futura';
-    }
+    if (!startDate) e.startDate = 'La fecha de inicio es requerida';
+    else if (startDate <= new Date()) e.startDate = 'La fecha debe ser futura';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
   async function handleSubmit() {
-    if (!validate() || !token || !id) return;
+    if (!validate() || !token || !id || !startDate) return;
     setSubmitting(true);
     try {
       await createClubEvent(
@@ -59,7 +68,7 @@ export default function CreateEventScreen() {
         {
           title: title.trim(),
           description: description.trim(),
-          date: new Date(startDate).toISOString(),
+          date: startDate.toISOString(),
           latitude: 0,
           longitude: 0,
         },
@@ -137,50 +146,84 @@ export default function CreateEventScreen() {
             <View style={styles.datePicker}>
               <View style={styles.dateCol}>
                 <Text style={styles.dateSubLabel}>INICIO</Text>
-                <View
+                <TouchableOpacity
                   style={[
                     styles.dateInput,
                     errors.startDate && styles.inputError,
                   ]}
+                  onPress={() => startPickerRef.current?.showPicker()}
+                  activeOpacity={0.7}
                 >
-                  <TextInput
-                    style={styles.dateText}
-                    placeholder="2026-05-20"
-                    placeholderTextColor={colors.searchPlaceholder}
-                    value={startDate}
-                    onChangeText={setStartDate}
-                    keyboardType="numbers-and-punctuation"
-                  />
+                  <Text
+                    style={[
+                      styles.dateText,
+                      !startDate && styles.datePlaceholder,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {startDate ? formatDate(startDate) : '20 may 2026'}
+                  </Text>
                   <ExpoImage
                     source={require('@/assets/icons/clubs/clock.svg')}
                     style={styles.calIcon}
                     contentFit="contain"
                     tintColor={colors.gray700}
                   />
-                </View>
+                </TouchableOpacity>
                 {errors.startDate && (
                   <Text style={styles.errorMsg}>{errors.startDate}</Text>
                 )}
+                <DatePicker
+                  ref={startPickerRef}
+                  type="datetime"
+                  value={startDate}
+                  onChange={setStartDate}
+                  min={new Date()}
+                  options={{
+                    locale: 'es',
+                    confirmText: 'Aceptar',
+                    cancelText: 'Cancelar',
+                  }}
+                  styles={{ accentColor: colors.bluePrimary }}
+                />
               </View>
 
               <View style={styles.dateCol}>
                 <Text style={styles.dateSubLabel}>FINAL</Text>
-                <View style={styles.dateInput}>
-                  <TextInput
-                    style={styles.dateText}
-                    placeholder="2026-05-22"
-                    placeholderTextColor={colors.searchPlaceholder}
-                    value={endDate}
-                    onChangeText={setEndDate}
-                    keyboardType="numbers-and-punctuation"
-                  />
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => endPickerRef.current?.showPicker()}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.dateText,
+                      !endDate && styles.datePlaceholder,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {endDate ? formatDate(endDate) : '22 may 2026'}
+                  </Text>
                   <ExpoImage
                     source={require('@/assets/icons/clubs/clock.svg')}
                     style={styles.calIcon}
                     contentFit="contain"
                     tintColor={colors.gray700}
                   />
-                </View>
+                </TouchableOpacity>
+                <DatePicker
+                  ref={endPickerRef}
+                  type="datetime"
+                  value={endDate}
+                  onChange={setEndDate}
+                  min={startDate ?? new Date()}
+                  options={{
+                    locale: 'es',
+                    confirmText: 'Aceptar',
+                    cancelText: 'Cancelar',
+                  }}
+                  styles={{ accentColor: colors.bluePrimary }}
+                />
               </View>
             </View>
           </View>
@@ -308,9 +351,12 @@ const styles = StyleSheet.create({
   },
   dateText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: typography.fontFamily.interMedium,
     color: colors.gray950,
+  },
+  datePlaceholder: {
+    color: colors.searchPlaceholder,
   },
   calIcon: {
     width: 20,
