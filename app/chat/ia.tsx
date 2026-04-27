@@ -22,11 +22,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import {
-  FLOATING_TAB_BAR_BOTTOM_OFFSET,
-  FLOATING_TAB_BAR_HEIGHT,
-} from '@/components/FloatingTabBar';
-
 import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
@@ -37,6 +32,8 @@ import { WelcomeSection } from '@/components/ia/WelcomeSection';
 import { colors, typography } from '@/constants/theme';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useChat } from '@/hooks/useChat';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const SUGGESTED_QUESTIONS = [
   { id: '1', text: '¿Cómo encuentro el edificio E?' },
@@ -46,13 +43,13 @@ const SUGGESTED_QUESTIONS = [
 const WELCOME_MESSAGE =
   '¡Hola! Soy el asistente virtual del ITM Mexicali. Estoy aquí para ayudarte con información sobre tu institución. ¿En qué puedo ayudarte hoy?';
 
-export default function IaScreen() {
+export default function IaChatScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
-  // Natural height of the ChatInput widget (no tab-bar padding, so it stays stable)
   const [chatInputHeight, setChatInputHeight] = useState(58);
 
   const {
@@ -105,13 +102,8 @@ export default function IaScreen() {
   const keyboard = useAnimatedKeyboard();
 
   const animatedKeyboardStyle = useAnimatedStyle(() => {
-    const basePadding =
-      insets.bottom +
-      FLOATING_TAB_BAR_BOTTOM_OFFSET +
-      FLOATING_TAB_BAR_HEIGHT +
-      9;
     return {
-      paddingBottom: Math.max(keyboard.height.value + 16, basePadding),
+      paddingBottom: Math.max(keyboard.height.value + 16, insets.bottom + 16),
     };
   });
 
@@ -122,14 +114,19 @@ export default function IaScreen() {
     if (isCloseToBottom !== isAtBottom) setIsAtBottom(isCloseToBottom);
   };
 
-  const inputBottomPadding = keyboardVisible
-    ? 16
-    : insets.bottom +
-      FLOATING_TAB_BAR_BOTTOM_OFFSET +
-      FLOATING_TAB_BAR_HEIGHT +
-      9;
+  const inputBottomPadding = keyboardVisible ? 16 : insets.bottom + 16;
 
-  // spacerHeight (paddingBottom argument) keeps the input above the floating tab bar
+  const backAction = (
+    <Pressable
+      onPress={() => router.push('/(tabs)/messages')}
+      style={styles.backButton}
+      accessibilityRole="button"
+      accessibilityLabel="Volver a Mensajes"
+    >
+      <Ionicons name="chevron-back" size={24} color={colors.white} />
+    </Pressable>
+  );
+
   const renderContent = (paddingBottom: number) => (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -189,7 +186,6 @@ export default function IaScreen() {
         </View>
       </ScrollView>
 
-      {/* Full-bleed absolute positioning: lets ScrollView pass entirely underneath */}
       <View
         style={[
           styles.inputContainer,
@@ -220,6 +216,7 @@ export default function IaScreen() {
       <ScreenHeader
         title="Búfalo IA"
         align="left"
+        leftAction={backAction}
         showNotificationBell
         onNotificationPress={() => setNotificationsVisible(true)}
       />
@@ -230,12 +227,10 @@ export default function IaScreen() {
           behavior="padding"
           keyboardVerticalOffset={0}
         >
-          {/* spacerHeight = inputBottomPadding so input clears the floating tab bar */}
           {renderContent(inputBottomPadding)}
         </KeyboardAvoidingView>
       ) : (
         <Animated.View style={[styles.keyboardAvoiding, animatedKeyboardStyle]}>
-          {/* Android parent already adds paddingBottom, so spacer = 0 */}
           {renderContent(0)}
         </Animated.View>
       )}
@@ -270,9 +265,6 @@ const styles = StyleSheet.create({
   },
   welcomeContainer: {
     marginTop: 0,
-    // Mantiene su margen superior basado en paddingTop del padre,
-    // pero puedes acomodarlo si quieres despegarlo aún más del header:
-    // marginTop: 12,
   },
   springSpacer: {
     flex: 1,
@@ -313,5 +305,11 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     zIndex: 10,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

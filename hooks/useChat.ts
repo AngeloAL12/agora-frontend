@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { chatSummaryStore } from '@/services/chatSummaryStore';
 import { useEffect, useRef, useState } from 'react';
 
 // ---
@@ -11,6 +12,9 @@ export interface Message {
 }
 
 const N8N_URL = process.env.EXPO_PUBLIC_N8N_URL ?? '';
+
+// Session-level message cache — survives navigation within the same app session.
+const sessionMessages: Message[] = [];
 
 const formatTimestamp = (): string => {
   const now = new Date();
@@ -36,7 +40,9 @@ interface UseChatReturn {
 
 export function useChat(): UseChatReturn {
   const { token, user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => [
+    ...sessionMessages,
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -45,21 +51,29 @@ export function useChat(): UseChatReturn {
   const nextId = () => `msg_${++msgCounterRef.current}_${Date.now()}`;
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isSendingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    chatSummaryStore.markRead('bufalo-ia');
     return () => {
-      abortControllerRef.current?.abort();
+      mountedRef.current = false;
+      // intentionally NOT aborting — let the request finish so the reply
+      // lands in sessionMessages and is visible when the user comes back
     };
   }, []);
 
   const handleSend = async (textOverride?: string) => {
     const text = (textOverride ?? input).trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || isSendingRef.current) return;
 
     if (!N8N_URL) {
       setChatError('No se encontró la URL del asistente.');
       return;
     }
+
+    isSendingRef.current = true;
 
     const userMessage: Message = {
       id: nextId(),
@@ -68,17 +82,29 @@ export function useChat(): UseChatReturn {
       timestamp: formatTimestamp(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    if (!textOverride) setInput('');
-    setChatError(null);
+    sessionMessages.push(userMessage);
+    chatSummaryStore.update(
+      'bufalo-ia',
+      userMessage.text,
+      userMessage.timestamp,
+    );
+    if (mountedRef.current) {
+      setMessages([...sessionMessages]);
+      if (!textOverride) setInput('');
+      setChatError(null);
+    }
 
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-
-    setIsLoading(true);
     try {
+      // timeout to send
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      setIsLoading(true);
+
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const timeout = setTimeout(() => controller.abort(), 30_000);
+
       const response = await fetch(N8N_URL, {
         method: 'POST',
         headers: {
@@ -118,16 +144,33 @@ export function useChat(): UseChatReturn {
         sender: 'assistant',
         timestamp: formatTimestamp(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        setChatError('El asistente tardó demasiado. Intenta de nuevo.');
+      sessionMessages.push(assistantMessage);
+      if (mountedRef.current) {
+        chatSummaryStore.update(
+          'bufalo-ia',
+          assistantMessage.text,
+          assistantMessage.timestamp,
+        );
+        setMessages([...sessionMessages]);
       } else {
-        setChatError('No pude responder. Intenta de nuevo.');
+        chatSummaryStore.updateWithUnread(
+          'bufalo-ia',
+          assistantMessage.text,
+          assistantMessage.timestamp,
+        );
+      }
+      clearTimeout(timeout);
+    } catch (err) {
+      if (mountedRef.current) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          setChatError('El asistente tardó demasiado. Intenta de nuevo.');
+        } else {
+          setChatError('No pude responder. Intenta de nuevo.');
+        }
       }
     } finally {
-      clearTimeout(timeout);
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
+      isSendingRef.current = false;
     }
   };
 

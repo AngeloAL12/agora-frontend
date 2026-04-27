@@ -18,7 +18,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="map" options={{ title: 'Mapa' }} />
       <Tabs.Screen name="complaints" options={{ title: 'Quejas' }} />
-      <Tabs.Screen name="ia" options={{ title: 'IA' }} />
+      <Tabs.Screen name="messages" options={{ title: 'Mensajes' }} />
       <Tabs.Screen name="clubs" options={{ title: 'Clubs' }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil' }} />
     </Tabs>

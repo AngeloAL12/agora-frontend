@@ -22,7 +22,7 @@ const profileIcon = require('@/assets/icons/navbar/profile.svg') as ImageSource;
 const TAB_ICONS = {
   map: mapIcon,
   complaints: complaintsIcon,
-  ia: iaIcon,
+  messages: iaIcon,
   clubs: clubsIcon,
   profile: profileIcon,
 };
