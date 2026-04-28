@@ -11,6 +11,7 @@ export type AuthUser = {
   email: string;
   name: string;
   id_career: number | null;
+  role?: string;
 };
 
 export type LoginResponse = {

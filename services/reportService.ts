@@ -6,6 +6,12 @@ export type LocalImageFile = {
   name: string;
 };
 
+export type ComplaintStatus =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'RESOLVED'
+  | 'REJECTED';
+
 type ComplaintType = 'REPORT' | 'SUGGESTION';
 
 type CreateComplaintPayload = {
@@ -53,6 +59,73 @@ export async function createComplaint(payload: CreateComplaintPayload) {
   return apiRequest({
     method: 'POST',
     path: '/complaints',
+    body: formData,
+    token: payload.token,
+    refreshToken: payload.refreshToken,
+    onTokenRefreshed: payload.onTokenRefreshed,
+    onRefreshFailed: payload.onRefreshFailed,
+    isMultipart: true,
+  });
+}
+
+type AuthenticatedRequestPayload = {
+  token: string;
+  refreshToken?: string;
+  onTokenRefreshed?: (accessToken: string, refreshToken: string) => void;
+  onRefreshFailed?: () => void;
+};
+
+export async function getAllComplaints<T>(
+  payload: AuthenticatedRequestPayload,
+  params?: { page?: number; limit?: number },
+) {
+  const query =
+    params?.page && params?.limit
+      ? `?page=${params.page}&limit=${params.limit}`
+      : '';
+
+  return apiRequest<T>({
+    method: 'GET',
+    path: `/complaints${query}`,
+    token: payload.token,
+    refreshToken: payload.refreshToken,
+    onTokenRefreshed: payload.onTokenRefreshed,
+    onRefreshFailed: payload.onRefreshFailed,
+  });
+}
+
+export async function updateComplaintStatus(
+  complaintId: number | string,
+  status: ComplaintStatus,
+  payload: AuthenticatedRequestPayload,
+) {
+  return apiRequest({
+    method: 'PATCH',
+    path: `/complaints/${complaintId}/status`,
+    body: { status },
+    token: payload.token,
+    refreshToken: payload.refreshToken,
+    onTokenRefreshed: payload.onTokenRefreshed,
+    onRefreshFailed: payload.onRefreshFailed,
+  });
+}
+
+export async function uploadComplaintEvidence(
+  complaintId: number | string,
+  file: LocalImageFile,
+  payload: AuthenticatedRequestPayload,
+) {
+  const formData = new FormData();
+
+  formData.append('file', {
+    uri: file.uri,
+    type: file.type || 'image/jpeg',
+    name: file.name || 'evidence.jpg',
+  } as any);
+
+  return apiRequest({
+    method: 'POST',
+    path: `/complaints/${complaintId}/evidence`,
     body: formData,
     token: payload.token,
     refreshToken: payload.refreshToken,
