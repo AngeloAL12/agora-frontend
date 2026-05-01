@@ -1,4 +1,5 @@
 import { Complaint } from '@/hooks/useComplaints';
+import { clearComplaintDetailCache } from '@/hooks/useComplaintDetail';
 import { UserProfileResponse } from './authService';
 
 interface SessionCache<T> {
@@ -39,5 +40,6 @@ export const CacheService = {
   clearAll: () => {
     meDataCache = null;
     complaintsCache = null;
+    clearComplaintDetailCache();
   },
 };
