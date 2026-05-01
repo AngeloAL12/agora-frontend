@@ -26,7 +26,7 @@ import {
   REPORT_CATEGORIES,
   REPORT_TABS,
   SUGGESTION_CATEGORIES,
-} from '@/constants/report';
+} from '@/constants/complaint';
 import { colors } from '@/constants/theme';
 import { CacheService } from '@/services/cacheService';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';

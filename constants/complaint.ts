@@ -21,6 +21,22 @@ export const SUGGESTION_CATEGORIES = [
   { label: 'General', value: 'GENERAL' },
 ];
 
+/**
+ * Map from category value to its display label.
+ * Merges REPORT_CATEGORIES and SUGGESTION_CATEGORIES so every known value is covered.
+ */
+export const CATEGORY_LABEL_MAP: Record<string, string> = [
+  ...REPORT_CATEGORIES,
+  ...SUGGESTION_CATEGORIES,
+].reduce<Record<string, string>>((acc, { value, label }) => {
+  if (!acc[value]) acc[value] = label;
+  return acc;
+}, {});
+
+export function getCategoryLabel(value: string): string {
+  return CATEGORY_LABEL_MAP[value] ?? value;
+}
+
 export const REPORT_BUILDINGS = [
   { id: 1, label: 'Edificio B' },
   { id: 2, label: 'Edificio L' },

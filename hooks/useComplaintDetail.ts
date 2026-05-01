@@ -24,6 +24,12 @@ export interface ComplaintDetail {
 
 const complaintCache: Record<string, ComplaintDetail> = {};
 
+export function clearComplaintDetailCache() {
+  for (const key of Object.keys(complaintCache)) {
+    delete complaintCache[key];
+  }
+}
+
 export const useComplaintDetail = (id: string | undefined | null) => {
   const { token } = useAuth();
   const authRequest = useAuthRequest();
