@@ -21,7 +21,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import { NotificationsModal } from '@/components/NotificationsModal';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -31,7 +30,6 @@ import { SuggestedQuestionsSection } from '@/components/ia/SuggestedQuestionsSec
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { WelcomeSection } from '@/components/ia/WelcomeSection';
 import { colors, typography } from '@/constants/theme';
-import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useChat } from '@/hooks/useChat';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -50,7 +48,6 @@ export default function IaChatScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [chatInputHeight, setChatInputHeight] = useState(58);
   const comingSoonSheetRef = useRef<BottomSheetModal>(null);
 
@@ -64,12 +61,6 @@ export default function IaChatScreen() {
     handleSuggestedQuestion,
     clearError,
   } = useChat();
-  const {
-    notifications,
-    loading: notificationsLoading,
-    markRead,
-  } = useNotificationsContext();
-
   const scrollToEnd = useCallback(() => {
     setTimeout(
       () => scrollViewRef.current?.scrollToEnd({ animated: true }),
@@ -125,7 +116,13 @@ export default function IaChatScreen() {
       accessibilityRole="button"
       accessibilityLabel="Volver a Mensajes"
     >
-      <Ionicons name="chevron-back" size={24} color={colors.white} />
+      <Ionicons name="arrow-back" size={24} color={colors.white} />
+    </Pressable>
+  );
+
+  const moreAction = (
+    <Pressable style={styles.moreButton} accessibilityRole="button">
+      <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
     </Pressable>
   );
 
@@ -211,10 +208,10 @@ export default function IaChatScreen() {
 
       <ScreenHeader
         title="Búfalo IA"
-        align="left"
+        align="center"
         leftAction={backAction}
-        showNotificationBell
-        onNotificationPress={() => setNotificationsVisible(true)}
+        rightAction={moreAction}
+        titleStyle={{ fontSize: 24 }}
       />
 
       {Platform.OS === 'ios' ? (
@@ -230,14 +227,6 @@ export default function IaChatScreen() {
           {renderContent(0)}
         </Animated.View>
       )}
-
-      <NotificationsModal
-        visible={notificationsVisible}
-        onDismiss={() => setNotificationsVisible(false)}
-        notifications={notifications}
-        loading={notificationsLoading}
-        onNotificationPress={markRead}
-      />
 
       <SuccessBottomSheet
         ref={comingSoonSheetRef}
@@ -313,6 +302,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreButton: {
     width: 36,
     height: 36,
     alignItems: 'center',

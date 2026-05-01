@@ -109,7 +109,13 @@ export default function ClubChatScreen() {
       accessibilityRole="button"
       accessibilityLabel="Volver a Mensajes"
     >
-      <Ionicons name="chevron-back" size={24} color={colors.white} />
+      <Ionicons name="arrow-back" size={24} color={colors.white} />
+    </Pressable>
+  );
+
+  const moreAction = (
+    <Pressable style={styles.moreButton} accessibilityRole="button">
+      <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
     </Pressable>
   );
 
@@ -117,7 +123,12 @@ export default function ClubChatScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-        <ScreenHeader title={chatName} align="left" leftAction={backAction} />
+        <ScreenHeader
+          title={chatName}
+          align="center"
+          leftAction={backAction}
+          rightAction={moreAction}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.bluePrimary} />
         </View>
@@ -146,7 +157,8 @@ export default function ClubChatScreen() {
               sender={msg.isMe ? 'user' : 'assistant'}
               message={msg.text}
               timestamp={msg.timestamp}
-              senderName={msg.isMe ? undefined : msg.senderName}
+              senderName={msg.isMe ? 'Tú' : msg.senderName}
+              senderAvatar={msg.isMe ? undefined : (msg.senderAvatar ?? null)}
             />
           ))}
 
@@ -192,7 +204,13 @@ export default function ClubChatScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
-      <ScreenHeader title={chatName} align="left" leftAction={backAction} />
+      <ScreenHeader
+        title={chatName}
+        align="center"
+        leftAction={backAction}
+        rightAction={moreAction}
+        titleStyle={{ fontSize: 24 }}
+      />
 
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
@@ -270,6 +288,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreButton: {
     width: 36,
     height: 36,
     alignItems: 'center',

@@ -19,6 +19,7 @@ interface ScreenHeaderProps {
   align?: 'left' | 'center';
   variant?: 'primary' | 'white';
   containerStyle?: any;
+  titleStyle?: any;
   showBackButton?: boolean;
   backButtonColor?: string;
   backButtonPosition?: 'left' | 'right';
@@ -33,6 +34,7 @@ export const ScreenHeader = ({
   onNotificationPress,
   align = 'center',
   containerStyle,
+  titleStyle,
   variant = 'primary',
   showBackButton = false,
   backButtonColor = colors.black,
@@ -119,11 +121,11 @@ export const ScreenHeader = ({
                   style={[
                     styles.title,
                     { textAlign: 'center', color: textColor },
+                    titleStyle,
                   ]}
                   numberOfLines={1}
                 >
                   {title ?? ''}
-                </Text>
 
                 <View style={styles.slot}>{resolvedRightAction ?? null}</View>
               </>

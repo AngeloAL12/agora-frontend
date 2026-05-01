@@ -79,10 +79,12 @@ class ClubChatManager {
   }
 
   private connect(clubId: string, state: ConnState) {
-    const ws = new (WebSocket as any)(toWssUrl(clubId), null, {
-      headers: { Authorization: `Bearer ${this.token}` },
-    }) as WebSocket;
+    const ws = new WebSocket(toWssUrl(clubId));
     state.ws = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ token: this.token }));
+    };
 
     ws.onmessage = (event) => {
       try {
