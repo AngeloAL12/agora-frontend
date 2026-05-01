@@ -1,10 +1,7 @@
 import { apiRequest } from './api';
+import type { LocalImageFile } from '@/types/report';
 
-export type LocalImageFile = {
-  uri: string;
-  type: string;
-  name: string;
-};
+export type { LocalImageFile } from '@/types/report';
 
 export type ComplaintStatus =
   | 'PENDING'
@@ -77,12 +74,12 @@ type AuthenticatedRequestPayload = {
 
 export async function getAllComplaints<T>(
   payload: AuthenticatedRequestPayload,
-  params?: { page?: number; limit?: number },
+  params?: { offset?: number; limit?: number },
 ) {
-  const query =
-    params?.page && params?.limit
-      ? `?page=${params.page}&limit=${params.limit}`
-      : '';
+  const qs = new URLSearchParams();
+  if (params?.limit != null) qs.append('limit', String(params.limit));
+  if (params?.offset != null) qs.append('offset', String(params.offset));
+  const query = qs.toString() ? `?${qs.toString()}` : '';
 
   return apiRequest<T>({
     method: 'GET',
