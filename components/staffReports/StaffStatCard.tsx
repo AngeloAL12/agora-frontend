@@ -20,6 +20,7 @@ export function StaffStatCard({ label, value, color }: StaffStatCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
+    alignSelf: 'stretch',
     minHeight: 92,
     borderRadius: 24,
     backgroundColor: colors.white,

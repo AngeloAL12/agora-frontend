@@ -1,7 +1,7 @@
-import { NotificationsModal } from '@/components/NotificationsModal';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/Button';
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ReportCard } from '@/components/ReportCard';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { StaffDateFilters } from '@/components/staffReports/StaffDateFilters';
 import { StaffReportCard } from '@/components/staffReports/StaffReportCard';
 import { StaffStatCard } from '@/components/staffReports/StaffStatCard';
@@ -24,6 +24,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -53,11 +54,17 @@ export default function ComplaintsScreen() {
 function StaffComplaintsScreen() {
   const router = useRouter();
   const { reports, loading, error, pageSize, refetch } = useStaffComplaints();
+
+  const safeReports = useMemo(() => {
+    return Array.isArray(reports) ? reports : [];
+  }, [reports]);
+
   const {
     notifications,
     loading: notificationsLoading,
     markRead,
   } = useNotificationsContext();
+
   const [filter, setFilter] = useState<DateFilter>('all');
   const [visibleLimit, setVisibleLimit] = useState(pageSize);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,8 +78,9 @@ function StaffComplaintsScreen() {
   }, [refetch]);
 
   const visibleReports = useMemo(
-    () => reports.filter((item) => isWithinDateFilter(item.created_at, filter)),
-    [filter, reports],
+    () =>
+      safeReports.filter((item) => isWithinDateFilter(item.created_at, filter)),
+    [filter, safeReports],
   );
 
   const pagedReports = useMemo(
@@ -83,7 +91,7 @@ function StaffComplaintsScreen() {
   const hasMoreVisibleReports = visibleLimit < visibleReports.length;
 
   const stats = useMemo(() => {
-    return reports.reduce(
+    return safeReports.reduce(
       (acc, item) => {
         const status = normalizeComplaintStatus(item.status);
         acc.total += 1;
@@ -94,11 +102,11 @@ function StaffComplaintsScreen() {
       },
       { total: 0, pending: 0, inProgress: 0, resolved: 0 },
     );
-  }, [reports]);
+  }, [safeReports]);
 
   useEffect(() => {
     setVisibleLimit(pageSize);
-  }, [filter, pageSize, reports]);
+  }, [filter, pageSize, safeReports]);
 
   const loadMoreReports = React.useCallback(() => {
     if (!hasMoreVisibleReports) return;
@@ -162,30 +170,32 @@ function StaffComplaintsScreen() {
         ItemSeparatorComponent={() => <View style={styles.staffCardGap} />}
         ListHeaderComponent={
           <>
-            <View style={styles.statsGrid}>
-              <View style={styles.statsRow}>
-                <StaffStatCard
-                  label="Total"
-                  value={stats.total}
-                  color={colors.blueSecondary}
-                />
-                <StaffStatCard
-                  label="Pendientes"
-                  value={stats.pending}
-                  color={colors.errorText}
-                />
-              </View>
-              <View style={styles.statsRow}>
-                <StaffStatCard
-                  label="En proceso"
-                  value={stats.inProgress}
-                  color={colors.activityYellow}
-                />
-                <StaffStatCard
-                  label="Resueltos"
-                  value={stats.resolved}
-                  color={colors.reportResolvedText}
-                />
+            <View style={styles.staffListHeader}>
+              <View style={styles.statsGrid}>
+                <View style={styles.statsRow}>
+                  <StaffStatCard
+                    label="Total"
+                    value={stats.total}
+                    color={colors.blueSecondary}
+                  />
+                  <StaffStatCard
+                    label="Pendientes"
+                    value={stats.pending}
+                    color={colors.errorText}
+                  />
+                </View>
+                <View style={styles.statsRow}>
+                  <StaffStatCard
+                    label="En proceso"
+                    value={stats.inProgress}
+                    color={colors.activityYellow}
+                  />
+                  <StaffStatCard
+                    label="Resueltos"
+                    value={stats.resolved}
+                    color={colors.reportResolvedText}
+                  />
+                </View>
               </View>
             </View>
 
@@ -237,11 +247,17 @@ function StaffComplaintsScreen() {
 function UserComplaintsScreen() {
   const router = useRouter();
   const { reports, loading, refetch } = useComplaints();
+
+  const safeReports = useMemo(() => {
+    return Array.isArray(reports) ? reports : [];
+  }, [reports]);
+
   const {
     notifications,
     loading: notificationsLoading,
     markRead,
   } = useNotificationsContext();
+
   const [filter, setFilter] = useState<'Todos' | 'Pendientes' | 'Resueltos'>(
     'Todos',
   );
@@ -255,19 +271,25 @@ function UserComplaintsScreen() {
     setRefreshing(false);
   }, [refetch]);
 
+  const hasReports = safeReports.length > 0;
+
+  const filteredReports = useMemo(() => {
+    return safeReports.filter((item) => {
+      const status = normalizeComplaintStatus(item.status);
+
+      if (filter === 'Todos') return true;
+
+      if (filter === 'Pendientes') {
+        return status === 'PENDING' || status === 'IN_PROGRESS';
+      }
+
+      return status === 'RESOLVED';
+    });
+  }, [filter, safeReports]);
+
   if (loading && !refreshing) {
     return <LoadingState />;
   }
-
-  const hasReports = reports.length > 0;
-  const filteredReports = reports.filter((item) => {
-    const status = normalizeComplaintStatus(item.status);
-    if (filter === 'Todos') return true;
-    if (filter === 'Pendientes') {
-      return status === 'PENDING' || status === 'IN_PROGRESS';
-    }
-    return status === 'RESOLVED';
-  });
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
@@ -301,6 +323,7 @@ function UserComplaintsScreen() {
               <View style={styles.filtersRow}>
                 {(['Todos', 'Pendientes', 'Resueltos'] as const).map((item) => {
                   const isActive = filter === item;
+
                   return (
                     <Pressable
                       key={item}
@@ -323,7 +346,7 @@ function UserComplaintsScreen() {
               {filteredReports.length === 0 ? (
                 <View style={styles.emptyFilterState}>
                   <Text style={styles.emptyFilterText}>
-                    No hay reportes para esta categoria.
+                    No hay reportes para esta categoría.
                   </Text>
                 </View>
               ) : (
@@ -333,7 +356,7 @@ function UserComplaintsScreen() {
                     folio={`${item.id}`}
                     title={item.title}
                     description={
-                      item.description || 'Sin descripcion detallada por ahora.'
+                      item.description || 'Sin descripción detallada por ahora.'
                     }
                     date={new Date(item.created_at).toLocaleDateString('es-MX')}
                     status={item.status}
@@ -359,14 +382,16 @@ function UserComplaintsScreen() {
                     </View>
                   </View>
                 </View>
+
                 <View style={styles.rightColumn}>
                   <Text style={styles.emptyTitle}>
-                    Tienes algo que reportar?
+                    ¿Tienes algo que reportar?
                   </Text>
                   <Text style={styles.emptySubtitle}>
                     Tu voz ayuda a mejorar nuestra comunidad universitaria.
                     Inicia un nuevo reporte ahora.
                   </Text>
+
                   <View style={styles.buttonWrapper}>
                     <Button
                       text="Nuevo Reporte"
@@ -431,15 +456,18 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   staffFiltersWrap: {
-    height: 60,
-    paddingTop: 4,
+    height: Platform.OS === 'ios' ? 76 : 60,
+    paddingTop: Platform.OS === 'ios' ? 16 : 4,
     paddingBottom: 4,
     backgroundColor: colors.whiteSoft,
     zIndex: 2,
   },
   staffScrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'ios' ? 18 : 10,
+  },
+  staffListHeader: {
+    marginBottom: 26,
   },
   statsGrid: {
     gap: 16,

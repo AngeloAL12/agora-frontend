@@ -70,7 +70,9 @@ export function StaffReportCard({
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 178,
+    width: '100%',
+    alignSelf: 'stretch',
+    minHeight: 190,
     borderRadius: 12,
     backgroundColor: colors.white,
     borderWidth: 1,
