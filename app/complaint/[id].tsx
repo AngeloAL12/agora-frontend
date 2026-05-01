@@ -5,9 +5,7 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -20,42 +18,36 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import {
+  ComplaintErrorState,
+  ComplaintLoadingState,
+  InfoCard,
+  StatusMenu,
+  TitleCard,
+} from '@/components/complaint';
 import EvidenceUpload from '@/components/report/EvidenceUpload';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import {
-  ComplaintDetail,
-  useComplaintDetail,
-} from '@/hooks/useComplaintDetail';
+import { useComplaintDetail } from '@/hooks/useComplaintDetail';
 import { useResolvedUserRole } from '@/hooks/useResolvedUserRole';
+import type { ComplaintStatus } from '@/services/complaintService';
 import {
-  ComplaintStatus,
-  LocalImageFile,
   updateComplaintStatus,
   uploadComplaintEvidence,
-} from '@/services/reportService';
+} from '@/services/complaintService';
 import {
-  complaintStatusOptions,
   getComplaintStatusMeta,
   isStaffRole,
   normalizeComplaintStatus,
 } from '@/utils/complaints';
-
-const categoryMap: Record<string, string> = {
-  MAINTENANCE: 'Mantenimiento',
-  INFRASTRUCTURE: 'Infraestructura',
-  CLEANING: 'Limpieza',
-  SECURITY: 'Seguridad',
-  ACADEMIC: 'Academico',
-  OTHER: 'Otro',
-};
+import type { LocalImageFile } from '@/types/report';
 
 export default function ComplaintDetailScreen() {
   const { role, loading } = useResolvedUserRole();
 
   if (loading) {
-    return <LoadingState />;
+    return <ComplaintLoadingState />;
   }
 
   if (isStaffRole(role)) {
@@ -175,11 +167,11 @@ function StaffComplaintDetailScreen() {
   };
 
   if (loading && !refreshing) {
-    return <LoadingState />;
+    return <ComplaintLoadingState />;
   }
 
   if (error || !complaint) {
-    return <ErrorState />;
+    return <ComplaintErrorState />;
   }
 
   const currentStatus = normalizeComplaintStatus(complaint.status);
@@ -301,11 +293,11 @@ function UserComplaintDetailScreen() {
   }, [refetch]);
 
   if (loading && !refreshing) {
-    return <LoadingState />;
+    return <ComplaintLoadingState />;
   }
 
   if (error || !complaint) {
-    return <ErrorState />;
+    return <ComplaintErrorState />;
   }
 
   const isSuggestion = complaint.type === 'SUGGESTION';
@@ -372,160 +364,10 @@ function UserComplaintDetailScreen() {
   );
 }
 
-function TitleCard({ complaint }: { complaint: ComplaintDetail }) {
-  const statusMeta = getComplaintStatusMeta(complaint.status);
-  const formattedDate = new Date(complaint.created_at).toLocaleDateString(
-    'es-MX',
-    {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    },
-  );
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardLabel}>Titulo</Text>
-        <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
-          <Text style={[styles.badgeText, { color: statusMeta.text }]}>
-            {statusMeta.label}
-          </Text>
-        </View>
-      </View>
-      <Text style={styles.title}>{complaint.title}</Text>
-      <View style={styles.dateRow}>
-        <Ionicons
-          name="calendar-clear-outline"
-          size={14}
-          color={colors.gray700}
-        />
-        <Text style={styles.dateText}>Enviado: {formattedDate}</Text>
-      </View>
-    </View>
-  );
-}
-
-function InfoCard({ complaint }: { complaint: ComplaintDetail }) {
-  const isSuggestion = complaint.type === 'SUGGESTION';
-  const categoryStr = categoryMap[complaint.category] || complaint.category;
-
-  return (
-    <View style={styles.card}>
-      {!isSuggestion && complaint.id_building !== null && (
-        <View style={styles.infoRow}>
-          <Text style={styles.cardLabel}>Ubicacion</Text>
-          <View style={styles.locationRow}>
-            <Ionicons
-              name="location-outline"
-              size={16}
-              color={colors.bluePrimary}
-              style={styles.locationIcon}
-            />
-            <Text style={styles.infoText}>
-              Edificio {complaint.id_building}
-              {complaint.classroom
-                ? `, Aula ${complaint.classroom}`
-                : ', area exterior'}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <View
-        style={[
-          styles.infoRow,
-          !isSuggestion && complaint.id_building !== null && styles.infoRowGap,
-        ]}
-      >
-        <Text style={styles.cardLabel}>Categoria</Text>
-        <Text style={styles.infoText}>{categoryStr}</Text>
-      </View>
-    </View>
-  );
-}
-
-function StatusMenu({
-  visible,
-  selectedStatus,
-  onDismiss,
-  onSelect,
-}: {
-  visible: boolean;
-  selectedStatus: ComplaintStatus;
-  onDismiss: () => void;
-  onSelect: (status: ComplaintStatus) => void;
-}) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-    >
-      <Pressable style={styles.modalOverlay} onPress={onDismiss}>
-        <View style={styles.statusMenu}>
-          {complaintStatusOptions.map((option) => {
-            const meta = getComplaintStatusMeta(option.value);
-            const selected = selectedStatus === option.value;
-
-            return (
-              <Pressable
-                key={option.value}
-                style={[styles.statusOption, selected && styles.statusSelected]}
-                onPress={() => onSelect(option.value)}
-              >
-                <View
-                  style={[styles.statusDot, { backgroundColor: meta.bg }]}
-                />
-                <Text style={styles.statusOptionText}>{option.label}</Text>
-                {selected ? (
-                  <Ionicons
-                    name="checkmark"
-                    size={18}
-                    color={colors.bluePrimary}
-                  />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function LoadingState() {
-  return (
-    <SafeAreaView style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.bluePrimary} />
-    </SafeAreaView>
-  );
-}
-
-function ErrorState() {
-  return (
-    <SafeAreaView style={styles.loadingContainer}>
-      <Text style={styles.errorText}>No se pudo cargar el reporte.</Text>
-    </SafeAreaView>
-  );
-}
-
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: colors.whiteSoft,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.whiteSoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.notifBodyText,
-    fontFamily: typography.fontFamily.interRegular,
   },
   headerContainer: {
     backgroundColor: colors.bluePrimary,
@@ -593,12 +435,6 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
   cardLabel: {
     fontSize: 12,
     lineHeight: 16,
@@ -607,55 +443,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 8,
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: typography.fontFamily.interSemiBold,
-  },
-  title: {
-    fontSize: 20,
-    lineHeight: 28,
-    color: colors.blueSecondary,
-    marginBottom: 12,
-    fontFamily: typography.fontFamily.manropeBold,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dateText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.gray700,
-    fontFamily: typography.fontFamily.interRegular,
-  },
-  infoRow: {
-    flexDirection: 'column',
-  },
-  infoRowGap: {
-    marginTop: 16,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -2,
-    marginTop: 4,
-  },
-  locationIcon: {
-    marginRight: 6,
-  },
-  infoText: {
-    fontSize: 16,
-    color: colors.gray950,
-    lineHeight: 26,
-    fontFamily: typography.fontFamily.interRegular,
   },
   descriptionText: {
     fontSize: 16,
@@ -706,46 +493,6 @@ const styles = StyleSheet.create({
   uploadingText: {
     fontSize: 13,
     color: colors.bluePrimary,
-    fontFamily: typography.fontFamily.interSemiBold,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 86,
-    paddingRight: 20,
-  },
-  statusMenu: {
-    width: 220,
-    borderRadius: 16,
-    backgroundColor: colors.white,
-    paddingVertical: 8,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  statusOption: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  statusSelected: {
-    backgroundColor: colors.bluePrimaryLight2,
-  },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statusOptionText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.gray950,
     fontFamily: typography.fontFamily.interSemiBold,
   },
 });

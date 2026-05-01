@@ -2,6 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 
+import { colors, typography } from '@/constants/theme';
+import { getComplaintStatusMeta } from '@/utils/complaints';
+
 interface ReportCardProps {
   folio: string;
   title: string;
@@ -11,20 +14,6 @@ interface ReportCardProps {
   onPress?: () => void;
 }
 
-const statusColors: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  'En proceso': { bg: '#FDEB71', text: '#3E2723', label: 'En proceso' },
-  Resuelto: { bg: '#D4EFDF', text: '#145A32', label: 'Resuelto' },
-  Rechazado: { bg: '#FADBD8', text: '#78281F', label: 'Rechazado' },
-  Pendiente: { bg: '#E5E7E9', text: '#1A1A1A', label: 'Pendiente' },
-  PENDING: { bg: '#E5E7E9', text: '#1A1A1A', label: 'Pendiente' },
-  IN_PROGRESS: { bg: '#FDEB71', text: '#3E2723', label: 'En proceso' },
-  RESOLVED: { bg: '#D4EFDF', text: '#145A32', label: 'Resuelto' },
-  REJECTED: { bg: '#FADBD8', text: '#78281F', label: 'Rechazado' },
-};
-
 export const ReportCard = ({
   folio,
   title,
@@ -33,15 +22,15 @@ export const ReportCard = ({
   status,
   onPress,
 }: ReportCardProps) => {
-  const colors = statusColors[status] || statusColors['PENDING'];
+  const statusMeta = getComplaintStatusMeta(status);
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardHeader}>
         <Text style={styles.folio}>FOLIO #{folio}</Text>
-        <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-          <Text style={[styles.badgeText, { color: colors.text }]}>
-            {colors.label}
+        <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
+          <Text style={[styles.badgeText, { color: statusMeta.text }]}>
+            {statusMeta.label}
           </Text>
         </View>
       </View>
@@ -52,7 +41,11 @@ export const ReportCard = ({
       </Text>
 
       <View style={styles.footer}>
-        <Ionicons name="calendar-clear-outline" size={15} color="#95A5A6" />
+        <Ionicons
+          name="calendar-clear-outline"
+          size={15}
+          color={colors.gray700}
+        />
         <Text style={styles.date}>{date}</Text>
       </View>
     </Pressable>
@@ -61,15 +54,13 @@ export const ReportCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-
     borderWidth: 1,
     borderColor: 'rgba(195, 198, 210, 0.1)',
-
-    shadowColor: '#101828',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -82,31 +73,32 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   folio: {
-    color: '#1E488F',
-    fontWeight: 'bold',
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.interBold,
     fontSize: 12,
   },
   badge: {
     paddingVertical: 5,
     paddingHorizontal: 12,
-    borderRadius: 12, // Pills más redonditas
+    borderRadius: 12,
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: 'bold',
+    fontFamily: typography.fontFamily.interBold,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E323C',
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.gray950,
     marginBottom: 6,
     letterSpacing: -0.5,
   },
   description: {
-    color: '#566573',
+    color: colors.gray700,
     fontSize: 14,
     marginBottom: 12,
     lineHeight: 20,
+    fontFamily: typography.fontFamily.interRegular,
   },
   footer: {
     flexDirection: 'row',
@@ -114,7 +106,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   date: {
-    color: '#95A5A6',
+    color: colors.gray700,
     fontSize: 12,
+    fontFamily: typography.fontFamily.interRegular,
   },
 });

@@ -77,12 +77,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    padding: 20,
+    padding: 21,
     gap: 12,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 1,
     elevation: 2,
   },
   header: {
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   },
   headingCopy: {
     flex: 1,
+    gap: 4,
   },
   folio: {
     fontSize: 10,
@@ -103,7 +104,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.interSemiBold,
   },
   title: {
-    marginTop: 4,
     fontSize: 18,
     lineHeight: 28,
     color: colors.gray950,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    paddingTop: 8,
   },
   dateRow: {
     flexDirection: 'row',
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   manageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
   },
   manageText: {
     fontSize: 14,
