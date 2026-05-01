@@ -1,5 +1,5 @@
 import { colors } from '@/constants/theme';
-import type { ComplaintStatus } from '@/services/reportService';
+import type { ComplaintStatus } from '@/services/complaintService';
 
 export type DateFilter = 'all' | 'today' | 'week' | 'month' | 'thirtyDays';
 
