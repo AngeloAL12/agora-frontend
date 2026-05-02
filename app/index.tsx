@@ -40,9 +40,9 @@ export default function IndexScreen() {
 
   if (isLoading) return <View style={{ flex: 1 }} />;
 
-  if (token) {
+  if (token && user) {
     if (user?.id_career == null) return <Redirect href="/career" />;
-    return <Redirect href={homeRoute} />;
+    return <Redirect href={homeRoute as any} />;
   }
 
   return <Redirect href="/auth/onboarding" />;
