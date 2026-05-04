@@ -1,6 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { DatePicker } from '@s77rt/react-native-date-picker';
-import type { DatePickerHandle } from '@s77rt/react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
@@ -22,6 +21,10 @@ import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { createClubEvent } from '@/services/clubService';
 
+type PickerTarget = 'start' | 'end';
+type PickerMode = 'date' | 'time';
+type PickerState = { target: PickerTarget; mode: PickerMode } | null;
+
 function formatDate(date: Date): string {
   return date.toLocaleString('es', {
     day: '2-digit',
@@ -39,8 +42,6 @@ export default function CreateEventScreen() {
   const { token } = useAuth();
 
   const successRef = useRef<BottomSheetModal>(null);
-  const startPickerRef = useRef<DatePickerHandle>(null);
-  const endPickerRef = useRef<DatePickerHandle>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -48,6 +49,47 @@ export default function CreateEventScreen() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [picker, setPicker] = useState<PickerState>(null);
+  const pendingDateRef = useRef<Date | null>(null);
+
+  function openPicker(target: PickerTarget) {
+    pendingDateRef.current = null;
+    setPicker({ target, mode: 'date' });
+  }
+
+  function handlePickerChange(_: unknown, selected?: Date) {
+    if (!picker) return;
+
+    if (!selected) {
+      setPicker(null);
+      return;
+    }
+
+    if (picker.mode === 'date') {
+      pendingDateRef.current = selected;
+      if (Platform.OS === 'android') {
+        setPicker({ target: picker.target, mode: 'time' });
+      } else {
+        finalizeDateTime(picker.target, selected);
+        setPicker(null);
+      }
+    } else {
+      const base = pendingDateRef.current ?? new Date();
+      const combined = new Date(base);
+      combined.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+      finalizeDateTime(picker.target, combined);
+      setPicker(null);
+    }
+  }
+
+  function finalizeDateTime(target: PickerTarget, date: Date) {
+    if (target === 'start') {
+      setStartDate(date);
+    } else {
+      setEndDate(date);
+    }
+  }
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -82,6 +124,16 @@ export default function CreateEventScreen() {
     }
   }
 
+  const pickerValue =
+    picker?.mode === 'date'
+      ? ((picker.target === 'start' ? startDate : endDate) ?? new Date())
+      : (pendingDateRef.current ?? new Date());
+
+  const pickerMin =
+    picker?.target === 'end' && picker.mode === 'date' && startDate
+      ? startDate
+      : new Date();
+
   return (
     <View style={styles.root}>
       <ScreenHeader
@@ -106,7 +158,6 @@ export default function CreateEventScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Title field */}
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>NOMBRE</Text>
             <TextInput
@@ -122,7 +173,6 @@ export default function CreateEventScreen() {
             )}
           </View>
 
-          {/* Description field */}
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>DESCRIPCIÓN</Text>
             <TextInput
@@ -140,7 +190,6 @@ export default function CreateEventScreen() {
             )}
           </View>
 
-          {/* Date fields */}
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>FECHA</Text>
             <View style={styles.datePicker}>
@@ -151,7 +200,7 @@ export default function CreateEventScreen() {
                     styles.dateInput,
                     errors.startDate && styles.inputError,
                   ]}
-                  onPress={() => startPickerRef.current?.showPicker()}
+                  onPress={() => openPicker('start')}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -173,26 +222,13 @@ export default function CreateEventScreen() {
                 {errors.startDate && (
                   <Text style={styles.errorMsg}>{errors.startDate}</Text>
                 )}
-                <DatePicker
-                  ref={startPickerRef}
-                  type="datetime"
-                  value={startDate}
-                  onChange={setStartDate}
-                  min={new Date()}
-                  options={{
-                    locale: 'es',
-                    confirmText: 'Aceptar',
-                    cancelText: 'Cancelar',
-                  }}
-                  styles={{ accentColor: colors.bluePrimary }}
-                />
               </View>
 
               <View style={styles.dateCol}>
                 <Text style={styles.dateSubLabel}>FINAL</Text>
                 <TouchableOpacity
                   style={styles.dateInput}
-                  onPress={() => endPickerRef.current?.showPicker()}
+                  onPress={() => openPicker('end')}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -211,19 +247,6 @@ export default function CreateEventScreen() {
                     tintColor={colors.gray700}
                   />
                 </TouchableOpacity>
-                <DatePicker
-                  ref={endPickerRef}
-                  type="datetime"
-                  value={endDate}
-                  onChange={setEndDate}
-                  min={startDate ?? new Date()}
-                  options={{
-                    locale: 'es',
-                    confirmText: 'Aceptar',
-                    cancelText: 'Cancelar',
-                  }}
-                  styles={{ accentColor: colors.bluePrimary }}
-                />
               </View>
             </View>
           </View>
@@ -235,7 +258,6 @@ export default function CreateEventScreen() {
           )}
         </ScrollView>
 
-        {/* Submit button */}
         <View
           style={[styles.submitWrap, { paddingBottom: insets.bottom + 16 }]}
         >
@@ -251,6 +273,17 @@ export default function CreateEventScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {picker && (
+        <DateTimePicker
+          value={pickerValue}
+          mode={picker.mode}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          minimumDate={pickerMin}
+          onChange={handlePickerChange}
+          locale="es"
+        />
+      )}
 
       <SuccessBottomSheet
         ref={successRef}
@@ -319,8 +352,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-
-  // Date pickers
   datePicker: {
     backgroundColor: colors.gray100,
     borderRadius: 16,
@@ -362,8 +393,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
   },
-
-  // Submit
   submitWrap: {
     paddingHorizontal: 22,
     paddingTop: 8,
