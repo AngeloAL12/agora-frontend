@@ -11,7 +11,6 @@ import {
 import { AuthUser, LoginResponse } from '@/services/authService';
 
 import { CacheService } from '@/services/cacheService';
-import { clearSessionMessageCache } from '@/hooks/useClubChat';
 import { chatSummaryStore } from '@/services/chatSummaryStore';
 import { clubChatManager } from '@/services/clubChatManager';
 
@@ -186,7 +185,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     clubChatManager.closeAll();
-    clearSessionMessageCache();
     chatSummaryStore.clear();
     CacheService.clearAll();
     await Promise.all([

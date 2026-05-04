@@ -1,4 +1,5 @@
 import { chatSummaryStore } from '@/services/chatSummaryStore';
+import { sessionMessagesByClub } from '@/services/cacheService';
 import {
   clubChatManager,
   formatIncomingTimestamp,
@@ -36,9 +37,6 @@ interface UseClubChatReturn {
   handleSend: () => void;
   clearError: () => void;
 }
-
-// Session-level message cache keyed by clubId — survives navigation within the same app session.
-const sessionMessagesByClub: Record<string, ClubMessage[]> = {};
 
 export function clearSessionMessageCache() {
   for (const key of Object.keys(sessionMessagesByClub)) {

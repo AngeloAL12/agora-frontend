@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAuthRequest } from './useAuthRequest';
+import { complaintDetailCache } from '@/services/cacheService';
 
 export interface ComplaintImage {
   id: number;
@@ -22,14 +23,6 @@ export interface ComplaintDetail {
   images: ComplaintImage[];
 }
 
-const complaintCache: Record<string, ComplaintDetail> = {};
-
-export function clearComplaintDetailCache() {
-  for (const key of Object.keys(complaintCache)) {
-    delete complaintCache[key];
-  }
-}
-
 export const useComplaintDetail = (id: string | undefined | null) => {
   const { token } = useAuth();
   const authRequest = useAuthRequest();
@@ -41,8 +34,8 @@ export const useComplaintDetail = (id: string | undefined | null) => {
     async (forceRefresh = false) => {
       if (!id || !token) return;
 
-      if (!forceRefresh && complaintCache[id]) {
-        setComplaint(complaintCache[id]);
+      if (!forceRefresh && complaintDetailCache[id]) {
+        setComplaint(complaintDetailCache[id]);
         setLoading(false);
         return;
       }
@@ -54,7 +47,7 @@ export const useComplaintDetail = (id: string | undefined | null) => {
           method: 'GET',
           path: `/complaints/${id}`,
         });
-        complaintCache[id] = data;
+        complaintDetailCache[id] = data;
         setComplaint(data);
       } catch (err) {
         console.error('Error jalando el detalle del reporte:', err);

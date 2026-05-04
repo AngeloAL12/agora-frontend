@@ -17,9 +17,6 @@ jest.mock('../../services/clubChatManager', () => ({
 jest.mock('../../services/chatSummaryStore', () => ({
   chatSummaryStore: { clear: jest.fn() },
 }));
-jest.mock('../../hooks/useClubChat', () => ({
-  clearSessionMessageCache: jest.fn(),
-}));
 
 const mockApiRequest = jest.fn();
 jest.mock('../../services/api', () => ({
