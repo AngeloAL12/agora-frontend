@@ -15,12 +15,12 @@ import {
   View,
 } from 'react-native';
 
+import AppBottomSheet from '@/components/AppBottomSheet';
 import { Button } from '@/components/Button';
 import CategoryChip from '@/components/report/CategoryChip';
 import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import {
   REPORT_BUILDINGS,
   REPORT_CATEGORIES,
@@ -28,9 +28,10 @@ import {
   SUGGESTION_CATEGORIES,
 } from '@/constants/complaint';
 import { colors } from '@/constants/theme';
-import { CacheService } from '@/services/cacheService';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
+import { CacheService } from '@/services/cacheService';
 import { ReportType } from '@/types/report';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BuildingOption = {
@@ -47,6 +48,7 @@ export default function CreateReportScreen() {
   const [classroom, setClassroom] = useState('');
   const [createdReportId, setCreatedReportId] = useState<number | null>(null);
   const successBottomSheetRef = useRef<BottomSheetModal>(null);
+  const confirmBottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const selectFieldRef = useRef<View>(null);
   const { height: windowHeight } = useWindowDimensions();
@@ -309,7 +311,7 @@ export default function CreateReportScreen() {
 
             <Button
               text={loading ? 'Enviando...' : 'Enviar'}
-              onPress={onSubmit}
+              onPress={() => confirmBottomSheetRef.current?.present()}
               disabled={loading || isSubmitDisabled}
             />
           </ScrollView>
@@ -329,6 +331,45 @@ export default function CreateReportScreen() {
           }
         }}
       />
+
+      <AppBottomSheet ref={confirmBottomSheetRef} minBottomPadding={24}>
+        <View style={styles.sheetContainer}>
+          <View style={styles.sheetIconWrap}>
+            <Ionicons name="checkmark" size={48} color="#1E488F" />
+          </View>
+
+          <Text style={styles.sheetTitle}>Confirmar Envío</Text>
+          <Text style={styles.sheetMessage}>
+            Una vez enviado, no podrás editar este reporte. ¿Seguro que quieres
+            enviarlo?
+          </Text>
+
+          <View style={styles.sheetActions}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.sheetConfirmButton,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => {
+                confirmBottomSheetRef.current?.dismiss();
+                onSubmit();
+              }}
+            >
+              <Text style={styles.sheetConfirmText}>Enviar</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.sheetCancelButton,
+                pressed && { opacity: 0.6 },
+              ]}
+              onPress={() => confirmBottomSheetRef.current?.dismiss()}
+            >
+              <Text style={styles.sheetCancelText}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </AppBottomSheet>
 
       <Modal
         visible={isLocationDropdownOpen}
@@ -574,5 +615,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#C62828',
+  },
+  sheetContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  sheetIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#EEF2F6',
+    backgroundColor: colors.white,
+    shadowColor: '#163D79',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 4,
+    marginBottom: 24,
+  },
+  sheetTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#1E488F',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  sheetMessage: {
+    fontSize: 16,
+    color: '#000000',
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 290,
+    marginBottom: 32,
+  },
+  sheetActions: {
+    width: '100%',
+    gap: 12,
+  },
+  sheetConfirmButton: {
+    backgroundColor: '#163D79',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetConfirmText: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sheetCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetCancelText: {
+    color: '#163D79',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

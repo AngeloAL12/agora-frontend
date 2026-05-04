@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { getCategoryLabel } from '@/constants/complaint';
+import { getCategoryLabel, REPORT_BUILDINGS } from '@/constants/complaint';
 import { colors, typography } from '@/constants/theme';
 import type { ComplaintDetail } from '@/hooks/useComplaintDetail';
 
@@ -13,6 +13,14 @@ type InfoCardProps = {
 export function InfoCard({ complaint }: InfoCardProps) {
   const isSuggestion = complaint.type === 'SUGGESTION';
   const categoryStr = getCategoryLabel(complaint.category);
+
+  const edificioEncontrado = REPORT_BUILDINGS.find(
+    (edificio) => edificio.id === complaint.id_building,
+  );
+
+  const nombreEdificio = edificioEncontrado
+    ? edificioEncontrado.label
+    : `Edificio ${complaint.id_building}`;
 
   return (
     <View style={styles.card}>
@@ -27,7 +35,7 @@ export function InfoCard({ complaint }: InfoCardProps) {
               style={styles.locationIcon}
             />
             <Text style={styles.infoText}>
-              Edificio {complaint.id_building}
+              {nombreEdificio}
               {complaint.classroom
                 ? `, Aula ${complaint.classroom}`
                 : ', area exterior'}

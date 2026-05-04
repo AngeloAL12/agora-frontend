@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { usePushNotifications } from '../hooks/usePushNotifications';
 interface ScreenHeaderProps {
   title?: string;
   leftAction?: ReactNode;
@@ -35,11 +35,13 @@ export const ScreenHeader = ({
   backButtonColor = colors.black,
   backButtonPosition = 'left',
 }: ScreenHeaderProps) => {
+  usePushNotifications();
+
   const insets = useSafeAreaInsets();
 
   const isWhite = variant === 'white';
   const bgColor = isWhite ? colors.white : colors.bluePrimary;
-  const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
+  const textColor = isWhite ? '#192A56' : colors.white;
 
   // When only a notification bell / rightAction exists (no title, no leftAction)
   // AND a searchInput is also provided, suppress the separate title row so the
