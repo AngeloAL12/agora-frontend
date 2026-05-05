@@ -14,12 +14,12 @@ export function InfoCard({ complaint }: InfoCardProps) {
   const isSuggestion = complaint.type === 'SUGGESTION';
   const categoryStr = getCategoryLabel(complaint.category);
 
-  const edificioEncontrado = REPORT_BUILDINGS.find(
-    (edificio) => edificio.id === complaint.id_building,
+  const foundBuilding = REPORT_BUILDINGS.find(
+    (building) => building.id === complaint.id_building,
   );
 
-  const nombreEdificio = edificioEncontrado
-    ? edificioEncontrado.label
+  const buildingName = foundBuilding
+    ? foundBuilding.label
     : `Edificio ${complaint.id_building}`;
 
   return (
@@ -35,7 +35,7 @@ export function InfoCard({ complaint }: InfoCardProps) {
               style={styles.locationIcon}
             />
             <Text style={styles.infoText}>
-              {nombreEdificio}
+              {buildingName}
               {complaint.classroom
                 ? `, Aula ${complaint.classroom}`
                 : ', area exterior'}

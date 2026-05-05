@@ -15,8 +15,8 @@ import {
   View,
 } from 'react-native';
 
-import AppBottomSheet from '@/components/AppBottomSheet';
 import { Button } from '@/components/Button';
+import ConfirmSubmitSheet from '@/components/ConfirmSubmitSheet';
 import CategoryChip from '@/components/report/CategoryChip';
 import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
@@ -27,7 +27,7 @@ import {
   REPORT_TABS,
   SUGGESTION_CATEGORIES,
 } from '@/constants/complaint';
-import { colors } from '@/constants/theme';
+import { colors, typography } from '@/constants/theme';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
 import { CacheService } from '@/services/cacheService';
 import { ReportType } from '@/types/report';
@@ -332,44 +332,11 @@ export default function CreateReportScreen() {
         }}
       />
 
-      <AppBottomSheet ref={confirmBottomSheetRef} minBottomPadding={24}>
-        <View style={styles.sheetContainer}>
-          <View style={styles.sheetIconWrap}>
-            <Ionicons name="checkmark" size={48} color="#1E488F" />
-          </View>
-
-          <Text style={styles.sheetTitle}>Confirmar Envío</Text>
-          <Text style={styles.sheetMessage}>
-            Una vez enviado, no podrás editar este reporte. ¿Seguro que quieres
-            enviarlo?
-          </Text>
-
-          <View style={styles.sheetActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.sheetConfirmButton,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => {
-                confirmBottomSheetRef.current?.dismiss();
-                onSubmit();
-              }}
-            >
-              <Text style={styles.sheetConfirmText}>Enviar</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.sheetCancelButton,
-                pressed && { opacity: 0.6 },
-              ]}
-              onPress={() => confirmBottomSheetRef.current?.dismiss()}
-            >
-              <Text style={styles.sheetCancelText}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </AppBottomSheet>
+      <ConfirmSubmitSheet
+        ref={confirmBottomSheetRef}
+        isLoading={loading}
+        onConfirm={onSubmit}
+      />
 
       <Modal
         visible={isLocationDropdownOpen}
@@ -435,7 +402,7 @@ export default function CreateReportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFB',
+    backgroundColor: colors.backgroundScreen,
   },
   screen: {
     flex: 1,
@@ -462,8 +429,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#1F315D',
+    fontFamily: typography.fontFamily.manropeExtraBold,
+    color: colors.blueDark,
   },
   headerSpacer: {
     width: 40,
@@ -474,9 +441,9 @@ const styles = StyleSheet.create({
   sectionLabel: {
     marginBottom: 8,
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: typography.fontFamily.interBold,
     letterSpacing: 1,
-    color: '#3E4650',
+    color: colors.gray700,
   },
   categoryList: {
     flexDirection: 'row',
@@ -505,33 +472,35 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   selectFieldText: {
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   descriptionInput: {
     minHeight: 120,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   dropdownMenu: {
     position: 'absolute',
     maxHeight: 280,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.chatBorder,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -548,23 +517,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   dropdownItemSelected: {
-    backgroundColor: '#EEF2F6',
+    backgroundColor: colors.gray100,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   dropdownItemTextSelected: {
-    fontWeight: '700',
-    color: '#163D79',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.bluePrimary,
   },
   inputField: {
     height: 56,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   evidenceHeader: {
     flexDirection: 'row',
@@ -573,8 +544,8 @@ const styles = StyleSheet.create({
   },
   evidenceLimit: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#1F4E94',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.bluePrimary,
   },
   evidenceBox: {
     height: 140,
@@ -583,21 +554,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#B9C1CC',
-    backgroundColor: '#EEF2F6',
+    borderColor: colors.searchPlaceholder,
+    backgroundColor: colors.gray100,
   },
   evidenceText: {
     marginTop: 8,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#3E4650',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.gray700,
   },
   imageList: {
     marginTop: 12,
     gap: 8,
   },
   imageItem: {
-    backgroundColor: '#EEF2F6',
+    backgroundColor: colors.gray100,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -609,73 +580,12 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
     fontSize: 14,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   removeText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#C62828',
-  },
-  sheetContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  sheetIconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#EEF2F6',
-    backgroundColor: colors.white,
-    shadowColor: '#163D79',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 4,
-    marginBottom: 24,
-  },
-  sheetTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1E488F',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  sheetMessage: {
-    fontSize: 16,
-    color: '#000000',
-    textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 290,
-    marginBottom: 32,
-  },
-  sheetActions: {
-    width: '100%',
-    gap: 12,
-  },
-  sheetConfirmButton: {
-    backgroundColor: '#163D79',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetConfirmText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  sheetCancelButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetCancelText: {
-    color: '#163D79',
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.error,
   },
 });
