@@ -1,5 +1,17 @@
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
+type AuthProvider = {
+  getRefreshToken: () => string | null;
+  onTokenRefreshed: (accessToken: string, refreshToken: string) => void;
+  onRefreshFailed: () => void;
+};
+
+let _authProvider: AuthProvider | null = null;
+
+export function setGlobalAuthProvider(provider: AuthProvider | null) {
+  _authProvider = provider;
+}
+
 type ApiRequestOptions = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
@@ -22,6 +34,12 @@ export type ApiError = {
   message?: string;
   [key: string]: any;
 };
+
+// Deduplicates concurrent refresh attempts
+let _refreshPromise: Promise<{
+  access_token: string;
+  refresh_token: string;
+}> | null = null;
 
 async function _rawFetch<T>(
   method: string,
@@ -79,13 +97,26 @@ export async function apiRequest<T>({
   const result = await _rawFetch<T>(method, path, body, token, isMultipart);
 
   if (!result.ok) {
-    // Attempt silent token refresh on 401 if we have a refresh token
-    if (result.status === 401 && refreshToken) {
-      try {
-        const { refreshAccessToken } = await import('./authService');
-        const refreshed = await refreshAccessToken(refreshToken);
+    // Attempt silent token refresh on 401
+    const effectiveRefreshToken =
+      refreshToken ?? _authProvider?.getRefreshToken() ?? undefined;
+    const effectiveOnRefreshed =
+      onTokenRefreshed ?? _authProvider?.onTokenRefreshed;
+    const effectiveOnFailed = onRefreshFailed ?? _authProvider?.onRefreshFailed;
 
-        onTokenRefreshed?.(refreshed.access_token, refreshed.refresh_token);
+    if (result.status === 401 && effectiveRefreshToken) {
+      try {
+        if (!_refreshPromise) {
+          const { refreshAccessToken } = await import('./authService');
+          _refreshPromise = refreshAccessToken(effectiveRefreshToken).finally(
+            () => {
+              _refreshPromise = null;
+            },
+          );
+        }
+        const refreshed = await _refreshPromise;
+
+        effectiveOnRefreshed?.(refreshed.access_token, refreshed.refresh_token);
 
         // Retry original request with new access token
         const retry = await _rawFetch<T>(
@@ -107,7 +138,7 @@ export async function apiRequest<T>({
         if (NO_BODY_STATUSES_RETRY.has(retry.status)) return null as T;
         return retry.data as T;
       } catch (refreshError) {
-        onRefreshFailed?.();
+        effectiveOnFailed?.();
         throw refreshError;
       }
     }
