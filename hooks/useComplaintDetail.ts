@@ -57,7 +57,7 @@ export const useComplaintDetail = (id: string | undefined | null) => {
         complaintCache[id] = data;
         setComplaint(data);
       } catch (err) {
-        console.error('Error jalando el detalle del reporte:', err);
+        console.error('Error al obtener el detalle del reporte:', err);
         setError('Error al obtener el reporte');
       } finally {
         setLoading(false);

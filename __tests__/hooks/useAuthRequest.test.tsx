@@ -24,6 +24,7 @@ jest.mock('../../hooks/useClubChat', () => ({
 const mockApiRequest = jest.fn();
 jest.mock('../../services/api', () => ({
   apiRequest: (...args: unknown[]) => mockApiRequest(...args),
+  setGlobalAuthProvider: jest.fn(),
 }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (

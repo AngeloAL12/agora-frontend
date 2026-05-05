@@ -46,7 +46,7 @@ export const useComplaints = () => {
         CacheService.setComplaints(finalData, token);
         setReports(finalData);
       } catch (err: any) {
-        console.error('Error jalando reportes de la API:', err);
+        console.error('Error al obtener reportes de la API:', err);
         setError(err.message || 'Error al cargar los reportes');
       } finally {
         setLoading(false);

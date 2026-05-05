@@ -5,10 +5,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
 import { AuthUser, LoginResponse } from '@/services/authService';
+import { setGlobalAuthProvider } from '@/services/api';
 
 import { CacheService } from '@/services/cacheService';
 import { clearSessionMessageCache } from '@/hooks/useClubChat';
@@ -77,6 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticating: false,
     isDemoMode: false,
   });
+
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const setTokensRef = useRef<
+    (accessToken: string, refreshToken: string) => Promise<void>
+  >(null!);
+  const logoutRef = useRef<() => Promise<void>>(null!);
+
+  useEffect(() => {
+    setGlobalAuthProvider({
+      getRefreshToken: () => stateRef.current.refreshToken,
+      onTokenRefreshed: (accessToken, refreshToken) => {
+        setTokensRef.current(accessToken, refreshToken).catch(() => {});
+      },
+      onRefreshFailed: () => {
+        logoutRef.current().catch(() => {});
+      },
+    });
+    return () => setGlobalAuthProvider(null);
+  }, []);
 
   useEffect(() => {
     async function loadStoredAuth() {
@@ -183,6 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [],
   );
+  setTokensRef.current = setTokens;
 
   const logout = useCallback(async () => {
     clubChatManager.closeAll();
@@ -205,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isDemoMode: false,
     });
   }, []);
+  logoutRef.current = logout;
 
   const updateUser = useCallback(async (patch: Partial<AuthUser>) => {
     setState((currentState) => {
