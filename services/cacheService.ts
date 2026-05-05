@@ -1,6 +1,7 @@
 import { Complaint } from '@/hooks/useComplaints';
-import { clearComplaintDetailCache } from '@/hooks/useComplaintDetail';
 import { UserProfileResponse } from './authService';
+import type { ComplaintDetail } from '@/hooks/useComplaintDetail';
+import type { ClubMessage } from '@/hooks/useClubChat';
 
 interface SessionCache<T> {
   data: T;
@@ -9,6 +10,8 @@ interface SessionCache<T> {
 
 let meDataCache: SessionCache<UserProfileResponse> | null = null;
 let complaintsCache: SessionCache<Complaint[]> | null = null;
+export const complaintDetailCache: Record<string, ComplaintDetail> = {};
+export const sessionMessagesByClub: Record<string, ClubMessage[]> = {};
 
 export const CacheService = {
   getMeData: (token: string) => {
@@ -40,6 +43,11 @@ export const CacheService = {
   clearAll: () => {
     meDataCache = null;
     complaintsCache = null;
-    clearComplaintDetailCache();
+    for (const key of Object.keys(complaintDetailCache)) {
+      delete complaintDetailCache[key];
+    }
+    for (const key of Object.keys(sessionMessagesByClub)) {
+      delete sessionMessagesByClub[key];
+    }
   },
 };
