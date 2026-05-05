@@ -41,11 +41,11 @@ export function StaffDateFilters({
 const styles = StyleSheet.create({
   scroller: {
     flexGrow: 0,
-    height: 52,
+    height: 58,
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 6,
+    paddingTop: 12,
     paddingBottom: 10,
     gap: 10,
     alignItems: 'center',
