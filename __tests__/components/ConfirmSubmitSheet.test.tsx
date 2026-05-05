@@ -2,6 +2,26 @@ import ConfirmSubmitSheet from '@/components/ConfirmSubmitSheet';
 import { render } from '@testing-library/react-native';
 import React from 'react';
 
+jest.mock('@/components/AppBottomSheet', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const MockSheet = React.forwardRef(function MockSheetComponent(
+    props: any,
+    ref: any,
+  ) {
+    return <View>{props.children}</View>;
+  });
+
+  MockSheet.displayName = 'AppBottomSheetMock';
+
+  return {
+    __esModule: true,
+    default: MockSheet,
+    AppBottomSheet: MockSheet,
+  };
+});
+
 describe('ConfirmSubmitSheet Component', () => {
   it('debe mostrar el estado de carga (Enviando...) correctamente', () => {
     const mockOnConfirm = jest.fn();
