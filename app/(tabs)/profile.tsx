@@ -460,13 +460,12 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 8,
     alignItems: 'center',
-    maxWidth: 370,
   },
   heroContent: {
     width: '100%',
     backgroundColor: 'transparent',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 16,
     paddingBottom: 4,
   },
   avatarContainer: {
@@ -508,7 +507,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.interMedium,
     color: colors.bluePrimaryLight2,
     textAlign: 'center',
-    paddingHorizontal: 32,
   },
   statsGrid: {
     flexDirection: 'row',
