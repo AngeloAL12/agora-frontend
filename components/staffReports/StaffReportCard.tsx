@@ -72,7 +72,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     alignSelf: 'stretch',
-    minHeight: 190,
     borderRadius: 12,
     backgroundColor: colors.white,
     borderWidth: 1,

@@ -93,6 +93,7 @@ export function StaffComplaintsScreen() {
         align="left"
         showNotificationBell
         onNotificationPress={() => setNotificationsVisible(true)}
+        containerStyle={styles.header}
       />
 
       <View style={styles.staffFiltersWrap}>
@@ -197,8 +198,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.whiteSoft,
   },
+  header: {
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   staffFiltersWrap: {
-    height: 56,
+    height: 58,
     backgroundColor: colors.whiteSoft,
     zIndex: 2,
   },
