@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { forwardRef, useCallback, useState } from 'react';
+import React, { forwardRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import AppBottomSheet from '@/components/AppBottomSheet';
@@ -15,31 +15,21 @@ const ConfirmSubmitSheet = forwardRef<
   BottomSheetModal,
   ConfirmSubmitSheetProps
 >(({ onConfirm, isLoading }, ref) => {
-  const [shouldSubmit, setShouldSubmit] = useState(false);
-
   const handlePressConfirm = () => {
-    setShouldSubmit(true);
+    onConfirm();
     if (ref && 'current' in ref && ref.current) {
       ref.current.dismiss();
     }
   };
 
   const handlePressCancel = () => {
-    setShouldSubmit(false);
     if (ref && 'current' in ref && ref.current) {
       ref.current.dismiss();
     }
   };
 
-  const handleDismiss = useCallback(() => {
-    if (shouldSubmit) {
-      onConfirm();
-      setShouldSubmit(false);
-    }
-  }, [shouldSubmit, onConfirm]);
-
   return (
-    <AppBottomSheet ref={ref} minBottomPadding={24} onDismiss={handleDismiss}>
+    <AppBottomSheet ref={ref} minBottomPadding={24}>
       <View style={styles.sheetContainer}>
         <View style={styles.sheetIconWrap}>
           <Ionicons name="checkmark" size={48} color={colors.bluePrimary} />
@@ -94,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: colors.bluePrimaryLight || 'rgba(22, 61, 121, 0.1)',
+    borderColor: colors.bluePrimaryLight,
     backgroundColor: colors.white,
     shadowColor: colors.bluePrimary,
     shadowOffset: { width: 0, height: 10 },

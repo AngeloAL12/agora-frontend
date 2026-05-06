@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePushNotifications } from '../hooks/usePushNotifications';
+
 interface ScreenHeaderProps {
   title?: string;
   leftAction?: ReactNode;
@@ -35,8 +35,6 @@ export const ScreenHeader = ({
   backButtonColor = colors.black,
   backButtonPosition = 'left',
 }: ScreenHeaderProps) => {
-  usePushNotifications();
-
   const insets = useSafeAreaInsets();
 
   const isWhite = variant === 'white';

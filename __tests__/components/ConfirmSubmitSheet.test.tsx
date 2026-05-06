@@ -1,5 +1,5 @@
 import ConfirmSubmitSheet from '@/components/ConfirmSubmitSheet';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 
 jest.mock('@/components/AppBottomSheet', () => {
@@ -41,5 +41,29 @@ describe('ConfirmSubmitSheet Component', () => {
     );
 
     expect(getByText('Enviar')).toBeTruthy();
+  });
+
+  it('debe llamar onConfirm al presionar Enviar', () => {
+    const mockOnConfirm = jest.fn();
+
+    const { getByText } = render(
+      <ConfirmSubmitSheet isLoading={false} onConfirm={mockOnConfirm} />,
+    );
+
+    fireEvent.press(getByText('Enviar'));
+
+    expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('no debe llamar onConfirm al presionar Cancelar', () => {
+    const mockOnConfirm = jest.fn();
+
+    const { getByText } = render(
+      <ConfirmSubmitSheet isLoading={false} onConfirm={mockOnConfirm} />,
+    );
+
+    fireEvent.press(getByText('Cancelar'));
+
+    expect(mockOnConfirm).not.toHaveBeenCalled();
   });
 });
