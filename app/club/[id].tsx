@@ -52,7 +52,7 @@ export default function ClubDetailScreen() {
     try {
       const [clubData, eventsData] = await Promise.all([
         getClubById(id),
-        getClubEvents(Number(id), token),
+        getClubEvents(Number(id), token).catch(() => [] as ClubEvent[]),
       ]);
       setClub(clubData);
       setEvents(eventsData);

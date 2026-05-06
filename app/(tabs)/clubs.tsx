@@ -6,17 +6,18 @@ import { SearchInput } from '@/components/SearchInput';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useClubs } from '@/hooks/useClubs';
 import { useSearch } from '@/hooks/useSearch';
-import { getAllClubs, getMyClubs, joinClub } from '@/services/clubService';
-import { ClubResponse } from '@/types/club';
+import { joinClub } from '@/services/clubService';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -39,34 +40,14 @@ export default function ClubsScreen() {
   } = useNotificationsContext();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [discoverClubs, setDiscoverClubs] = useState<ClubResponse[]>([]);
-  const [myClubs, setMyClubs] = useState<ClubResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { myClubs, discoverClubs, loading, refetch } = useClubs();
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      if (!token) return;
-      const [allClubsData, myClubsData] = await Promise.all([
-        getAllClubs(token).catch(() => [] as ClubResponse[]),
-        getMyClubs(token).catch(() => [] as ClubResponse[]),
-      ]);
-      const myClubIds = new Set(myClubsData.map((c) => c.id));
-      setDiscoverClubs(allClubsData.filter((c) => !myClubIds.has(c.id)));
-      setMyClubs(myClubsData);
-    } catch {
-      setDiscoverClubs([]);
-      setMyClubs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [token]),
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(true);
+    setRefreshing(false);
+  }, [refetch]);
 
   const handleJoin = async (id: number, name: string) => {
     try {
@@ -76,7 +57,7 @@ export default function ClubsScreen() {
       }
       await joinClub(id, token);
       Alert.alert('¡Excelente!', `Te has unido al club: ${name}`);
-      await loadData();
+      await refetch(true);
     } catch (error: unknown) {
       const e = error as { status?: number; detail?: string; message?: string };
       if (e?.status === 400 || e?.detail?.toLowerCase().includes('miembro')) {
@@ -93,7 +74,7 @@ export default function ClubsScreen() {
   const scrollPaddingBottom = insets.bottom + 130;
   const fabBottom = insets.bottom + 96;
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingCenter}>
         <ActivityIndicator size="large" color={colors.bluePrimary} />
@@ -127,6 +108,14 @@ export default function ClubsScreen() {
             styles.scrollContent,
             { paddingBottom: scrollPaddingBottom },
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.bluePrimary]}
+              tintColor={colors.bluePrimary}
+            />
+          }
         >
           {/* ── Mis clubes ── */}
           <View style={styles.section}>
