@@ -16,21 +16,22 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/Button';
+import ConfirmSubmitSheet from '@/components/ConfirmSubmitSheet';
 import CategoryChip from '@/components/report/CategoryChip';
 import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import {
   REPORT_BUILDINGS,
   REPORT_CATEGORIES,
   REPORT_TABS,
   SUGGESTION_CATEGORIES,
 } from '@/constants/complaint';
-import { colors } from '@/constants/theme';
-import { CacheService } from '@/services/cacheService';
+import { colors, typography } from '@/constants/theme';
 import { useCreateComplaintForm } from '@/hooks/useCreateComplaintForm';
+import { CacheService } from '@/services/cacheService';
 import { ReportType } from '@/types/report';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BuildingOption = {
@@ -47,6 +48,7 @@ export default function CreateReportScreen() {
   const [classroom, setClassroom] = useState('');
   const [createdReportId, setCreatedReportId] = useState<number | null>(null);
   const successBottomSheetRef = useRef<BottomSheetModal>(null);
+  const confirmBottomSheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const selectFieldRef = useRef<View>(null);
   const { height: windowHeight } = useWindowDimensions();
@@ -309,7 +311,7 @@ export default function CreateReportScreen() {
 
             <Button
               text={loading ? 'Enviando...' : 'Enviar'}
-              onPress={onSubmit}
+              onPress={() => confirmBottomSheetRef.current?.present()}
               disabled={loading || isSubmitDisabled}
             />
           </ScrollView>
@@ -328,6 +330,12 @@ export default function CreateReportScreen() {
             router.replace(`/complaint/${createdReportId}`);
           }
         }}
+      />
+
+      <ConfirmSubmitSheet
+        ref={confirmBottomSheetRef}
+        isLoading={loading}
+        onConfirm={onSubmit}
       />
 
       <Modal
@@ -394,7 +402,7 @@ export default function CreateReportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFB',
+    backgroundColor: colors.backgroundScreen,
   },
   screen: {
     flex: 1,
@@ -421,8 +429,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#1F315D',
+    fontFamily: typography.fontFamily.manropeExtraBold,
+    color: colors.blueDark,
   },
   headerSpacer: {
     width: 40,
@@ -433,9 +441,9 @@ const styles = StyleSheet.create({
   sectionLabel: {
     marginBottom: 8,
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: typography.fontFamily.interBold,
     letterSpacing: 1,
-    color: '#3E4650',
+    color: colors.gray700,
   },
   categoryList: {
     flexDirection: 'row',
@@ -464,33 +472,35 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   selectFieldText: {
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   descriptionInput: {
     minHeight: 120,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   dropdownMenu: {
     position: 'absolute',
     maxHeight: 280,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.chatBorder,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -507,23 +517,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   dropdownItemSelected: {
-    backgroundColor: '#EEF2F6',
+    backgroundColor: colors.gray100,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   dropdownItemTextSelected: {
-    fontWeight: '700',
-    color: '#163D79',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.bluePrimary,
   },
   inputField: {
     height: 56,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.gray100,
     fontSize: 16,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   evidenceHeader: {
     flexDirection: 'row',
@@ -532,8 +544,8 @@ const styles = StyleSheet.create({
   },
   evidenceLimit: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#1F4E94',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.bluePrimary,
   },
   evidenceBox: {
     height: 140,
@@ -542,21 +554,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#B9C1CC',
-    backgroundColor: '#EEF2F6',
+    borderColor: colors.searchPlaceholder,
+    backgroundColor: colors.gray100,
   },
   evidenceText: {
     marginTop: 8,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#3E4650',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.gray700,
   },
   imageList: {
     marginTop: 12,
     gap: 8,
   },
   imageItem: {
-    backgroundColor: '#EEF2F6',
+    backgroundColor: colors.gray100,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -568,11 +580,12 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
     fontSize: 14,
-    color: '#1F2937',
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
   },
   removeText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#C62828',
+    fontFamily: typography.fontFamily.interBold,
+    color: colors.error,
   },
 });

@@ -1,8 +1,10 @@
 import { colors, typography } from '@/constants/theme';
+import { useNotificationsContext } from '@/context/NotificationsContext';
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,10 +38,12 @@ export const ScreenHeader = ({
   backButtonPosition = 'left',
 }: ScreenHeaderProps) => {
   const insets = useSafeAreaInsets();
+  const [modalVisible, setModalVisible] = useState(false);
+  const { notifications, loading, markRead } = useNotificationsContext();
 
   const isWhite = variant === 'white';
   const bgColor = isWhite ? colors.white : colors.bluePrimary;
-  const textColor = isWhite ? '#192A56' : colors.white; // Azul oscuro o Blanco
+  const textColor = isWhite ? '#192A56' : colors.white;
 
   // When only a notification bell / rightAction exists (no title, no leftAction)
   // AND a searchInput is also provided, suppress the separate title row so the
@@ -55,8 +59,7 @@ export const ScreenHeader = ({
 
   const notificationBell = showNotificationBell ? (
     <Pressable
-      onPress={onNotificationPress}
-      disabled={!onNotificationPress}
+      onPress={onNotificationPress ?? (() => setModalVisible(true))}
       style={styles.notificationBell}
     >
       <ExpoImage
@@ -95,78 +98,90 @@ export const ScreenHeader = ({
       : (rightAction ?? notificationBell);
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top, backgroundColor: bgColor },
-        containerStyle,
-      ]}
-    >
-      {hasHeaderRow && (
-        <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
-          {align === 'center' ? (
-            <>
-              <View style={styles.slot}>{resolvedLeftAction ?? null}</View>
-              <Text
-                style={[
-                  styles.title,
-                  { textAlign: 'center', color: textColor },
-                ]}
-                numberOfLines={1}
-              >
-                {title ?? ''}
-              </Text>
+    <>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top, backgroundColor: bgColor },
+          containerStyle,
+        ]}
+      >
+        {hasHeaderRow && (
+          <View style={[styles.inner, align === 'left' && styles.innerLeft]}>
+            {align === 'center' ? (
+              <>
+                <View style={styles.slot}>{resolvedLeftAction ?? null}</View>
+                <Text
+                  style={[
+                    styles.title,
+                    { textAlign: 'center', color: textColor },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {title ?? ''}
+                </Text>
 
-              <View style={styles.slot}>{resolvedRightAction ?? null}</View>
-            </>
-          ) : (
-            <>
-              <View style={styles.leftContent}>
-                {resolvedLeftAction && (
-                  <View style={styles.leftActionItem}>
-                    {resolvedLeftAction}
+                <View style={styles.slot}>{resolvedRightAction ?? null}</View>
+              </>
+            ) : (
+              <>
+                <View style={styles.leftContent}>
+                  {resolvedLeftAction && (
+                    <View style={styles.leftActionItem}>
+                      {resolvedLeftAction}
+                    </View>
+                  )}
+                  {title ? (
+                    <Text
+                      style={[styles.titleLeft, { color: textColor }]}
+                      numberOfLines={1}
+                    >
+                      {title}
+                    </Text>
+                  ) : null}
+                </View>
+                {resolvedRightAction && (
+                  <View style={styles.rightActionItem}>
+                    {resolvedRightAction}
                   </View>
                 )}
-                {title ? (
-                  <Text
-                    style={[styles.titleLeft, { color: textColor }]}
-                    numberOfLines={1}
-                  >
-                    {title}
-                  </Text>
-                ) : null}
-              </View>
-              {resolvedRightAction && (
-                <View style={styles.rightActionItem}>
-                  {resolvedRightAction}
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      )}
-      {searchInput && (
-        <View
-          style={[
-            styles.searchWrapper,
-            !hasHeaderRow && !!resolvedRightAction && styles.searchWrapperRow,
-          ]}
-        >
-          <View
-            style={
-              !hasHeaderRow && resolvedRightAction
-                ? styles.searchFlex
-                : undefined
-            }
-          >
-            {searchInput}
+              </>
+            )}
           </View>
-          {!hasHeaderRow && resolvedRightAction && (
-            <View>{resolvedRightAction}</View>
-          )}
-        </View>
+        )}
+        {searchInput && (
+          <View
+            style={[
+              styles.searchWrapper,
+              !hasHeaderRow && !!resolvedRightAction && styles.searchWrapperRow,
+            ]}
+          >
+            <View
+              style={
+                !hasHeaderRow && resolvedRightAction
+                  ? styles.searchFlex
+                  : undefined
+              }
+            >
+              {searchInput}
+            </View>
+            {!hasHeaderRow && resolvedRightAction && (
+              <View>{resolvedRightAction}</View>
+            )}
+          </View>
+        )}
+      </View>
+
+      {!onNotificationPress && (
+        <NotificationsModal
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          notifications={notifications}
+          loading={loading}
+          onNotificationPress={markRead}
+        />
       )}
-    </View>
+    </>
   );
 };
 
