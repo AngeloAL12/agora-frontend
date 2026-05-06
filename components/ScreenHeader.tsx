@@ -55,8 +55,7 @@ export const ScreenHeader = ({
 
   const notificationBell = showNotificationBell ? (
     <Pressable
-      onPress={onNotificationPress}
-      disabled={!onNotificationPress}
+      onPress={onNotificationPress ?? (() => router.push('/notifications'))}
       style={styles.notificationBell}
     >
       <ExpoImage
