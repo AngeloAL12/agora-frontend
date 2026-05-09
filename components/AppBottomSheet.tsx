@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
   },
   sheetOuter: {
     marginHorizontal: 6,
+    elevation: 20,
   },
   sheetBackground: {
     backgroundColor: colors.white,
@@ -92,7 +93,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 20,
   },
   indicator: {
     backgroundColor: colors.sheetIndicator,
