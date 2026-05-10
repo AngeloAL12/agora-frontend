@@ -45,7 +45,7 @@ describe('preferencesStorage', () => {
 
     expect(module.normalizeHomeScreen(undefined)).toBeNull();
     expect(module.normalizeHomeScreen('reports')).toBe('complaints');
-    expect(module.normalizeHomeScreen('messages')).toBe('ia');
+    expect(module.normalizeHomeScreen('ia')).toBe('messages');
     expect(module.normalizeHomeScreen('map')).toBe('map');
   });
 
