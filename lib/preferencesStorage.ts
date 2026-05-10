@@ -1,8 +1,13 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as SecureStore from 'expo-secure-store';
 
-export type HomeScreenKey = 'map' | 'complaints' | 'ia' | 'clubs' | 'profile';
-export type LegacyHomeScreenKey = 'reports' | 'messages';
+export type HomeScreenKey =
+  | 'map'
+  | 'complaints'
+  | 'messages'
+  | 'clubs'
+  | 'profile';
+export type LegacyHomeScreenKey = 'reports' | 'ia';
 
 export type AppPreferences = {
   homeScreen?: HomeScreenKey | LegacyHomeScreenKey;
@@ -20,13 +25,13 @@ export const HOME_ROUTE_BY_KEY: Record<
   HomeScreenKey,
   | '/(tabs)/map'
   | '/(tabs)/complaints'
-  | '/(tabs)/ia'
+  | '/(tabs)/messages'
   | '/(tabs)/clubs'
   | '/(tabs)/profile'
 > = {
   map: '/(tabs)/map',
   complaints: '/(tabs)/complaints',
-  ia: '/(tabs)/ia',
+  messages: '/(tabs)/messages',
   clubs: '/(tabs)/clubs',
   profile: '/(tabs)/profile',
 };
@@ -36,7 +41,7 @@ export const normalizeHomeScreen = (
 ): HomeScreenKey | null => {
   if (!value) return null;
   if (value === 'reports') return 'complaints';
-  if (value === 'messages') return 'ia';
+  if (value === 'ia') return 'messages';
   return value;
 };
 
