@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,13 +18,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import EventCard from '@/components/clubs/EventCard';
 import PostCard from '@/components/clubs/PostCard';
-import { MOCK_POSTS } from '@/constants/mockPosts';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { getClubById, getClubEvents } from '@/services/clubService';
-import { ClubEvent, ClubResponse } from '@/types/club';
+import {
+  clubDetailCache,
+  clubEventsCache,
+  clubPostsCache,
+} from '@/services/cacheService';
+import {
+  getClubById,
+  getClubEvents,
+  getClubPosts,
+} from '@/services/clubService';
+import { ClubEvent, ClubPost, ClubResponse } from '@/types/club';
 
 type Tab = 'posts' | 'events';
+
+const PAGE_SIZE = 20;
 
 function getInitials(name: string): string {
   return name
@@ -42,64 +52,144 @@ export default function ClubDetailScreen() {
 
   const [club, setClub] = useState<ClubResponse | null>(null);
   const [events, setEvents] = useState<ClubEvent[]>([]);
+  const [posts, setPosts] = useState<ClubPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [postsPage, setPostsPage] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>('posts');
+
+  const isFetchingMore = useRef(false);
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
-  const load = useCallback(async () => {
-    if (!id || !token) return;
+  const load = useCallback(
+    async (forceRefresh = false) => {
+      if (!id || !token) return;
+      const key = String(id);
+
+      if (
+        !forceRefresh &&
+        clubDetailCache[key] &&
+        clubPostsCache[key] &&
+        clubEventsCache[key]
+      ) {
+        const cachedPosts = clubPostsCache[key];
+        setClub(clubDetailCache[key]);
+        setPosts(cachedPosts);
+        setEvents(clubEventsCache[key]);
+        setHasMorePosts(
+          cachedPosts.length > 0 && cachedPosts.length % PAGE_SIZE === 0,
+        );
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [clubData, eventsData, postsData] = await Promise.all([
+          getClubById(id),
+          getClubEvents(Number(id), token).catch(() => [] as ClubEvent[]),
+          getClubPosts(Number(id), token, 1, PAGE_SIZE).catch(
+            () => [] as ClubPost[],
+          ),
+        ]);
+        clubDetailCache[key] = clubData;
+        clubEventsCache[key] = eventsData;
+        clubPostsCache[key] = postsData;
+        setClub(clubData);
+        setEvents(eventsData);
+        setPosts(postsData);
+        setPostsPage(1);
+        setHasMorePosts(postsData.length === PAGE_SIZE);
+      } catch {
+        // silently ignore
+      } finally {
+        setLoading(false);
+      }
+    },
+    [id, token],
+  );
+
+  const fetchNextPage = useCallback(async () => {
+    if (!id || !token || isFetchingMore.current || loadingMore || !hasMorePosts)
+      return;
+
+    isFetchingMore.current = true;
+    setLoadingMore(true);
+
     try {
-      const [clubData, eventsData] = await Promise.all([
-        getClubById(id),
-        getClubEvents(Number(id), token).catch(() => [] as ClubEvent[]),
-      ]);
-      setClub(clubData);
-      setEvents(eventsData);
+      const nextPage = postsPage + 1;
+      const newPosts = await getClubPosts(
+        Number(id),
+        token,
+        nextPage,
+        PAGE_SIZE,
+      );
+      if (newPosts.length > 0) {
+        const key = String(id);
+        const updated = [...posts, ...newPosts];
+        clubPostsCache[key] = updated;
+        setPosts(updated);
+        setPostsPage(nextPage);
+        setHasMorePosts(newPosts.length === PAGE_SIZE);
+      } else {
+        setHasMorePosts(false);
+      }
     } catch {
       // silently ignore
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
+      isFetchingMore.current = false;
     }
-  }, [id, token]);
+  }, [id, token, loadingMore, hasMorePosts, postsPage, posts]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.bluePrimary} />
-      </View>
-    );
+  async function handleRefresh() {
+    setRefreshing(true);
+    await load(true);
+    setRefreshing(false);
   }
 
-  if (!club) {
+  const listData: (ClubPost | ClubEvent)[] =
+    activeTab === 'posts' ? posts : events;
+
+  const renderItem = useCallback(
+    ({ item }: { item: ClubPost | ClubEvent }) => {
+      if (activeTab === 'posts') {
+        return (
+          <PostCard
+            post={item as ClubPost}
+            clubId={Number(id)}
+            token={token ?? ''}
+          />
+        );
+      }
+      const event = item as ClubEvent;
+      return (
+        <EventCard
+          event={event}
+          onPress={() =>
+            router.push({
+              pathname: '/club/event/[eventId]' as never,
+              params: { eventId: event.id, clubId: club?.id },
+            })
+          }
+        />
+      );
+    },
+    [activeTab, id, token, router, club?.id],
+  );
+
+  const ListHeader = useCallback(() => {
+    if (!club) return null;
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>No se pudo cargar el club.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Volver</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.root}>
-      <ScreenHeader
-        variant="primary"
-        showBackButton
-        backButtonColor={colors.white}
-        showNotificationBell
-      />
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <>
         {/* Hero */}
         <View style={styles.hero}>
           {club.cover_image ? (
@@ -163,7 +253,7 @@ export default function ClubDetailScreen() {
             </TouchableOpacity>
 
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{MOCK_POSTS.length}</Text>
+              <Text style={styles.statNumber}>{posts.length}</Text>
               <Text style={styles.statLabel}>PUBLICACIONES</Text>
             </View>
           </View>
@@ -200,40 +290,98 @@ export default function ClubDetailScreen() {
             </Pressable>
           </View>
         </View>
+      </>
+    );
+  }, [club, posts.length, activeTab, router]);
 
-        {/* Content */}
-        <View style={styles.content}>
-          {activeTab === 'posts' ? (
-            MOCK_POSTS.map((post) => <PostCard key={post.id} post={post} />)
-          ) : events.length === 0 ? (
-            <Text style={styles.emptyText}>No hay eventos próximos.</Text>
-          ) : (
-            events.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onPress={() =>
-                  router.push({
-                    pathname: '/club/event/[eventId]' as never,
-                    params: { eventId: event.id, clubId: club.id },
-                  })
-                }
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.bluePrimary} />
+      </View>
+    );
+  }
 
-      {/* FAB — solo líder */}
-      {isLeader && (
+  if (!club) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>No se pudo cargar el club.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <ScreenHeader
+        variant="primary"
+        showBackButton
+        backButtonColor={colors.white}
+        showNotificationBell
+      />
+
+      <FlatList
+        data={listData}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 80 },
+        ]}
+        initialNumToRender={PAGE_SIZE}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={40}
+        windowSize={7}
+        removeClippedSubviews
+        onEndReached={() => {
+          if (activeTab === 'posts' && hasMorePosts) void fetchNextPage();
+        }}
+        onEndReachedThreshold={0.45}
+        ItemSeparatorComponent={() => <View style={styles.cardGap} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {activeTab === 'posts'
+              ? 'Aún no hay publicaciones.'
+              : 'No hay eventos próximos.'}
+          </Text>
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color={colors.bluePrimary} />
+            </View>
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.bluePrimary]}
+            tintColor={colors.bluePrimary}
+          />
+        }
+      />
+
+      {(activeTab === 'posts' || isLeader) && (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 24 }]}
-          onPress={() =>
-            router.push({
-              pathname: '/club/create-event' as never,
-              params: { id: club.id },
-            })
-          }
+          onPress={() => {
+            if (activeTab === 'posts') {
+              router.push({
+                pathname: '/club/create-post' as never,
+                params: { id: club.id, clubName: club.name },
+              });
+            } else {
+              router.push({
+                pathname: '/club/create-event' as never,
+                params: { id: club.id },
+              });
+            }
+          }}
           activeOpacity={0.85}
         >
           <Ionicons name="add" size={32} color={colors.gray900} />
@@ -245,7 +393,9 @@ export default function ClubDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.whiteSoft },
-  scroll: { flex: 1 },
+  listContent: {
+    paddingHorizontal: 16,
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -273,6 +423,7 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     height: 175,
+    marginHorizontal: -16,
     backgroundColor: colors.bluePrimary,
     overflow: 'hidden',
   },
@@ -282,6 +433,7 @@ const styles = StyleSheet.create({
 
   // Profile section
   profileSection: {
+    marginHorizontal: -16,
     paddingHorizontal: 16,
   },
   profileTop: {
@@ -385,6 +537,7 @@ const styles = StyleSheet.create({
 
   // Tabs
   tabsWrap: {
+    marginHorizontal: -16,
     paddingHorizontal: 26,
     paddingTop: 16,
     paddingBottom: 8,
@@ -420,10 +573,10 @@ const styles = StyleSheet.create({
     color: colors.blueSecondary,
   },
 
-  // Content
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  cardGap: { height: 8 },
+  footerLoader: {
+    paddingVertical: 18,
+    alignItems: 'center',
   },
   emptyText: {
     textAlign: 'center',
