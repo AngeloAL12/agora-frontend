@@ -33,14 +33,29 @@ export interface ClubMember {
   is_leader: boolean;
 }
 
+export interface ClubPostImage {
+  id: number;
+  url: string;
+}
+
 export interface ClubPost {
   id: number;
-  author: { id: number; name: string; photo?: string };
+  id_club: number;
+  author: { id: number; name: string; photo?: string | null };
   content: string;
-  image?: string;
-  likes_count: number;
-  comments_count: number;
+  images: ClubPostImage[];
+  like_count: number;
+  user_has_liked: boolean;
+  comment_count: number;
   created_at: string;
+}
+
+export interface PostComment {
+  id: number;
+  id_post: number;
+  content: string;
+  created_at: string;
+  user: { id: number; name: string; photo?: string | null };
 }
 
 export interface CreateEventPayload {
