@@ -43,7 +43,7 @@ interface HomeScreenOption {
 const HOME_SCREEN_OPTIONS: HomeScreenOption[] = [
   { id: 'map', label: 'Mapa', Icon: MapIcon },
   { id: 'complaints', label: 'Reportes', Icon: ReportsIcon },
-  { id: 'ia', label: 'Mensajes', Icon: MailboxIcon },
+  { id: 'messages', label: 'Mensajes', Icon: MailboxIcon },
   { id: 'clubs', label: 'Clubes', Icon: ClubsIcon },
   { id: 'profile', label: 'Perfil', Icon: ProfileIcon },
 ];

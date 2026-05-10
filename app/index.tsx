@@ -13,7 +13,7 @@ export default function IndexScreen() {
   const [homeRoute, setHomeRoute] = useState<
     | '/(tabs)/map'
     | '/(tabs)/complaints'
-    | '/(tabs)/ia'
+    | '/(tabs)/messages'
     | '/(tabs)/clubs'
     | '/(tabs)/profile'
   >('/(tabs)/map');
