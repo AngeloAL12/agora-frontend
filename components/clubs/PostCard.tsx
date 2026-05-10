@@ -1,12 +1,22 @@
 import { Image as ExpoImage } from 'expo-image';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
+import { likePost, unlikePost } from '@/services/clubService';
 import { ClubPost } from '@/types/club';
 
 interface PostCardProps {
   post: ClubPost;
+  clubId: number;
+  token: string;
 }
 
 function getInitials(name: string): string {
@@ -26,15 +36,58 @@ function timeAgo(dateStr: string): string {
   return `Hace ${days} día${days !== 1 ? 's' : ''}`;
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, clubId, token }: PostCardProps) {
+  const router = useRouter();
+  const [liked, setLiked] = useState(post.user_has_liked);
+  const [likeCount, setLikeCount] = useState(post.like_count);
+  const [avatarError, setAvatarError] = useState(false);
+
+  async function handleLike() {
+    const wasLiked = liked;
+    // Optimistic update
+    setLiked(!wasLiked);
+    setLikeCount((c) => c + (wasLiked ? -1 : 1));
+    try {
+      const res = wasLiked
+        ? await unlikePost(clubId, post.id, token)
+        : await likePost(clubId, post.id, token);
+      setLikeCount(res.like_count);
+    } catch {
+      // Revert on error
+      setLiked(wasLiked);
+      setLikeCount((c) => c + (wasLiked ? 1 : -1));
+    }
+  }
+
+  function handleNavigateToPost() {
+    router.push({
+      pathname: '/club/post-comments' as never,
+      params: {
+        clubId,
+        postId: post.id,
+        authorName: post.author.name,
+        authorPhoto: post.author.photo ?? '',
+        content: post.content,
+        createdAt: post.created_at,
+        images: JSON.stringify(post.images),
+      },
+    });
+  }
+
+  const showAvatar = post.author.photo && !avatarError;
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.97 : 1 }]}
+      onPress={handleNavigateToPost}
+    >
       <View style={styles.header}>
-        {post.author.photo ? (
+        {showAvatar ? (
           <ExpoImage
-            source={{ uri: post.author.photo }}
+            source={{ uri: post.author.photo! }}
             style={styles.avatar}
             contentFit="cover"
+            onError={() => setAvatarError(true)}
           />
         ) : (
           <View style={styles.avatarFallback}>
@@ -49,9 +102,9 @@ export default function PostCard({ post }: PostCardProps) {
         </View>
       </View>
 
-      {post.image && (
+      {post.images?.[0]?.url && (
         <ExpoImage
-          source={{ uri: post.image }}
+          source={{ uri: post.images[0].url }}
           style={styles.coverImage}
           contentFit="cover"
         />
@@ -62,23 +115,33 @@ export default function PostCard({ post }: PostCardProps) {
 
         <View style={styles.actions}>
           <View style={styles.actionsLeft}>
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={handleLike}
+              activeOpacity={0.7}
+            >
               <ExpoImage
                 source={require('@/assets/icons/clubs/like_heart.svg')}
                 style={styles.actionIcon}
                 contentFit="contain"
+                tintColor={liked ? colors.bluePrimary : colors.gray700}
               />
-              <Text style={styles.actionCount}>{post.likes_count}</Text>
+              <Text
+                style={[styles.actionCount, liked && styles.actionCountLiked]}
+              >
+                {likeCount}
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+            <View style={styles.actionBtn}>
               <ExpoImage
                 source={require('@/assets/icons/clubs/comment_post.svg')}
                 style={styles.actionIcon}
                 contentFit="contain"
+                tintColor={colors.gray700}
               />
-              <Text style={styles.actionCount}>{post.comments_count}</Text>
-            </TouchableOpacity>
+              <Text style={styles.actionCount}>{post.comment_count}</Text>
+            </View>
           </View>
 
           <TouchableOpacity activeOpacity={0.7}>
@@ -90,7 +153,7 @@ export default function PostCard({ post }: PostCardProps) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -184,5 +247,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
     color: colors.gray700,
+  },
+  actionCountLiked: {
+    color: colors.bluePrimary,
   },
 });
