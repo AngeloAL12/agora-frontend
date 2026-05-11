@@ -55,6 +55,7 @@ interface PostHeaderProps {
   createdAt: string;
   images: ClubPostImage[];
   commentCount: number;
+  likeCount: number;
 }
 
 function PostHeader({
@@ -64,6 +65,7 @@ function PostHeader({
   createdAt,
   images,
   commentCount,
+  likeCount,
 }: PostHeaderProps) {
   const [avatarError, setAvatarError] = useState(false);
   const showAvatar = !!authorPhoto && !avatarError;
@@ -122,6 +124,28 @@ function PostHeader({
         </ScrollView>
       )}
 
+      {/* Actions row */}
+      <View style={headerStyles.actions}>
+        <View style={headerStyles.actionBtn}>
+          <ExpoImage
+            source={require('@/assets/icons/clubs/like_heart.svg')}
+            style={headerStyles.actionIcon}
+            contentFit="contain"
+            tintColor={colors.bluePrimary}
+          />
+          <Text style={headerStyles.actionCount}>{likeCount}</Text>
+        </View>
+        <View style={headerStyles.actionBtn}>
+          <ExpoImage
+            source={require('@/assets/icons/clubs/comment_post.svg')}
+            style={headerStyles.actionIcon}
+            contentFit="contain"
+            tintColor={colors.gray700}
+          />
+          <Text style={headerStyles.actionCount}>{commentCount}</Text>
+        </View>
+      </View>
+
       {/* Comments divider */}
       <View style={headerStyles.divider}>
         <Text style={headerStyles.commentCount}>
@@ -141,6 +165,7 @@ export default function PostCommentsScreen() {
     content,
     createdAt,
     images,
+    likeCount,
   } = useLocalSearchParams<{
     clubId: string;
     postId: string;
@@ -149,6 +174,7 @@ export default function PostCommentsScreen() {
     content: string;
     createdAt: string;
     images: string;
+    likeCount: string;
   }>();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
@@ -213,6 +239,7 @@ export default function PostCommentsScreen() {
         createdAt={createdAt ?? ''}
         images={parsedImages}
         commentCount={comments.length}
+        likeCount={Number(likeCount) || 0}
       />
     ),
     [
@@ -222,6 +249,7 @@ export default function PostCommentsScreen() {
       createdAt,
       parsedImages,
       comments.length,
+      likeCount,
     ],
   );
 
@@ -256,7 +284,7 @@ export default function PostCommentsScreen() {
     <View style={styles.root}>
       <ScreenHeader
         variant="white"
-        title={authorName ? `Post de ${authorName}` : 'Comentarios'}
+        title="Post"
         align="center"
         showBackButton
         backButtonColor={colors.blueDark}
@@ -279,10 +307,7 @@ export default function PostCommentsScreen() {
             keyExtractor={(item) => String(item.id)}
             renderItem={renderComment}
             ListHeaderComponent={listHeader}
-            contentContainerStyle={[
-              styles.listContent,
-              comments.length === 0 && styles.listEmpty,
-            ]}
+            contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <Text style={styles.emptyText}>Sé el primero en comentar.</Text>
@@ -395,6 +420,26 @@ const headerStyles = StyleSheet.create({
     height: 160,
     borderRadius: 10,
   },
+  actions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 20,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionIcon: {
+    width: 17,
+    height: 17,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.gray700,
+  },
   divider: {
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle20,
@@ -415,7 +460,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   listContent: {
-    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 8,
     gap: 12,
@@ -431,12 +475,14 @@ const styles = StyleSheet.create({
     color: colors.gray700,
     textAlign: 'center',
     paddingTop: 24,
+    paddingHorizontal: 16,
   },
 
   commentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+    paddingHorizontal: 16,
   },
   commentAvatar: {
     marginTop: 2,

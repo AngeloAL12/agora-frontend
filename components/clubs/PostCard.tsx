@@ -61,15 +61,16 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
 
   function handleNavigateToPost() {
     router.push({
-      pathname: '/club/post-comments' as never,
+      pathname: '/club/post/[postId]' as never,
       params: {
-        clubId,
         postId: post.id,
+        clubId,
         authorName: post.author.name,
         authorPhoto: post.author.photo ?? '',
         content: post.content,
         createdAt: post.created_at,
         images: JSON.stringify(post.images),
+        likeCount: liked ? likeCount : post.like_count,
       },
     });
   }
