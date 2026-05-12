@@ -3,8 +3,7 @@ import { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/context/AuthContext';
-import { createComplaint } from '@/services/reportService';
-
+import { createComplaint } from '@/services/complaintService';
 export type LocalImageFile = {
   uri: string;
   type: string;

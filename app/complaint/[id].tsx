@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -68,12 +68,24 @@ function StaffComplaintDetailScreen() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [localEvidence, setLocalEvidence] = useState<LocalImageFile[]>([]);
+  const [uploadedEvidenceCount, setUploadedEvidenceCount] = useState(0);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await refetch(true);
     setRefreshing(false);
   }, [refetch]);
+
+  const serverEvidenceCount = complaint?.images.length ?? 0;
+  const hasResolvableEvidence =
+    serverEvidenceCount > 0 || uploadedEvidenceCount > 0;
+
+  useEffect(() => {
+    if (serverEvidenceCount > 0) {
+      setLocalEvidence([]);
+      setUploadedEvidenceCount(0);
+    }
+  }, [serverEvidenceCount]);
 
   const authPayload = useMemo(
     () => ({
@@ -126,7 +138,7 @@ function StaffComplaintDetailScreen() {
       for (const file of selectedFiles) {
         await uploadComplaintEvidence(complaint.id, file, authPayload);
       }
-      setLocalEvidence([]);
+      setUploadedEvidenceCount((current) => current + selectedFiles.length);
       await refetch(true);
     } catch (err: any) {
       Alert.alert(
@@ -141,7 +153,7 @@ function StaffComplaintDetailScreen() {
   const handleStatusChange = async (status: ComplaintStatus) => {
     if (!complaint || !token || updatingStatus) return;
 
-    if (status === 'RESOLVED' && complaint.images.length === 0) {
+    if (status === 'RESOLVED' && !hasResolvableEvidence) {
       setStatusMenuVisible(false);
       Alert.alert(
         'Evidencia requerida',
@@ -165,6 +177,8 @@ function StaffComplaintDetailScreen() {
       setUpdatingStatus(false);
     }
   };
+
+  const displayedLocalEvidence = serverEvidenceCount > 0 ? [] : localEvidence;
 
   if (loading && !refreshing) {
     return <ComplaintLoadingState />;
@@ -244,6 +258,20 @@ function StaffComplaintDetailScreen() {
               <View key={img.id} style={styles.staffImageContainer}>
                 <Image
                   source={{ uri: img.url }}
+                  style={styles.evidenceImage}
+                  contentFit="cover"
+                />
+                <View style={styles.imageOverlay} />
+              </View>
+            ))
+          ) : displayedLocalEvidence.length > 0 ? (
+            displayedLocalEvidence.map((image, index) => (
+              <View
+                key={`${image.uri}-${index}`}
+                style={styles.staffImageContainer}
+              >
+                <Image
+                  source={{ uri: image.uri }}
                   style={styles.evidenceImage}
                   contentFit="cover"
                 />

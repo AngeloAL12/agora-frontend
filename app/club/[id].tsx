@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,10 +22,42 @@ import PostCard from '@/components/clubs/PostCard';
 import { MOCK_POSTS } from '@/constants/mockPosts';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { getClubById, getClubEvents } from '@/services/clubService';
+import { getClubById, getClubEvents, joinClub } from '@/services/clubService';
 import { ClubEvent, ClubResponse } from '@/types/club';
 
 type Tab = 'posts' | 'events';
+const JOINED_CLUBS_KEY = 'agora_joined_clubs';
+
+async function getJoinedClubIds(userId?: number): Promise<number[]> {
+  if (!userId) return [];
+
+  const raw = await SecureStore.getItemAsync(`${JOINED_CLUBS_KEY}_${userId}`);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is number => typeof item === 'number')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveJoinedClubId(
+  userId: number | undefined,
+  clubId: number,
+): Promise<void> {
+  if (!userId) return;
+
+  const currentIds = await getJoinedClubIds(userId);
+  if (currentIds.includes(clubId)) return;
+
+  await SecureStore.setItemAsync(
+    `${JOINED_CLUBS_KEY}_${userId}`,
+    JSON.stringify([...currentIds, clubId]),
+  );
+}
 
 function getInitials(name: string): string {
   return name
@@ -44,24 +77,63 @@ export default function ClubDetailScreen() {
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('posts');
+  const [isMember, setIsMember] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
   const load = useCallback(async () => {
     if (!id || !token) return;
     try {
-      const [clubData, eventsData] = await Promise.all([
+      const [clubData, eventsData, joinedClubIds] = await Promise.all([
         getClubById(id),
         getClubEvents(Number(id), token),
+        getJoinedClubIds(user?.id),
       ]);
       setClub(clubData);
       setEvents(eventsData);
+      setIsMember(
+        clubData.id_leader === user?.id || joinedClubIds.includes(clubData.id),
+      );
     } catch {
       // silently ignore
     } finally {
       setLoading(false);
     }
-  }, [id, token]);
+  }, [id, token, user?.id]);
+
+  const handleJoinClub = useCallback(async () => {
+    if (!club || !token || isMember || joining) return;
+
+    setJoining(true);
+
+    try {
+      await joinClub(club.id, token);
+      await saveJoinedClubId(user?.id, club.id);
+      setIsMember(true);
+      setClub((current) =>
+        current
+          ? { ...current, members_count: current.members_count + 1 }
+          : current,
+      );
+    } catch (error: any) {
+      const message = error?.detail || error?.message || '';
+      const normalizedMessage = String(message).toLowerCase();
+
+      if (
+        normalizedMessage.includes('miembro') ||
+        normalizedMessage.includes('member')
+      ) {
+        await saveJoinedClubId(user?.id, club.id);
+        setIsMember(true);
+        return;
+      }
+
+      Alert.alert('Error', message || 'No se pudo unir al club.');
+    } finally {
+      setJoining(false);
+    }
+  }, [club, isMember, joining, token, user?.id]);
 
   useEffect(() => {
     load();
@@ -136,9 +208,18 @@ export default function ClubDetailScreen() {
               )}
             </View>
 
-            <View style={styles.memberBadge}>
-              <Text style={styles.memberBadgeText}>Miembro</Text>
-            </View>
+            <Pressable
+              style={[
+                styles.memberBadge,
+                (isMember || joining) && styles.memberBadgeDisabled,
+              ]}
+              onPress={handleJoinClub}
+              disabled={isMember || joining}
+            >
+              <Text style={styles.memberBadgeText}>
+                {joining ? 'Uniendo...' : isMember ? 'Miembro' : 'Unirse'}
+              </Text>
+            </Pressable>
           </View>
 
           <View style={styles.nameBlock}>
@@ -330,6 +411,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
+  },
+  memberBadgeDisabled: {
+    opacity: 0.9,
   },
   memberBadgeText: {
     fontSize: 14,
