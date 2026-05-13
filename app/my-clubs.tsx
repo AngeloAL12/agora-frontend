@@ -2,12 +2,13 @@ import { ClubCard } from '@/components/ClubCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useRecentClubIds } from '@/hooks/useRecentClubIds';
 import { getMyClubs } from '@/services/clubService';
 import { ClubResponse } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -26,17 +27,30 @@ export default function MyClubsScreen() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const scrollPaddingBottom = insets.bottom + 130;
+  const recentIds = useRecentClubIds();
 
   const [clubs, setClubs] = useState<ClubResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!token) return;
-    getMyClubs(token)
-      .then(setClubs)
-      .catch(() => setClubs([]))
-      .finally(() => setLoading(false));
-  }, [token]);
+  const sortedClubs = useMemo(() => {
+    const recentSet = new Set(recentIds);
+    const recent = recentIds
+      .map((id) => clubs.find((c) => c.id === id))
+      .filter((c): c is ClubResponse => c !== undefined);
+    const rest = clubs.filter((c) => !recentSet.has(c.id));
+    return [...recent, ...rest];
+  }, [clubs, recentIds]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      setLoading(true);
+      getMyClubs(token)
+        .then(setClubs)
+        .catch(() => setClubs([]))
+        .finally(() => setLoading(false));
+    }, [token]),
+  );
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
@@ -81,7 +95,7 @@ export default function MyClubsScreen() {
             </View>
 
             <View style={styles.list}>
-              {clubs.map((club) => (
+              {sortedClubs.map((club) => (
                 <ClubCard
                   key={club.id}
                   name={club.name}

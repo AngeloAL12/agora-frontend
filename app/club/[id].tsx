@@ -1,10 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -15,12 +24,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AppBottomSheet from '@/components/AppBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import EventCard from '@/components/clubs/EventCard';
 import PostCard from '@/components/clubs/PostCard';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import {
+  CacheService,
   clubDetailCache,
   clubEventsCache,
   clubPostsCache,
@@ -28,8 +39,12 @@ import {
 import {
   getClubById,
   getClubEvents,
+  getClubMembers,
   getClubPosts,
+  joinClub,
+  leaveClub,
 } from '@/services/clubService';
+import { recordClubVisit } from '@/services/recentClubsService';
 import { ClubEvent, ClubPost, ClubResponse } from '@/types/club';
 
 type Tab = 'posts' | 'events';
@@ -59,8 +74,11 @@ export default function ClubDetailScreen() {
   const [hasMorePosts, setHasMorePosts] = useState(false);
   const [postsPage, setPostsPage] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>('posts');
+  const [isMember, setIsMember] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(false);
 
   const isFetchingMore = useRef(false);
+  const leaveSheetRef = useRef<BottomSheetModal>(null);
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
@@ -82,19 +100,27 @@ export default function ClubDetailScreen() {
         setHasMorePosts(
           cachedPosts.length > 0 && cachedPosts.length % PAGE_SIZE === 0,
         );
+        setIsMember(clubDetailCache[key].user_is_member ?? false);
         setLoading(false);
         return;
       }
 
       try {
-        const [clubData, eventsData, postsData] = await Promise.all([
-          getClubById(id),
-          getClubEvents(Number(id), token).catch(() => [] as ClubEvent[]),
-          getClubPosts(Number(id), token, 1, PAGE_SIZE).catch(
-            () => [] as ClubPost[],
-          ),
-        ]);
-        clubDetailCache[key] = clubData;
+        const [clubData, eventsData, postsData, membersData] =
+          await Promise.all([
+            getClubById(id, token),
+            getClubEvents(Number(id), token).catch(() => [] as ClubEvent[]),
+            getClubPosts(Number(id), token, 1, PAGE_SIZE).catch(
+              () => [] as ClubPost[],
+            ),
+            getClubMembers(Number(id), token).catch(() => []),
+          ]);
+        const resolvedIsMember =
+          clubData.user_is_member ?? membersData.some((m) => m.id === user?.id);
+        clubDetailCache[key] = {
+          ...clubData,
+          user_is_member: resolvedIsMember,
+        };
         clubEventsCache[key] = eventsData;
         clubPostsCache[key] = postsData;
         setClub(clubData);
@@ -102,13 +128,14 @@ export default function ClubDetailScreen() {
         setPosts(postsData);
         setPostsPage(1);
         setHasMorePosts(postsData.length === PAGE_SIZE);
+        setIsMember(resolvedIsMember);
       } catch {
         // silently ignore
       } finally {
         setLoading(false);
       }
     },
-    [id, token],
+    [id, token, user],
   );
 
   const fetchNextPage = useCallback(async () => {
@@ -144,6 +171,17 @@ export default function ClubDetailScreen() {
     }
   }, [id, token, loadingMore, hasMorePosts, postsPage, posts]);
 
+  useEffect(() => {
+    load();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [load]);
+
+  useEffect(() => {
+    if (id && user?.id) {
+      void recordClubVisit(Number(id), user.id);
+    }
+  }, [id, user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       load();
@@ -156,12 +194,58 @@ export default function ClubDetailScreen() {
     setRefreshing(false);
   }
 
-  const listData: (ClubPost | ClubEvent)[] =
-    activeTab === 'posts' ? posts : events;
+  const handleJoin = useCallback(async () => {
+    if (!club || !token || membershipLoading) return;
+    setIsMember(true);
+    setClub((prev) =>
+      prev ? { ...prev, members_count: prev.members_count + 1 } : prev,
+    );
+    setMembershipLoading(true);
+    try {
+      await joinClub(club.id, token);
+    } catch {
+      setIsMember(false);
+      setClub((prev) =>
+        prev ? { ...prev, members_count: prev.members_count - 1 } : prev,
+      );
+      Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
+    } finally {
+      setMembershipLoading(false);
+    }
+  }, [club, token, membershipLoading]);
+
+  const handleLeave = useCallback(async () => {
+    if (!club || !token || !user || membershipLoading) return;
+    leaveSheetRef.current?.dismiss();
+    setIsMember(false);
+    setClub((prev) =>
+      prev
+        ? { ...prev, members_count: Math.max(0, prev.members_count - 1) }
+        : prev,
+    );
+    setMembershipLoading(true);
+    try {
+      await leaveClub(club.id, token);
+      CacheService.clearMyClubs();
+    } catch {
+      setIsMember(true);
+      setClub((prev) =>
+        prev ? { ...prev, members_count: prev.members_count + 1 } : prev,
+      );
+      Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
+    } finally {
+      setMembershipLoading(false);
+    }
+  }, [club, token, user, membershipLoading]);
+
+  const listData = useMemo<(ClubPost | ClubEvent)[]>(
+    () => (activeTab === 'posts' ? posts : events),
+    [activeTab, posts, events],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: ClubPost | ClubEvent }) => {
-      if (activeTab === 'posts') {
+      if ('user_has_liked' in item) {
         return (
           <PostCard
             post={item as ClubPost}
@@ -183,116 +267,148 @@ export default function ClubDetailScreen() {
         />
       );
     },
-    [activeTab, id, token, router, club?.id],
+    [id, token, router, club?.id],
   );
 
-  const ListHeader = useCallback(() => {
-    if (!club) return null;
-    return (
-      <>
-        {/* Hero */}
-        <View style={styles.hero}>
-          {club.cover_image ? (
-            <ExpoImage
-              source={{ uri: club.cover_image }}
+  const ListHeader = useMemo(() => {
+    function Header() {
+      if (!club) return null;
+      return (
+        <>
+          {/* Hero */}
+          <View style={styles.hero}>
+            {club.cover_image ? (
+              <ExpoImage
+                source={{ uri: club.cover_image }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.heroPlaceholder]} />
+            )}
+            <LinearGradient
+              colors={['rgba(0,49,114,0)', 'rgba(0,49,114,0.6)']}
               style={StyleSheet.absoluteFill}
-              contentFit="cover"
             />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.heroPlaceholder]} />
-          )}
-          <LinearGradient
-            colors={['rgba(0,49,114,0)', 'rgba(0,49,114,0.6)']}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
+          </View>
 
-        {/* Profile section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileTop}>
-            <View style={styles.avatarWrap}>
-              {club.profile_image ? (
-                <ExpoImage
-                  source={{ uri: club.profile_image }}
-                  style={styles.avatarImg}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.avatarFallback}>
-                  <Text style={styles.avatarInitials}>
-                    {getInitials(club.name)}
-                  </Text>
+          {/* Profile section */}
+          <View style={styles.profileSection}>
+            <View style={styles.profileTop}>
+              <View style={styles.avatarWrap}>
+                {club.profile_image ? (
+                  <ExpoImage
+                    source={{ uri: club.profile_image }}
+                    style={styles.avatarImg}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarInitials}>
+                      {getInitials(club.name)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {isLeader ? (
+                <View style={styles.memberBadge}>
+                  <Text style={styles.memberBadgeText}>Administrador</Text>
                 </View>
+              ) : isMember ? (
+                <TouchableOpacity
+                  style={styles.memberBadge}
+                  onPress={() => leaveSheetRef.current?.present()}
+                  activeOpacity={0.75}
+                  disabled={membershipLoading}
+                >
+                  <Text style={styles.memberBadgeText}>Miembro</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.joinBadge}
+                  onPress={handleJoin}
+                  activeOpacity={0.75}
+                  disabled={membershipLoading}
+                >
+                  <Text style={styles.joinBadgeText}>Unirse</Text>
+                </TouchableOpacity>
               )}
             </View>
 
-            <View style={styles.memberBadge}>
-              <Text style={styles.memberBadgeText}>Miembro</Text>
+            <View style={styles.nameBlock}>
+              <Text style={styles.clubName}>{club.name}</Text>
+              <Text style={styles.clubDesc}>{club.description}</Text>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.statsBar}>
+              <TouchableOpacity
+                style={styles.stat}
+                onPress={() =>
+                  router.push({
+                    pathname: '/club/members' as never,
+                    params: { id: club.id },
+                  })
+                }
+                activeOpacity={0.7}
+              >
+                <Text style={styles.statNumber}>{club.members_count}</Text>
+                <Text style={styles.statLabel}>MIEMBROS</Text>
+              </TouchableOpacity>
+
+              <View style={styles.stat}>
+                <Text style={styles.statNumber}>{posts.length}</Text>
+                <Text style={styles.statLabel}>PUBLICACIONES</Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.nameBlock}>
-            <Text style={styles.clubName}>{club.name}</Text>
-            <Text style={styles.clubDesc}>{club.description}</Text>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.statsBar}>
-            <TouchableOpacity
-              style={styles.stat}
-              onPress={() =>
-                router.push({
-                  pathname: '/club/members' as never,
-                  params: { id: club.id },
-                })
-              }
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statNumber}>{club.members_count}</Text>
-              <Text style={styles.statLabel}>MIEMBROS</Text>
-            </TouchableOpacity>
-
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>PUBLICACIONES</Text>
+          {/* Tab switcher */}
+          <View style={styles.tabsWrap}>
+            <View style={styles.tabs}>
+              <Pressable
+                style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+                onPress={() => setActiveTab('posts')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'posts' && styles.tabTextActive,
+                  ]}
+                >
+                  Publicaciones
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.tab, activeTab === 'events' && styles.tabActive]}
+                onPress={() => setActiveTab('events')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'events' && styles.tabTextActive,
+                  ]}
+                >
+                  Eventos
+                </Text>
+              </Pressable>
             </View>
           </View>
-        </View>
-
-        {/* Tab switcher */}
-        <View style={styles.tabsWrap}>
-          <View style={styles.tabs}>
-            <Pressable
-              style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-              onPress={() => setActiveTab('posts')}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'posts' && styles.tabTextActive,
-                ]}
-              >
-                Publicaciones
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-              onPress={() => setActiveTab('events')}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'events' && styles.tabTextActive,
-                ]}
-              >
-                Eventos
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </>
-    );
-  }, [club, posts.length, activeTab, router]);
+        </>
+      );
+    }
+    return Header;
+  }, [
+    club,
+    posts.length,
+    router,
+    activeTab,
+    isMember,
+    isLeader,
+    membershipLoading,
+    handleJoin,
+  ]);
 
   if (loading) {
     return (
@@ -341,7 +457,7 @@ export default function ClubDetailScreen() {
         }}
         onEndReachedThreshold={0.45}
         ItemSeparatorComponent={() => <View style={styles.cardGap} />}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={ListHeader()}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
             {activeTab === 'posts'
@@ -366,7 +482,7 @@ export default function ClubDetailScreen() {
         }
       />
 
-      {(activeTab === 'posts' || isLeader) && (
+      {(isMember || isLeader) && (activeTab === 'posts' || isLeader) && (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 24 }]}
           onPress={() => {
@@ -387,6 +503,39 @@ export default function ClubDetailScreen() {
           <Ionicons name="add" size={32} color={colors.gray900} />
         </TouchableOpacity>
       )}
+
+      <AppBottomSheet ref={leaveSheetRef}>
+        <View style={styles.leaveSheetContainer}>
+          <View style={styles.leaveSheetIconWrap}>
+            <Ionicons
+              name="exit-outline"
+              size={48}
+              color={colors.bluePrimary}
+            />
+          </View>
+          <Text style={styles.leaveSheetTitle}>¿Salir del club?</Text>
+          <Text style={styles.leaveSheetMessage}>
+            Dejarás de ser miembro y ya no podrás ver el contenido exclusivo ni
+            publicar en este club.
+          </Text>
+          <View style={styles.leaveSheetActions}>
+            <TouchableOpacity
+              style={styles.leaveConfirmButton}
+              onPress={handleLeave}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.leaveConfirmText}>Salir del club</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.leaveCancelButton}
+              onPress={() => leaveSheetRef.current?.dismiss()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.leaveCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </AppBottomSheet>
     </View>
   );
 }
@@ -488,6 +637,88 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.manropeBold,
     color: colors.gray950,
     lineHeight: 20,
+  },
+  joinBadge: {
+    backgroundColor: colors.bluePrimary,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    shadowColor: colors.blueSecondary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  joinBadgeText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.white,
+    lineHeight: 20,
+  },
+
+  // Leave sheet
+  leaveSheetContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  leaveSheetIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: colors.bluePrimaryLight,
+    backgroundColor: colors.white,
+    shadowColor: colors.bluePrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 4,
+    marginBottom: 24,
+  },
+  leaveSheetTitle: {
+    fontSize: 26,
+    fontFamily: typography.fontFamily.manropeExtraBold,
+    color: colors.bluePrimary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  leaveSheetMessage: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray950,
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 290,
+    marginBottom: 32,
+  },
+  leaveSheetActions: {
+    width: '100%',
+    gap: 12,
+  },
+  leaveConfirmButton: {
+    backgroundColor: colors.bluePrimary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaveConfirmText: {
+    color: colors.white,
+    fontSize: 18,
+    fontFamily: typography.fontFamily.manropeBold,
+  },
+  leaveCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaveCancelText: {
+    color: colors.bluePrimary,
+    fontSize: 16,
+    fontFamily: typography.fontFamily.manropeBold,
   },
   nameBlock: {
     paddingTop: 8,

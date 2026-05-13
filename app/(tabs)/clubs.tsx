@@ -7,12 +7,14 @@ import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useClubs } from '@/hooks/useClubs';
+import { useRecentClubIds } from '@/hooks/useRecentClubIds';
 import { useSearch } from '@/hooks/useSearch';
 import { joinClub } from '@/services/clubService';
+import { ClubResponse } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -42,6 +44,16 @@ export default function ClubsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const { myClubs, discoverClubs, loading, refetch } = useClubs();
+  const recentIds = useRecentClubIds();
+
+  const sortedMyClubs = useMemo(() => {
+    const recentSet = new Set(recentIds);
+    const recent = recentIds
+      .map((id) => myClubs.find((c) => c.id === id))
+      .filter((c): c is ClubResponse => c !== undefined);
+    const rest = myClubs.filter((c) => !recentSet.has(c.id));
+    return [...recent, ...rest];
+  }, [myClubs, recentIds]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -69,7 +81,7 @@ export default function ClubsScreen() {
   };
 
   const filteredDiscoverClubs = useSearch(searchQuery, discoverClubs, 'name');
-  const filteredMyClubs = useSearch(searchQuery, myClubs, 'name');
+  const filteredMyClubs = useSearch(searchQuery, sortedMyClubs, 'name');
 
   const scrollPaddingBottom = insets.bottom + 130;
   const fabBottom = insets.bottom + 96;

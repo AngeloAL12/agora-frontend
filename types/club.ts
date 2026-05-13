@@ -7,6 +7,7 @@ export interface ClubResponse {
   id_category: number;
   id_leader: number;
   members_count: number;
+  user_is_member?: boolean;
 }
 
 export interface ClubCategory {
@@ -55,7 +56,7 @@ export interface PostComment {
   id_post: number;
   content: string;
   created_at: string;
-  user: { id: number; name: string; photo?: string | null };
+  user: { id: number; name: string; photo: string | null };
 }
 
 export interface CreateEventPayload {
