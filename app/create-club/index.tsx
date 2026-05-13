@@ -30,8 +30,10 @@ export default function CreateClubFlow() {
   const [description, setDescription] = useState('');
   const [idCategory, setIdCategory] = useState<number | null>(null);
   const [categories, setCategories] = useState<ClubCategory[]>([]);
-  const [logoUri, setLogoUri] = useState<string | null>(null);
-  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [logoAsset, setLogoAsset] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [coverAsset, setCoverAsset] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,8 +57,8 @@ export default function CreateClubFlow() {
     });
 
     if (!result.canceled) {
-      if (type === 'logo') setLogoUri(result.assets[0].uri);
-      else setCoverUri(result.assets[0].uri);
+      if (type === 'logo') setLogoAsset(result.assets[0]);
+      else setCoverAsset(result.assets[0]);
     }
   };
 
@@ -85,19 +87,19 @@ export default function CreateClubFlow() {
         formData.append('description', description);
         formData.append('id_category', idCategory!.toString());
 
-        if (logoUri) {
+        if (logoAsset) {
           formData.append('profile_image', {
-            uri: logoUri,
-            name: 'photo.jpg',
-            type: 'image/jpeg',
+            uri: logoAsset.uri,
+            name: logoAsset.fileName || 'photo.jpg',
+            type: logoAsset.mimeType || 'image/jpeg',
           } as unknown as Blob);
         }
 
-        if (coverUri) {
+        if (coverAsset) {
           formData.append('cover_image', {
-            uri: coverUri,
-            name: 'cover.jpg',
-            type: 'image/jpeg',
+            uri: coverAsset.uri,
+            name: coverAsset.fileName || 'cover.jpg',
+            type: coverAsset.mimeType || 'image/jpeg',
           } as unknown as Blob);
         }
 
@@ -221,9 +223,9 @@ export default function CreateClubFlow() {
                 <View style={styles.sectionCard}>
                   <View style={styles.logoWrapper}>
                     <View style={[styles.logoCircle, { overflow: 'hidden' }]}>
-                      {logoUri && (
+                      {logoAsset && (
                         <Image
-                          source={{ uri: logoUri }}
+                          source={{ uri: logoAsset.uri }}
                           style={styles.fullImage}
                         />
                       )}
@@ -252,14 +254,14 @@ export default function CreateClubFlow() {
                   >
                     <Image
                       source={
-                        coverUri
-                          ? { uri: coverUri }
+                        coverAsset
+                          ? { uri: coverAsset.uri }
                           : require('../../assets/images/Background.png')
                       }
                       style={
-                        coverUri ? styles.fullImage : styles.coverPlaceholder
+                        coverAsset ? styles.fullImage : styles.coverPlaceholder
                       }
-                      resizeMode={coverUri ? 'cover' : 'contain'}
+                      resizeMode={coverAsset ? 'cover' : 'contain'}
                     />
                   </TouchableOpacity>
                   <Text style={styles.selectFileText}>Seleccionar archivo</Text>
