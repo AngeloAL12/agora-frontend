@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { Image as ExpoImage, type ImageSource } from 'expo-image';
@@ -111,6 +112,7 @@ export function FloatingTabBar({
               : (descriptor?.options.title ?? route.name);
 
           const onPress = () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
