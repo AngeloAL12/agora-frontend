@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import React, { forwardRef } from 'react';
@@ -16,6 +17,7 @@ const ConfirmSubmitSheet = forwardRef<
   ConfirmSubmitSheetProps
 >(({ onConfirm, isLoading }, ref) => {
   const handlePressConfirm = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onConfirm();
     if (ref && 'current' in ref && ref.current) {
       ref.current.dismiss();
@@ -23,6 +25,7 @@ const ConfirmSubmitSheet = forwardRef<
   };
 
   const handlePressCancel = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (ref && 'current' in ref && ref.current) {
       ref.current.dismiss();
     }

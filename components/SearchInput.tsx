@@ -63,5 +63,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: typography.fontFamily.interRegular,
     color: colors.gray950,
+    paddingVertical: 0,
   },
 });

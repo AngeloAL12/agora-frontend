@@ -58,12 +58,14 @@ const SuccessBottomSheet = React.forwardRef<
               size="large"
             />
 
-            <Pressable
-              onPress={onSecondaryPress}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
-            </Pressable>
+            {secondaryLabel ? (
+              <Pressable
+                onPress={onSecondaryPress}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </AppBottomSheet>

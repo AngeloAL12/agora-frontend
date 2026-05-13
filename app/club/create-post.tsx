@@ -114,7 +114,11 @@ export default function CreatePostScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.blueDark} />
           </Pressable>
 
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text
+            style={styles.headerTitle}
+            numberOfLines={1}
+            pointerEvents="none"
+          >
             Crear publicación
           </Text>
 
