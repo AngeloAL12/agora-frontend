@@ -4,7 +4,9 @@ import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -54,33 +56,36 @@ export default function CreateEventScreen() {
   const pendingDateRef = useRef<Date | null>(null);
 
   function openPicker(target: PickerTarget) {
+    Keyboard.dismiss();
     pendingDateRef.current = null;
     setPicker({ target, mode: 'date' });
   }
 
   function handlePickerChange(_: unknown, selected?: Date) {
-    if (!picker) return;
+    if (!picker || !selected) return;
+    pendingDateRef.current = selected;
+  }
 
-    if (!selected) {
-      setPicker(null);
-      return;
-    }
+  function confirmPicker() {
+    if (!picker || !pendingDateRef.current) return;
 
     if (picker.mode === 'date') {
-      pendingDateRef.current = selected;
-      if (Platform.OS === 'android') {
+      if (Platform.OS === 'ios') {
         setPicker({ target: picker.target, mode: 'time' });
       } else {
-        finalizeDateTime(picker.target, selected);
-        setPicker(null);
+        setPicker({ target: picker.target, mode: 'time' });
       }
     } else {
-      const base = pendingDateRef.current ?? new Date();
-      const combined = new Date(base);
-      combined.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-      finalizeDateTime(picker.target, combined);
+      const base = pendingDateRef.current;
+      finalizeDateTime(picker.target, base);
       setPicker(null);
+      pendingDateRef.current = null;
     }
+  }
+
+  function cancelPicker() {
+    setPicker(null);
+    pendingDateRef.current = null;
   }
 
   function finalizeDateTime(target: PickerTarget, date: Date) {
@@ -274,14 +279,48 @@ export default function CreateEventScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {picker && (
+      {picker && Platform.OS === 'ios' && (
+        <Modal transparent animationType="fade">
+          <View style={styles.pickerOverlay}>
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={pickerValue}
+                mode={picker.mode}
+                display="spinner"
+                minimumDate={pickerMin}
+                onChange={handlePickerChange}
+                textColor={colors.gray950}
+              />
+              <View style={styles.pickerActions}>
+                <TouchableOpacity
+                  style={[styles.pickerBtn, styles.pickerBtnCancel]}
+                  onPress={cancelPicker}
+                >
+                  <Text style={styles.pickerBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pickerBtn, styles.pickerBtnConfirm]}
+                  onPress={confirmPicker}
+                >
+                  <Text
+                    style={[styles.pickerBtnText, styles.pickerBtnTextConfirm]}
+                  >
+                    Confirmar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {picker && Platform.OS !== 'ios' && (
         <DateTimePicker
           value={pickerValue}
           mode={picker.mode}
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           minimumDate={pickerMin}
           onChange={handlePickerChange}
-          locale="es"
         />
       )}
 
@@ -290,11 +329,11 @@ export default function CreateEventScreen() {
         title="¡Bien hecho!"
         message="Tu nuevo Evento ha sido creado."
         primaryLabel="Listo"
+        secondaryLabel=""
         onPrimaryPress={() => {
           successRef.current?.dismiss();
           router.back();
         }}
-        onDismiss={() => router.back()}
       />
     </View>
   );
@@ -413,5 +452,40 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.manropeBold,
     color: colors.white,
     lineHeight: 28,
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerContainer: {
+    backgroundColor: colors.white,
+    paddingBottom: 20,
+  },
+  pickerActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 12,
+  },
+  pickerBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  pickerBtnCancel: {
+    backgroundColor: colors.gray100,
+  },
+  pickerBtnConfirm: {
+    backgroundColor: colors.bluePrimary,
+  },
+  pickerBtnText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.gray700,
+  },
+  pickerBtnTextConfirm: {
+    color: colors.white,
   },
 });
