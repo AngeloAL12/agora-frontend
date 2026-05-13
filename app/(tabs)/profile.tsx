@@ -1,23 +1,18 @@
+import ImageViewer from '@/components/ImageViewer';
 import { CacheService } from '@/services/cacheService';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { getMe, UserProfileResponse } from '../../services/authService';
 import { useComplaints } from '../../hooks/useComplaints';
-import { useFocusEffect } from '@react-navigation/native';
-import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
+import { getMe, UserProfileResponse } from '../../services/authService';
 
 // SVG Icons
 const editIcon = require('@/assets/icons/profile/edit.svg');
@@ -99,6 +94,7 @@ export default function ProfileScreen() {
   const [meData, setMeData] = useState<UserProfileResponse | null>(null);
   const [isLoadingMe, setIsLoadingMe] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<ProfileCache | null>(null);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const avatarSource =
     meData?.avatar_url ?? meData?.photo ?? cachedProfile?.avatar_url ?? null;
   const resolvedName =
@@ -197,7 +193,7 @@ export default function ProfileScreen() {
     <View style={styles.sectionContainer}>
       <View style={styles.menuContainer}>
         {/* Botón: Editar Información */}
-        <TouchableOpacity
+        <Pressable
           style={styles.menuItem}
           onPress={() => router.push('/edit-info')}
         >
@@ -212,10 +208,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Editar información</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.gray700} />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Botón: Preferencias */}
-        <TouchableOpacity
+        <Pressable
           style={styles.menuItem}
           onPress={() => router.push('/preferences')}
         >
@@ -230,10 +226,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Preferencias</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.gray700} />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Botón: Ayuda y soporte */}
-        <TouchableOpacity style={styles.menuItem}>
+        <Pressable style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
               <ExpoImage
@@ -244,17 +240,17 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.menuItemText}>Ayuda y soporte</Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={() => logout()}>
+      <Pressable style={styles.logoutButton} onPress={() => logout()}>
         <ExpoImage
           source={exitIcon}
           style={styles.logoutIcon}
           contentFit="contain"
         />
         <Text style={styles.logoutText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -272,12 +268,12 @@ export default function ProfileScreen() {
               No pudimos cargar la actividad
             </Text>
             <Text style={styles.activityEmptyText}>{complaintsError}</Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.activityRetryButton}
               onPress={() => void refetchComplaints(true)}
             >
               <Text style={styles.activityRetryText}>Reintentar</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ) : recentActivity.length === 0 ? (
           <View style={styles.activityEmptyState}>
@@ -330,22 +326,26 @@ export default function ProfileScreen() {
         <View style={styles.heroShadowContainer}>
           <View style={styles.heroContent}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatarPlaceholder}>
-                {avatarSource ? (
-                  <ExpoImage
-                    source={avatarSource}
-                    style={{ width: 96, height: 96, borderRadius: 48 }}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {meData?.full_name?.charAt(0).toUpperCase() ||
-                      meData?.name?.charAt(0).toUpperCase() ||
-                      user?.name?.charAt(0).toUpperCase() ||
-                      'A'}
-                  </Text>
-                )}
-              </View>
+              <Pressable
+                onPress={() => avatarSource && setShowAvatarViewer(true)}
+              >
+                <View style={styles.avatarPlaceholder}>
+                  {avatarSource ? (
+                    <ExpoImage
+                      source={avatarSource}
+                      style={{ width: 96, height: 96, borderRadius: 48 }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {meData?.full_name?.charAt(0).toUpperCase() ||
+                        meData?.name?.charAt(0).toUpperCase() ||
+                        user?.name?.charAt(0).toUpperCase() ||
+                        'A'}
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
             </View>
             <View style={styles.userInfo}>
               <Text
@@ -390,7 +390,7 @@ export default function ProfileScreen() {
       >
         {/* Tabs */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.tabButton,
               activeTab === 'info'
@@ -409,8 +409,8 @@ export default function ProfileScreen() {
             >
               Información
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[
               styles.tabButton,
               activeTab === 'activity'
@@ -429,12 +429,21 @@ export default function ProfileScreen() {
             >
               Actividad
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Tab Content */}
         {activeTab === 'info' ? renderInfoTab() : renderActivityTab()}
       </ScrollView>
+
+      <ImageViewer
+        visible={showAvatarViewer}
+        images={
+          avatarSource ? [{ id: 'avatar', url: String(avatarSource) }] : []
+        }
+        selectedIndex={0}
+        onClose={() => setShowAvatarViewer(false)}
+      />
     </View>
   );
 }
