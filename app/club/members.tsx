@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -32,6 +33,9 @@ import { ClubMember } from '@/types/club';
 type Filter = 'all' | 'leaders';
 type PendingAction = 'expel' | 'promote';
 
+const MENU_WIDTH = 200;
+const MENU_HEIGHT = 100; // approximate: two rows + divider
+
 export default function MembersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -44,7 +48,8 @@ export default function MembersScreen() {
   const [isLeader, setIsLeader] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [menuMemberId, setMenuMemberId] = useState<number | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [pendingMemberId, setPendingMemberId] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>('expel');
   const [acting, setActing] = useState(false);
@@ -53,7 +58,7 @@ export default function MembersScreen() {
     if (!id || !token) return;
     try {
       const [club, data] = await Promise.all([
-        getClubById(id),
+        getClubById(id, token),
         getClubMembers(Number(id), token),
       ]);
       setMembers(data);
@@ -71,31 +76,32 @@ export default function MembersScreen() {
 
   const filtered =
     filter === 'leaders' ? members.filter((m) => m.is_leader) : members;
-
   const searched = useSearch(searchQuery, filtered, 'name');
 
-  function toggleMenu(memberId: number) {
-    setMenuMemberId((prev) => (prev === memberId ? null : memberId));
+  function openMenu(
+    memberId: number,
+    position: { pageX: number; pageY: number },
+  ) {
+    setPendingMemberId(memberId);
+    // Position the menu to the left of the tap so it doesn't go off-screen
+    setMenuPos({
+      top: position.pageY - MENU_HEIGHT / 2,
+      right: 16,
+    });
+    setMenuVisible(true);
   }
 
   function closeMenu() {
-    setMenuMemberId(null);
+    setMenuVisible(false);
   }
 
-  function handleActionPress(memberId: number, action: PendingAction) {
+  function handleActionPress(action: PendingAction) {
     closeMenu();
-    setPendingMemberId(memberId);
     setPendingAction(action);
     confirmRef.current?.present();
   }
 
   async function confirmAction() {
-    console.log('[members] confirmAction called', {
-      pendingMemberId,
-      pendingAction,
-      id,
-      hasToken: !!token,
-    });
     if (!pendingMemberId || !token || !id) return;
     setActing(true);
     try {
@@ -105,15 +111,11 @@ export default function MembersScreen() {
       } else {
         await transferLeader(Number(id), pendingMemberId, token);
         setMembers((prev) =>
-          prev.map((m) => ({
-            ...m,
-            is_leader: m.id === pendingMemberId,
-          })),
+          prev.map((m) => ({ ...m, is_leader: m.id === pendingMemberId })),
         );
         setIsLeader(false);
       }
     } catch (err: unknown) {
-      console.log('[members] confirmAction error', err);
       const detail =
         err && typeof err === 'object' && 'detail' in err
           ? String((err as { detail: unknown }).detail)
@@ -162,10 +164,6 @@ export default function MembersScreen() {
         containerStyle={styles.header}
       />
 
-      {menuMemberId !== null && (
-        <Pressable style={styles.menuBackdrop} onPress={closeMenu} />
-      )}
-
       <View style={[styles.main, { paddingBottom: insets.bottom + 16 }]}>
         <SearchInput
           placeholder="Buscar miembros..."
@@ -174,7 +172,6 @@ export default function MembersScreen() {
           placeholderTextColor={colors.searchPlaceholder}
         />
 
-        {/* Filter chips */}
         <View style={styles.chips}>
           <TouchableOpacity
             style={[styles.chip, filter === 'all' && styles.chipActive]}
@@ -211,52 +208,11 @@ export default function MembersScreen() {
           data={searched}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <MemberCard
-                member={item}
-                showOptions={isLeader && !item.is_leader}
-                onOptionsPress={() => toggleMenu(item.id)}
-              />
-
-              {/* Inline context menu */}
-              {menuMemberId === item.id && (
-                <View style={styles.menu}>
-                  <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => handleActionPress(item.id, 'promote')}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.menuIconWrap}>
-                      <ExpoImage
-                        source={require('@/assets/icons/clubs/moderator_shield.svg')}
-                        style={styles.menuIcon}
-                        contentFit="contain"
-                        tintColor={colors.gray950}
-                      />
-                    </View>
-                    <Text style={styles.menuItemText}>Dar moderador</Text>
-                  </TouchableOpacity>
-                  <View style={styles.menuDivider} />
-                  <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => handleActionPress(item.id, 'expel')}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.menuIconWrap}>
-                      <ExpoImage
-                        source={require('@/assets/icons/clubs/remove_user.svg')}
-                        style={styles.menuIcon}
-                        contentFit="contain"
-                        tintColor={colors.errorText}
-                      />
-                    </View>
-                    <Text style={[styles.menuItemText, styles.menuItemDanger]}>
-                      Expulsar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+            <MemberCard
+              member={item}
+              showOptions={isLeader && !item.is_leader}
+              onOptionsPress={(pos) => openMenu(item.id, pos)}
+            />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           showsVerticalScrollIndicator={false}
@@ -267,6 +223,53 @@ export default function MembersScreen() {
         />
       </View>
 
+      {/* Dropdown menu using Modal — same pattern as career dropdown */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeMenu}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeMenu} />
+        <View style={[styles.menu, { top: menuPos.top, right: menuPos.right }]}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleActionPress('promote')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuIconWrap}>
+              <ExpoImage
+                source={require('@/assets/icons/clubs/moderator_shield.svg')}
+                style={styles.menuIcon}
+                contentFit="contain"
+                tintColor={colors.gray950}
+              />
+            </View>
+            <Text style={styles.menuItemText}>Dar moderador</Text>
+          </TouchableOpacity>
+
+          <View style={styles.menuDivider} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleActionPress('expel')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuIconWrap}>
+              <ExpoImage
+                source={require('@/assets/icons/clubs/remove_user.svg')}
+                style={styles.menuIcon}
+                contentFit="contain"
+                tintColor={colors.errorText}
+              />
+            </View>
+            <Text style={[styles.menuItemText, styles.menuItemDanger]}>
+              Expulsar
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
       <ConfirmBottomSheet
         ref={confirmRef}
         title={confirmTitle}
@@ -274,8 +277,10 @@ export default function MembersScreen() {
         confirmLabel={confirmLabel}
         cancelLabel="Cancelar"
         onConfirm={confirmAction}
-        onCancel={() => confirmRef.current?.dismiss()}
-        onDismiss={() => setPendingMemberId(null)}
+        onCancel={() => {
+          confirmRef.current?.dismiss();
+          setPendingMemberId(null);
+        }}
       />
     </View>
   );
@@ -311,27 +316,16 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  chipActive: {
-    backgroundColor: colors.bluePrimary,
-  },
+  chipActive: { backgroundColor: colors.bluePrimary },
   chipText: {
     fontSize: 12,
     fontFamily: typography.fontFamily.interBold,
     color: colors.gray950,
     lineHeight: 16,
   },
-  chipTextActive: {
-    color: colors.white,
-  },
-  listContent: {
-    paddingBottom: 8,
-  },
-  cardWrap: {
-    position: 'relative',
-  },
-  separator: {
-    height: 8,
-  },
+  chipTextActive: { color: colors.white },
+  listContent: { paddingBottom: 8 },
+  separator: { height: 8 },
   emptyText: {
     textAlign: 'center',
     color: colors.gray700,
@@ -339,11 +333,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 32,
   },
+
+  // Dropdown menu
   menu: {
     position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 192,
+    width: MENU_WIDTH,
     backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
@@ -353,13 +347,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,
-    zIndex: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 1,
+    paddingVertical: 4,
   },
   menuItem: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -369,12 +361,8 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
-  menuIcon: {
-    width: 18,
-    height: 18,
-  },
+  menuIcon: { width: 18, height: 18 },
   menuItemText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.interRegular,
@@ -387,9 +375,5 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: 1,
     backgroundColor: colors.borderSubtle20,
-  },
-  menuBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 5,
   },
 });

@@ -16,7 +16,7 @@ function getInitials(name: string): string {
 interface MemberCardProps {
   member: ClubMember;
   showOptions?: boolean;
-  onOptionsPress?: () => void;
+  onOptionsPress?: (position: { pageX: number; pageY: number }) => void;
 }
 
 export default function MemberCard({
@@ -70,7 +70,12 @@ export default function MemberCard({
       {showOptions && (
         <TouchableOpacity
           style={styles.optionsBtn}
-          onPress={onOptionsPress}
+          onPress={(e) =>
+            onOptionsPress?.({
+              pageX: e.nativeEvent.pageX,
+              pageY: e.nativeEvent.pageY,
+            })
+          }
           activeOpacity={0.6}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
