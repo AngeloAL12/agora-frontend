@@ -1,15 +1,21 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { useAuth } from '@/context/AuthContext';
+import { CacheService } from '@/services/cacheService';
 import { createClub, getClubCategories } from '@/services/clubService';
+import { recordClubVisit } from '@/services/recentClubsService';
 import { ClubCategory } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Stack, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -23,7 +29,7 @@ import { theme } from '../../constants/theme';
 
 export default function CreateClubFlow() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -33,6 +39,17 @@ export default function CreateClubFlow() {
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingLogoUri, setPendingLogoUri] = useState<string | null>(null);
+  const progressAnim = useRef(new Animated.Value(50)).current;
+  const successSheetRef = useRef<BottomSheetModal>(null);
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: step === 1 ? 50 : 100,
+      duration: 350,
+      useNativeDriver: false,
+    }).start();
+  }, [step]);
 
   useEffect(() => {
     getClubCategories()
@@ -55,7 +72,7 @@ export default function CreateClubFlow() {
     });
 
     if (!result.canceled) {
-      if (type === 'logo') setLogoUri(result.assets[0].uri);
+      if (type === 'logo') setPendingLogoUri(result.assets[0].uri);
       else setCoverUri(result.assets[0].uri);
     }
   };
@@ -103,9 +120,10 @@ export default function CreateClubFlow() {
 
         const result = await createClub(formData, token);
         if (result?.id) {
-          Alert.alert('¡Éxito!', 'Club creado correctamente', [
-            { text: 'OK', onPress: () => router.replace('/clubs') },
-          ]);
+          CacheService.clearMyClubs();
+          CacheService.clearAllClubs();
+          if (user?.id) void recordClubVisit(result.id, user.id);
+          successSheetRef.current?.present();
         }
       } catch (error: unknown) {
         const e = error as { detail?: string; message?: string };
@@ -129,11 +147,16 @@ export default function CreateClubFlow() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <ScreenHeader
           title="Crear club"
           variant="white"
-          containerStyle={{ elevation: 0, borderBottomWidth: 0 }}
+          containerStyle={{
+            elevation: 0,
+            borderBottomWidth: 0,
+            shadowOpacity: 0,
+          }}
           leftAction={
             <Pressable onPress={handleBack} style={{ padding: 8 }}>
               <Ionicons name="arrow-back" size={24} color="#192A56" />
@@ -153,10 +176,15 @@ export default function CreateClubFlow() {
               <Text style={styles.stepCount}>{step} de 2</Text>
             </View>
             <View style={styles.progressBarBackground}>
-              <View
+              <Animated.View
                 style={[
                   styles.progressBarFill,
-                  { width: step === 1 ? '50%' : '100%' },
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
                 ]}
               />
             </View>
@@ -245,28 +273,53 @@ export default function CreateClubFlow() {
 
               <View style={styles.sectionContainer}>
                 <Text style={styles.label}>FOTO DE PORTADA</Text>
-                <View style={styles.sectionCard}>
+                {coverUri ? (
                   <TouchableOpacity
-                    style={[styles.coverWrapper, { overflow: 'hidden' }]}
+                    style={styles.coverPreviewWrapper}
                     onPress={() => pickImage('cover')}
+                    activeOpacity={0.85}
                   >
                     <Image
-                      source={
-                        coverUri
-                          ? { uri: coverUri }
-                          : require('../../assets/images/Background.png')
-                      }
-                      style={
-                        coverUri ? styles.fullImage : styles.coverPlaceholder
-                      }
-                      resizeMode={coverUri ? 'cover' : 'contain'}
+                      source={{ uri: coverUri }}
+                      style={styles.coverPreviewImage}
+                      resizeMode="cover"
                     />
+                    <View style={styles.coverEditOverlay}>
+                      <Pressable
+                        style={styles.coverDeleteBadge}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setCoverUri(null);
+                        }}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="close" size={14} color="#fff" />
+                      </Pressable>
+                      <View style={styles.coverEditBadge}>
+                        <Ionicons name="pencil" size={14} color="#fff" />
+                      </View>
+                    </View>
                   </TouchableOpacity>
-                  <Text style={styles.selectFileText}>Seleccionar archivo</Text>
-                  <Text style={styles.helperText}>
-                    Mínimo recomendado: 1200px x 400px.
-                  </Text>
-                </View>
+                ) : (
+                  <View style={styles.sectionCard}>
+                    <TouchableOpacity
+                      style={[styles.coverWrapper, { overflow: 'hidden' }]}
+                      onPress={() => pickImage('cover')}
+                    >
+                      <Image
+                        source={require('../../assets/images/Background.png')}
+                        style={styles.coverPlaceholder}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.selectFileText}>
+                      Seleccionar archivo
+                    </Text>
+                    <Text style={styles.helperText}>
+                      Mínimo recomendado: 1200px x 400px.
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -291,6 +344,57 @@ export default function CreateClubFlow() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={!!pendingLogoUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPendingLogoUri(null)}
+      >
+        <View style={styles.circlePreviewOverlay}>
+          <View style={styles.circlePreviewCard}>
+            <Text style={styles.circlePreviewTitle}>Vista previa del logo</Text>
+            <View style={styles.circlePreviewImageWrapper}>
+              {pendingLogoUri && (
+                <Image
+                  source={{ uri: pendingLogoUri }}
+                  style={styles.circlePreviewImage}
+                />
+              )}
+            </View>
+            <Text style={styles.circlePreviewHint}>
+              Así se verá el logo del club
+            </Text>
+            <View style={styles.circlePreviewActions}>
+              <Pressable
+                style={styles.circlePreviewCancel}
+                onPress={() => setPendingLogoUri(null)}
+              >
+                <Text style={styles.circlePreviewCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={styles.circlePreviewConfirm}
+                onPress={() => {
+                  setLogoUri(pendingLogoUri);
+                  setPendingLogoUri(null);
+                }}
+              >
+                <Text style={styles.circlePreviewConfirmText}>Usar foto</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <SuccessBottomSheet
+        ref={successSheetRef}
+        title="¡Club creado!"
+        message="Tu club ha sido creado exitosamente. Ya puedes empezar a invitar miembros."
+        primaryLabel="Ver mis clubes"
+        secondaryLabel=""
+        onPrimaryPress={() => router.replace('/clubs')}
+        onDismiss={() => router.replace('/clubs')}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -407,6 +511,40 @@ const styles = StyleSheet.create({
   },
   coverPlaceholder: { width: '65%', height: '65%' },
   fullImage: { width: '100%', height: '100%' },
+  coverPreviewWrapper: {
+    width: '100%',
+    height: 140,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  coverPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverEditOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    padding: 10,
+    gap: 8,
+  },
+  coverDeleteBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#CC3333CC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coverEditBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#192A56CC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   plusCircle: {
     width: 32,
     height: 32,
@@ -428,7 +566,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 30,
     paddingTop: 10,
-    backgroundColor: '#F5F6F8',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   mainButton: {
@@ -443,4 +581,71 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   mainButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  circlePreviewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  circlePreviewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 28,
+    width: '100%',
+    alignItems: 'center',
+  },
+  circlePreviewTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#192A56',
+    marginBottom: 24,
+  },
+  circlePreviewImageWrapper: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+  },
+  circlePreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  circlePreviewHint: {
+    marginTop: 16,
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 24,
+  },
+  circlePreviewActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  circlePreviewCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  circlePreviewCancelText: {
+    fontSize: 15,
+    color: '#666',
+    fontWeight: '600',
+  },
+  circlePreviewConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#192A56',
+    alignItems: 'center',
+  },
+  circlePreviewConfirmText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
