@@ -1,6 +1,7 @@
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -10,7 +11,8 @@ import {
 } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
-import { likePost, unlikePost } from '@/services/clubService';
+import { useDebouncedLike } from '@/hooks/useDebouncedLike';
+import { useLikes } from '@/context/LikesContext';
 import { ClubPost } from '@/types/club';
 
 interface PostCardProps {
@@ -38,25 +40,68 @@ function timeAgo(dateStr: string): string {
 
 export default function PostCard({ post, clubId, token }: PostCardProps) {
   const router = useRouter();
-  const [liked, setLiked] = useState(post.user_has_liked);
-  const [likeCount, setLikeCount] = useState(post.like_count);
   const [avatarError, setAvatarError] = useState(false);
+  const { toggleLike } = useDebouncedLike();
+  const { getPost, setPost, setLike } = useLikes();
+  const lastTapRef = useRef(0);
+  const doubleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setPost(
+      clubId,
+      post.id,
+      post.user_has_liked,
+      post.like_count,
+      post.comment_count,
+    );
+  }, [
+    clubId,
+    post.id,
+    post.user_has_liked,
+    post.like_count,
+    post.comment_count,
+    setPost,
+  ]);
+
+  const postState = getPost(clubId, post.id) ?? {
+    liked: post.user_has_liked,
+    likeCount: post.like_count,
+    commentCount: post.comment_count,
+  };
 
   async function handleLike() {
-    const wasLiked = liked;
-    // Optimistic update
-    setLiked(!wasLiked);
-    setLikeCount((c) => c + (wasLiked ? -1 : 1));
-    try {
-      const res = wasLiked
-        ? await unlikePost(clubId, post.id, token)
-        : await likePost(clubId, post.id, token);
-      setLikeCount(res.like_count);
-    } catch {
-      // Revert on error
-      setLiked(wasLiked);
-      setLikeCount((c) => c + (wasLiked ? 1 : -1));
+    toggleLike(
+      clubId,
+      post.id,
+      token,
+      postState.liked,
+      postState.likeCount,
+      setLike,
+    );
+  }
+
+  function handleDoubleTap() {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (doubleTapTimeoutRef.current) {
+      clearTimeout(doubleTapTimeoutRef.current);
+      doubleTapTimeoutRef.current = null;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (!postState.liked) {
+        handleLike();
+      }
+      return;
     }
+
+    doubleTapTimeoutRef.current = setTimeout(() => {
+      doubleTapTimeoutRef.current = null;
+      handleNavigateToPost();
+    }, DOUBLE_TAP_DELAY);
+
+    lastTapRef.current = now;
   }
 
   function handleNavigateToPost() {
@@ -70,7 +115,6 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
         content: post.content,
         createdAt: post.created_at,
         images: JSON.stringify(post.images),
-        likeCount: liked ? likeCount : post.like_count,
       },
     });
   }
@@ -80,7 +124,7 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [styles.card, { opacity: pressed ? 0.97 : 1 }]}
-      onPress={handleNavigateToPost}
+      onPress={handleDoubleTap}
     >
       <View style={styles.header}>
         {showAvatar ? (
@@ -125,12 +169,15 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
                 source={require('@/assets/icons/clubs/like_heart.svg')}
                 style={styles.actionIcon}
                 contentFit="contain"
-                tintColor={liked ? colors.bluePrimary : colors.gray700}
+                tintColor={postState.liked ? colors.error : colors.gray700}
               />
               <Text
-                style={[styles.actionCount, liked && styles.actionCountLiked]}
+                style={[
+                  styles.actionCount,
+                  postState.liked && styles.actionCountLiked,
+                ]}
               >
-                {likeCount}
+                {postState.likeCount}
               </Text>
             </TouchableOpacity>
 
@@ -141,7 +188,7 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
                 contentFit="contain"
                 tintColor={colors.gray700}
               />
-              <Text style={styles.actionCount}>{post.comment_count}</Text>
+              <Text style={styles.actionCount}>{postState.commentCount}</Text>
             </View>
           </View>
 
@@ -212,7 +259,7 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: 4 / 3,
   },
   body: {
     paddingHorizontal: 16,
@@ -250,6 +297,6 @@ const styles = StyleSheet.create({
     color: colors.gray700,
   },
   actionCountLiked: {
-    color: colors.bluePrimary,
+    color: colors.error,
   },
 });

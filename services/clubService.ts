@@ -17,8 +17,14 @@ export const getAllClubs = (token?: string): Promise<ClubResponse[]> =>
 export const getMyClubs = (token: string): Promise<ClubResponse[]> =>
   apiRequest({ method: 'GET', path: '/clubs/me', token });
 
-export const getClubById = (id: string | number): Promise<ClubResponse> =>
-  apiRequest({ method: 'GET', path: `/clubs/${id}` });
+export const getClubById = (
+  id: string | number,
+  token?: string,
+): Promise<ClubResponse> =>
+  apiRequest({ method: 'GET', path: `/clubs/${id}`, token });
+
+export const leaveClub = (clubId: number, token: string): Promise<void> =>
+  apiRequest({ method: 'DELETE', path: `/clubs/${clubId}/members/me`, token });
 
 export const getClubCategories = (): Promise<ClubCategory[]> =>
   apiRequest({ method: 'GET', path: '/clubs/categories' });
@@ -107,6 +113,7 @@ export const likePost = (
   apiRequest({
     method: 'POST',
     path: `/clubs/${clubId}/posts/${postId}/like`,
+    body: {},
     token,
   });
 
@@ -118,6 +125,7 @@ export const unlikePost = (
   apiRequest({
     method: 'DELETE',
     path: `/clubs/${clubId}/posts/${postId}/like`,
+    body: {},
     token,
   });
 

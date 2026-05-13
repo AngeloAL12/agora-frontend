@@ -13,20 +13,24 @@ import {
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import ImageViewer from '@/components/ImageViewer';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useLikes } from '@/context/LikesContext';
 import { createPostComment, getPostComments } from '@/services/clubService';
+import { useDebouncedLike } from '@/hooks/useDebouncedLike';
 import { ClubPostImage, PostComment } from '@/types/club';
 
 function getInitials(name: string): string {
@@ -56,6 +60,10 @@ interface PostHeaderProps {
   images: ClubPostImage[];
   commentCount: number;
   likeCount: number;
+  liked: boolean;
+  onLike: () => void;
+  onCommentPress: () => void;
+  onImagePress?: (index: number) => void;
 }
 
 function PostHeader({
@@ -66,9 +74,13 @@ function PostHeader({
   images,
   commentCount,
   likeCount,
+  liked,
+  onLike,
+  onCommentPress,
+  onImagePress,
 }: PostHeaderProps) {
   const [avatarError, setAvatarError] = useState(false);
-  const showAvatar = !!authorPhoto && !avatarError;
+  const showAvatar = !!authorPhoto && !avatarError && authorPhoto !== '';
 
   return (
     <View style={headerStyles.container}>
@@ -99,11 +111,13 @@ function PostHeader({
 
       {/* Single image */}
       {images.length === 1 && (
-        <ExpoImage
-          source={{ uri: images[0].url }}
-          style={headerStyles.singleImage}
-          contentFit="cover"
-        />
+        <Pressable onPress={() => onImagePress?.(0)}>
+          <ExpoImage
+            source={{ uri: images[0].url }}
+            style={headerStyles.singleImage}
+            contentFit="cover"
+          />
+        </Pressable>
       )}
 
       {/* Multiple images */}
@@ -113,29 +127,42 @@ function PostHeader({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={headerStyles.imageRow}
         >
-          {images.map((img) => (
-            <ExpoImage
-              key={img.id}
-              source={{ uri: img.url }}
-              style={headerStyles.multiImage}
-              contentFit="cover"
-            />
+          {images.map((img, index) => (
+            <Pressable key={img.id} onPress={() => onImagePress?.(index)}>
+              <ExpoImage
+                source={{ uri: img.url }}
+                style={headerStyles.multiImage}
+                contentFit="cover"
+              />
+            </Pressable>
           ))}
         </ScrollView>
       )}
 
       {/* Actions row */}
       <View style={headerStyles.actions}>
-        <View style={headerStyles.actionBtn}>
+        <Pressable
+          style={headerStyles.actionBtn}
+          onPress={onLike}
+          activeOpacity={0.7}
+        >
           <ExpoImage
             source={require('@/assets/icons/clubs/like_heart.svg')}
             style={headerStyles.actionIcon}
             contentFit="contain"
-            tintColor={colors.bluePrimary}
+            tintColor={liked ? colors.error : colors.gray700}
           />
-          <Text style={headerStyles.actionCount}>{likeCount}</Text>
-        </View>
-        <View style={headerStyles.actionBtn}>
+          <Text
+            style={[headerStyles.actionCount, liked && { color: colors.error }]}
+          >
+            {likeCount}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={headerStyles.actionBtn}
+          onPress={onCommentPress}
+          activeOpacity={0.7}
+        >
           <ExpoImage
             source={require('@/assets/icons/clubs/comment_post.svg')}
             style={headerStyles.actionIcon}
@@ -143,7 +170,7 @@ function PostHeader({
             tintColor={colors.gray700}
           />
           <Text style={headerStyles.actionCount}>{commentCount}</Text>
-        </View>
+        </Pressable>
       </View>
 
       {/* Comments divider */}
@@ -165,7 +192,6 @@ export default function PostCommentsScreen() {
     content,
     createdAt,
     images,
-    likeCount,
   } = useLocalSearchParams<{
     clubId: string;
     postId: string;
@@ -174,16 +200,20 @@ export default function PostCommentsScreen() {
     content: string;
     createdAt: string;
     images: string;
-    likeCount: string;
   }>();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { getPost, setLike, setPost } = useLikes();
+  const { toggleLike } = useDebouncedLike();
 
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const listRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const parsedImages = useMemo<ClubPostImage[]>(() => {
     try {
@@ -209,6 +239,30 @@ export default function PostCommentsScreen() {
     load();
   }, [load]);
 
+  const [failedAvatars, setFailedAvatars] = useState<Set<number>>(new Set());
+
+  const postState = getPost(Number(clubId), Number(postId)) ?? {
+    liked: false,
+    likeCount: 0,
+    commentCount: 0,
+  };
+
+  async function handleLike() {
+    if (!token) return;
+    toggleLike(
+      Number(clubId),
+      Number(postId),
+      token,
+      postState.liked,
+      postState.likeCount,
+      setLike,
+    );
+  }
+
+  function handleCommentPress() {
+    inputRef.current?.focus();
+  }
+
   async function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || !token || !clubId || !postId) return;
@@ -221,6 +275,13 @@ export default function PostCommentsScreen() {
         token,
       );
       setComments((prev) => [...prev, newComment]);
+      setPost(
+        Number(clubId),
+        Number(postId),
+        postState.liked,
+        postState.likeCount,
+        postState.commentCount + 1,
+      );
       setText('');
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch {
@@ -228,6 +289,10 @@ export default function PostCommentsScreen() {
     } finally {
       setSending(false);
     }
+  }
+
+  function handleAvatarError(userId: number) {
+    setFailedAvatars((prev) => new Set(prev).add(userId));
   }
 
   const listHeader = useMemo(
@@ -239,9 +304,17 @@ export default function PostCommentsScreen() {
         createdAt={createdAt ?? ''}
         images={parsedImages}
         commentCount={comments.length}
-        likeCount={Number(likeCount) || 0}
+        likeCount={postState.likeCount}
+        liked={postState.liked}
+        onLike={handleLike}
+        onCommentPress={handleCommentPress}
+        onImagePress={(index) => {
+          setSelectedImageIndex(index);
+          setImageModalVisible(true);
+        }}
       />
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       authorName,
       authorPhoto,
@@ -249,19 +322,23 @@ export default function PostCommentsScreen() {
       createdAt,
       parsedImages,
       comments.length,
-      likeCount,
+      postState.likeCount,
+      postState.liked,
     ],
   );
 
   function renderComment({ item }: { item: PostComment }) {
+    const showPhoto = item.user.photo && !failedAvatars.has(item.user.id);
+
     return (
       <View style={styles.commentRow}>
         <View style={styles.commentAvatar}>
-          {item.user.photo ? (
+          {showPhoto && item.user.photo ? (
             <ExpoImage
               source={{ uri: item.user.photo }}
               style={styles.commentAvatarImg}
               contentFit="cover"
+              onError={() => handleAvatarError(item.user.id)}
             />
           ) : (
             <View style={styles.commentAvatarFallback}>
@@ -318,6 +395,7 @@ export default function PostCommentsScreen() {
         {/* Input bar */}
         <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
           <TextInput
+            ref={inputRef}
             style={styles.input}
             placeholder="Escribe un comentario..."
             placeholderTextColor={colors.searchPlaceholder}
@@ -328,7 +406,7 @@ export default function PostCommentsScreen() {
             returnKeyType="send"
             onSubmitEditing={handleSend}
           />
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.sendBtn,
               (!text.trim() || sending) && styles.sendBtnDisabled,
@@ -342,9 +420,16 @@ export default function PostCommentsScreen() {
             ) : (
               <Ionicons name="send" size={18} color={colors.white} />
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <ImageViewer
+        visible={imageModalVisible}
+        images={parsedImages}
+        selectedIndex={selectedImageIndex}
+        onClose={() => setImageModalVisible(false)}
+      />
     </View>
   );
 }
@@ -485,7 +570,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   commentAvatar: {
+    width: 34,
+    height: 34,
     marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   commentAvatarImg: {
     width: 34,
