@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import ClubJoinRequestNotification from '@/components/notifications/ClubJoinRequestNotification';
 import {
   NOTIFICATION_ICON_BG_MAP,
   NOTIFICATION_ICON_MAP,
@@ -74,6 +75,17 @@ export function NotificationsModal({
           ) : (
             notifications.map((item, index) => {
               const isLast = index === notifications.length - 1;
+              if (item.event_type === 'CLUB_JOIN_REQUEST') {
+                return (
+                  <View key={item.id} style={styles.clubRequestWrapper}>
+                    <ClubJoinRequestNotification
+                      notification={item}
+                      onResolved={(id) => onNotificationPress?.(id)}
+                    />
+                    {!isLast && <View style={[styles.divider, { marginTop: 8 }]} />}
+                  </View>
+                );
+              }
               return (
                 <View key={item.id}>
                   <Pressable
@@ -253,6 +265,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.gray100,
   },
+  clubRequestWrapper: {},
   viewAllButton: {
     backgroundColor: colors.bluePrimary,
     marginHorizontal: 20,

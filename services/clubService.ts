@@ -93,6 +93,19 @@ export const transferLeader = (
     token,
   });
 
+export const resolveJoinRequest = (
+  clubId: number,
+  requestId: number,
+  action: 'ACCEPT' | 'REJECT',
+  token: string,
+): Promise<void> =>
+  apiRequest({
+    method: 'PATCH',
+    path: `/clubs/${clubId}/join-requests/${requestId}`,
+    body: { action },
+    token,
+  });
+
 export const getClubPosts = (
   clubId: number,
   token: string,
