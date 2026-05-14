@@ -1,4 +1,5 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import ClubJoinRequestNotification from '@/components/notifications/ClubJoinRequestNotification';
 import {
   NOTIFICATION_ICON_BG_MAP,
   NOTIFICATION_ICON_MAP,
@@ -120,6 +121,26 @@ export default function NotificationsScreen() {
           <View style={styles.list}>
             {notifications.map((item, index) => {
               const isLast = index === notifications.length - 1;
+              if (item.event_type === 'CLUB_JOIN_REQUEST') {
+                return (
+                  <View key={item.id} style={styles.clubRequestWrapper}>
+                    {index !== 0 && (
+                      <View style={styles.dividerContainer}>
+                        <View style={styles.divider} />
+                      </View>
+                    )}
+                    <ClubJoinRequestNotification
+                      notification={item}
+                      onResolved={(id) => handleNotificationPress(id)}
+                    />
+                    {!isLast && (
+                      <View style={styles.dividerContainer}>
+                        <View style={styles.divider} />
+                      </View>
+                    )}
+                  </View>
+                );
+              }
               return (
                 <View key={item.id}>
                   <Pressable
@@ -239,6 +260,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+  clubRequestWrapper: {},
   notifItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',

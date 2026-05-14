@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { colors, typography } from '@/constants/theme';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { NotificationsModal } from '@/components/NotificationsModal';
@@ -59,7 +60,10 @@ export const ScreenHeader = ({
 
   const notificationBell = showNotificationBell ? (
     <Pressable
-      onPress={onNotificationPress ?? (() => setModalVisible(true))}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        (onNotificationPress ?? (() => setModalVisible(true)))();
+      }}
       style={styles.notificationBell}
     >
       <ExpoImage

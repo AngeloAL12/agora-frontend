@@ -1,12 +1,24 @@
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
+import { useDebouncedLike } from '@/hooks/useDebouncedLike';
+import { useLikes } from '@/context/LikesContext';
 import { ClubPost } from '@/types/club';
 
 interface PostCardProps {
   post: ClubPost;
+  clubId: number;
+  token: string;
 }
 
 function getInitials(name: string): string {
@@ -26,15 +38,101 @@ function timeAgo(dateStr: string): string {
   return `Hace ${days} día${days !== 1 ? 's' : ''}`;
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, clubId, token }: PostCardProps) {
+  const router = useRouter();
+  const [avatarError, setAvatarError] = useState(false);
+  const { toggleLike } = useDebouncedLike();
+  const { getPost, setPost, setLike } = useLikes();
+  const lastTapRef = useRef(0);
+  const doubleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setPost(
+      clubId,
+      post.id,
+      post.user_has_liked,
+      post.like_count,
+      post.comment_count,
+    );
+  }, [
+    clubId,
+    post.id,
+    post.user_has_liked,
+    post.like_count,
+    post.comment_count,
+    setPost,
+  ]);
+
+  const postState = getPost(clubId, post.id) ?? {
+    liked: post.user_has_liked,
+    likeCount: post.like_count,
+    commentCount: post.comment_count,
+  };
+
+  async function handleLike() {
+    toggleLike(
+      clubId,
+      post.id,
+      token,
+      postState.liked,
+      postState.likeCount,
+      setLike,
+    );
+  }
+
+  function handleDoubleTap() {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (doubleTapTimeoutRef.current) {
+      clearTimeout(doubleTapTimeoutRef.current);
+      doubleTapTimeoutRef.current = null;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (!postState.liked) {
+        handleLike();
+      }
+      return;
+    }
+
+    doubleTapTimeoutRef.current = setTimeout(() => {
+      doubleTapTimeoutRef.current = null;
+      handleNavigateToPost();
+    }, DOUBLE_TAP_DELAY);
+
+    lastTapRef.current = now;
+  }
+
+  function handleNavigateToPost() {
+    router.push({
+      pathname: '/club/post/[postId]' as never,
+      params: {
+        postId: post.id,
+        clubId,
+        authorName: post.author.name,
+        authorPhoto: post.author.photo ?? '',
+        content: post.content,
+        createdAt: post.created_at,
+        images: JSON.stringify(post.images),
+      },
+    });
+  }
+
+  const showAvatar = post.author.photo && !avatarError;
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.97 : 1 }]}
+      onPress={handleDoubleTap}
+    >
       <View style={styles.header}>
-        {post.author.photo ? (
+        {showAvatar ? (
           <ExpoImage
-            source={{ uri: post.author.photo }}
+            source={{ uri: post.author.photo! }}
             style={styles.avatar}
             contentFit="cover"
+            onError={() => setAvatarError(true)}
           />
         ) : (
           <View style={styles.avatarFallback}>
@@ -49,9 +147,9 @@ export default function PostCard({ post }: PostCardProps) {
         </View>
       </View>
 
-      {post.image && (
+      {post.images?.[0]?.url && (
         <ExpoImage
-          source={{ uri: post.image }}
+          source={{ uri: post.images[0].url }}
           style={styles.coverImage}
           contentFit="cover"
         />
@@ -62,23 +160,36 @@ export default function PostCard({ post }: PostCardProps) {
 
         <View style={styles.actions}>
           <View style={styles.actionsLeft}>
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={handleLike}
+              activeOpacity={0.7}
+            >
               <ExpoImage
                 source={require('@/assets/icons/clubs/like_heart.svg')}
                 style={styles.actionIcon}
                 contentFit="contain"
+                tintColor={postState.liked ? colors.error : colors.gray700}
               />
-              <Text style={styles.actionCount}>{post.likes_count}</Text>
+              <Text
+                style={[
+                  styles.actionCount,
+                  postState.liked && styles.actionCountLiked,
+                ]}
+              >
+                {postState.likeCount}
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+            <View style={styles.actionBtn}>
               <ExpoImage
                 source={require('@/assets/icons/clubs/comment_post.svg')}
                 style={styles.actionIcon}
                 contentFit="contain"
+                tintColor={colors.gray700}
               />
-              <Text style={styles.actionCount}>{post.comments_count}</Text>
-            </TouchableOpacity>
+              <Text style={styles.actionCount}>{postState.commentCount}</Text>
+            </View>
           </View>
 
           <TouchableOpacity activeOpacity={0.7}>
@@ -90,7 +201,7 @@ export default function PostCard({ post }: PostCardProps) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -148,7 +259,7 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: 4 / 3,
   },
   body: {
     paddingHorizontal: 16,
@@ -184,5 +295,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
     color: colors.gray700,
+  },
+  actionCountLiked: {
+    color: colors.error,
   },
 });

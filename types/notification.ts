@@ -4,7 +4,10 @@ export type NotificationEventType =
   | 'COMPLAINT_SUBMITTED'
   | 'COMPLAINT_IN_PROGRESS'
   | 'COMPLAINT_RESOLVED'
-  | 'COMPLAINT_REJECTED';
+  | 'COMPLAINT_REJECTED'
+  | 'CLUB_JOIN_REQUEST'
+  | 'CLUB_JOIN_ACCEPTED'
+  | 'CLUB_JOIN_REJECTED';
 
 export type NotificationItem = {
   id: number;
@@ -14,6 +17,7 @@ export type NotificationItem = {
   body: string;
   is_read: boolean;
   reference_id: number | null;
+  extra_id?: number | null;
   created_at: string;
 };
 

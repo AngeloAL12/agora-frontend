@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/Button';
@@ -95,7 +96,10 @@ export function UserComplaintsScreen() {
                     <Pressable
                       key={item}
                       style={[styles.chip, isActive && styles.chipActive]}
-                      onPress={() => setFilter(item)}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setFilter(item);
+                      }}
                     >
                       <Text
                         style={[

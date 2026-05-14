@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -63,6 +64,12 @@ function StaffComplaintDetailScreen() {
   const insets = useSafeAreaInsets();
   const { token, refreshToken, setTokens, logout } = useAuth();
   const { complaint, loading, error, refetch } = useComplaintDetail(id);
+
+  React.useEffect(() => {
+    if (!loading && !error) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  }, [loading, error]);
   const [refreshing, setRefreshing] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -197,7 +204,10 @@ function StaffComplaintDetailScreen() {
               styles.statusSelector,
               { backgroundColor: currentStatusMeta.bg },
             ]}
-            onPress={() => setStatusMenuVisible(true)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setStatusMenuVisible(true);
+            }}
             disabled={updatingStatus}
           >
             <Text

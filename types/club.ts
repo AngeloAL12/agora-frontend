@@ -4,9 +4,11 @@ export interface ClubResponse {
   description: string;
   profile_image: string | null;
   cover_image: string | null;
-  id_category: number;
+  id_category: number | null;
   id_leader: number;
+  is_private: boolean;
   members_count: number;
+  user_is_member?: boolean;
 }
 
 export interface ClubCategory {
@@ -33,14 +35,29 @@ export interface ClubMember {
   is_leader: boolean;
 }
 
+export interface ClubPostImage {
+  id: number;
+  url: string;
+}
+
 export interface ClubPost {
   id: number;
-  author: { id: number; name: string; photo?: string };
+  id_club: number;
+  author: { id: number; name: string; photo?: string | null };
   content: string;
-  image?: string;
-  likes_count: number;
-  comments_count: number;
+  images: ClubPostImage[];
+  like_count: number;
+  user_has_liked: boolean;
+  comment_count: number;
   created_at: string;
+}
+
+export interface PostComment {
+  id: number;
+  id_post: number;
+  content: string;
+  created_at: string;
+  user: { id: number; name: string; photo: string | null };
 }
 
 export interface CreateEventPayload {

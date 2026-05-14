@@ -94,6 +94,7 @@ export default function EditInfoScreen() {
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [initialAvatarUri, setInitialAvatarUri] = useState<string | null>(null);
   const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -229,7 +230,7 @@ export default function EditInfoScreen() {
       quality: 0.85,
     });
     if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
+      setPendingAvatarUri(result.assets[0].uri);
     }
   }, []);
 
@@ -538,6 +539,47 @@ export default function EditInfoScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      <Modal
+        visible={!!pendingAvatarUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPendingAvatarUri(null)}
+      >
+        <View style={styles.circlePreviewOverlay}>
+          <View style={styles.circlePreviewCard}>
+            <Text style={styles.circlePreviewTitle}>Vista previa de foto</Text>
+            <View style={styles.circlePreviewImageWrapper}>
+              {pendingAvatarUri && (
+                <Image
+                  source={{ uri: pendingAvatarUri }}
+                  style={styles.circlePreviewImage}
+                />
+              )}
+            </View>
+            <Text style={styles.circlePreviewHint}>
+              Así se verá tu foto de perfil
+            </Text>
+            <View style={styles.circlePreviewActions}>
+              <Pressable
+                style={styles.circlePreviewCancel}
+                onPress={() => setPendingAvatarUri(null)}
+              >
+                <Text style={styles.circlePreviewCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={styles.circlePreviewConfirm}
+                onPress={() => {
+                  setAvatarUri(pendingAvatarUri);
+                  setPendingAvatarUri(null);
+                }}
+              >
+                <Text style={styles.circlePreviewConfirmText}>Usar foto</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -769,5 +811,72 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: {
     fontFamily: theme.typography.fontFamily.interSemiBold,
     color: theme.palette.primary,
+  },
+  circlePreviewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  circlePreviewCard: {
+    backgroundColor: theme.palette.surface,
+    borderRadius: 20,
+    padding: 28,
+    width: '100%',
+    alignItems: 'center',
+  },
+  circlePreviewTitle: {
+    fontSize: 17,
+    fontFamily: theme.typography.fontFamily.interBold,
+    color: theme.colors.blueDark,
+    marginBottom: 24,
+  },
+  circlePreviewImageWrapper: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+  },
+  circlePreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  circlePreviewHint: {
+    marginTop: 16,
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 24,
+  },
+  circlePreviewActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  circlePreviewCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  circlePreviewCancelText: {
+    fontSize: 15,
+    color: '#666',
+    fontFamily: theme.typography.fontFamily.interSemiBold,
+  },
+  circlePreviewConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.blueDark,
+    alignItems: 'center',
+  },
+  circlePreviewConfirmText: {
+    fontSize: 15,
+    color: '#fff',
+    fontFamily: theme.typography.fontFamily.interBold,
   },
 });

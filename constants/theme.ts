@@ -47,6 +47,7 @@ export const colors = {
   searchPlaceholder: '#6B7280',
   statsLabel: 'rgba(67,71,81,0.7)',
   borderSubtle20: 'rgba(195,198,210,0.2)',
+  borderSubtle30: 'rgba(195, 198, 210, 1)',
 } as const;
 
 export const palette = {

@@ -3,19 +3,22 @@ import { ClubDiscoveryItem } from '@/components/ClubDiscoveryItem';
 import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchInput } from '@/components/SearchInput';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useClubs } from '@/hooks/useClubs';
+import { useRecentClubIds } from '@/hooks/useRecentClubIds';
 import { useSearch } from '@/hooks/useSearch';
 import { joinClub } from '@/services/clubService';
+import { ClubResponse } from '@/types/club';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -41,7 +44,22 @@ export default function ClubsScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [joinedClubName, setJoinedClubName] = useState('');
+  const [joinErrorMessage, setJoinErrorMessage] = useState('');
+  const joinSuccessSheetRef = useRef<BottomSheetModal>(null);
+  const joinAlreadyMemberSheetRef = useRef<BottomSheetModal>(null);
+  const joinErrorSheetRef = useRef<BottomSheetModal>(null);
   const { myClubs, discoverClubs, loading, refetch } = useClubs();
+  const recentIds = useRecentClubIds();
+
+  const sortedMyClubs = useMemo(() => {
+    const recentSet = new Set(recentIds);
+    const recent = recentIds
+      .map((id) => myClubs.find((c) => c.id === id))
+      .filter((c): c is ClubResponse => c !== undefined);
+    const rest = myClubs.filter((c) => !recentSet.has(c.id));
+    return [...recent, ...rest];
+  }, [myClubs, recentIds]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -50,26 +68,25 @@ export default function ClubsScreen() {
   }, [refetch]);
 
   const handleJoin = async (id: number, name: string) => {
+    if (!token) return;
     try {
-      if (!token) {
-        Alert.alert('Espera', 'Cargando tu sesión...');
-        return;
-      }
       await joinClub(id, token);
-      Alert.alert('¡Excelente!', `Te has unido al club: ${name}`);
+      setJoinedClubName(name);
+      joinSuccessSheetRef.current?.present();
       await refetch(true);
     } catch (error: unknown) {
       const e = error as { status?: number; detail?: string; message?: string };
       if (e?.status === 400 || e?.detail?.toLowerCase().includes('miembro')) {
-        Alert.alert('Aviso', '¡Ya formas parte de este club!');
+        joinAlreadyMemberSheetRef.current?.present();
       } else {
-        Alert.alert('Ups', e?.detail || 'No pudimos procesar tu solicitud.');
+        setJoinErrorMessage(e?.detail || 'No pudimos procesar tu solicitud.');
+        joinErrorSheetRef.current?.present();
       }
     }
   };
 
   const filteredDiscoverClubs = useSearch(searchQuery, discoverClubs, 'name');
-  const filteredMyClubs = useSearch(searchQuery, myClubs, 'name');
+  const filteredMyClubs = useSearch(searchQuery, sortedMyClubs, 'name');
 
   const scrollPaddingBottom = insets.bottom + 130;
   const fabBottom = insets.bottom + 96;
@@ -210,6 +227,35 @@ export default function ClubsScreen() {
         notifications={notifications}
         loading={notificationsLoading}
         onNotificationPress={markRead}
+      />
+
+      <SuccessBottomSheet
+        ref={joinSuccessSheetRef}
+        title="¡Excelente!"
+        message={`Te has unido al club: ${joinedClubName}`}
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinSuccessSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+
+      <SuccessBottomSheet
+        ref={joinAlreadyMemberSheetRef}
+        variant="error"
+        title="Aviso"
+        message="¡Ya formas parte de este club!"
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinAlreadyMemberSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+
+      <SuccessBottomSheet
+        ref={joinErrorSheetRef}
+        variant="error"
+        title="Ups"
+        message={joinErrorMessage}
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinErrorSheetRef.current?.dismiss()}
+        secondaryLabel=""
       />
     </SafeAreaView>
   );

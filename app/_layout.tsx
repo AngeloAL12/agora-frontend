@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { LikesProvider } from '@/context/LikesContext';
 import { NotificationsProvider } from '@/context/NotificationsContext';
 import { useAppFonts } from '@/hooks/useFonts';
 import { useNotificationsPreference } from '@/hooks/useNotificationsPreference';
@@ -31,11 +32,13 @@ function AppContent() {
   }, [token, expoPushToken, refreshToken, setTokens, logout]);
 
   return (
-    <NotificationsProvider>
-      <BottomSheetModalProvider>
-        <Stack screenOptions={{ headerShown: false }} />
-      </BottomSheetModalProvider>
-    </NotificationsProvider>
+    <LikesProvider>
+      <NotificationsProvider>
+        <BottomSheetModalProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </BottomSheetModalProvider>
+      </NotificationsProvider>
+    </LikesProvider>
   );
 }
 

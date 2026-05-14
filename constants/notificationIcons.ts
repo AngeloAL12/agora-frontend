@@ -9,6 +9,12 @@ export const NOTIFICATION_ICON_MAP: Record<NotificationEventType, string> = {
     require('@/assets/icons/notifications/resolved.svg') as string,
   COMPLAINT_REJECTED:
     require('@/assets/icons/notifications/refused.svg') as string,
+  CLUB_JOIN_REQUEST:
+    require('@/assets/icons/navbar/clubs.svg') as string,
+  CLUB_JOIN_ACCEPTED:
+    require('@/assets/icons/clubs/admin.svg') as string,
+  CLUB_JOIN_REJECTED:
+    require('@/assets/icons/clubs/remove_user.svg') as string,
 };
 
 export const NOTIFICATION_ICON_BG_MAP: Record<NotificationEventType, string> = {
@@ -16,4 +22,7 @@ export const NOTIFICATION_ICON_BG_MAP: Record<NotificationEventType, string> = {
   COMPLAINT_IN_PROGRESS: '#DBEAFE',
   COMPLAINT_RESOLVED: '#D4EFDF',
   COMPLAINT_REJECTED: '#FADBD8',
+  CLUB_JOIN_REQUEST: '#FEF9C3',
+  CLUB_JOIN_ACCEPTED: '#D4EFDF',
+  CLUB_JOIN_REJECTED: '#FADBD8',
 };

@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
@@ -26,7 +27,10 @@ export function StaffDateFilters({
           <Pressable
             key={item.key}
             style={[styles.chip, isActive && styles.chipActive]}
-            onPress={() => onChange(item.key)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onChange(item.key);
+            }}
           >
             <Text style={[styles.label, isActive && styles.labelActive]}>
               {item.label}

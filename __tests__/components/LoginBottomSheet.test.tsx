@@ -68,6 +68,12 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ bottom: 0, top: 0, left: 0, right: 0 }),
 }));
 
+jest.mock('react-native-reanimated', () => ({
+  useAnimatedReaction: jest.fn(),
+  runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+  useSharedValue: (val: unknown) => ({ value: val }),
+}));
+
 jest.mock('@gorhom/bottom-sheet', () => {
   const { forwardRef } = require('react');
   const { View } = require('react-native');
@@ -94,11 +100,16 @@ jest.mock('@gorhom/bottom-sheet', () => {
   }) => <View>{children}</View>;
   BottomSheetModalProvider.displayName = 'BottomSheetModalProvider';
 
+  const useBottomSheetInternal = () => ({
+    animatedPosition: { value: 0 },
+  });
+
   return {
     BottomSheetModal,
     BottomSheetView,
     BottomSheetBackdrop,
     BottomSheetModalProvider,
+    useBottomSheetInternal,
   };
 });
 

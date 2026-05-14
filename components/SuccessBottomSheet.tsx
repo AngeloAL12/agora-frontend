@@ -15,6 +15,7 @@ interface SuccessBottomSheetProps {
   secondaryLabel?: string;
   title?: string;
   message?: string;
+  variant?: 'success' | 'error';
 }
 
 const DEFAULT_MESSAGE =
@@ -33,21 +34,28 @@ const SuccessBottomSheet = React.forwardRef<
       secondaryLabel = 'Ver detalles del reporte',
       title = '¡Bien hecho!',
       message = DEFAULT_MESSAGE,
+      variant = 'success',
     },
     ref,
   ) => {
+    const isError = variant === 'error';
     return (
       <AppBottomSheet ref={ref} onDismiss={onDismiss} minBottomPadding={24}>
         <View style={styles.contentContainer}>
-          <View style={styles.iconWrap}>
+          <View style={[styles.iconWrap, isError && styles.iconWrapError]}>
             <ExpoImage
-              source={require('@/assets/icons/check.svg')}
-              style={styles.iconImage}
+              source={
+                isError
+                  ? require('@/assets/icons/clubs/bad_cancel.svg')
+                  : require('@/assets/icons/check.svg')
+              }
+              style={isError ? styles.iconImageError : styles.iconImage}
               contentFit="contain"
+              tintColor={isError ? colors.errorText : undefined}
             />
           </View>
 
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, isError && styles.titleError]}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.actionsContainer}>
@@ -58,12 +66,14 @@ const SuccessBottomSheet = React.forwardRef<
               size="large"
             />
 
-            <Pressable
-              onPress={onSecondaryPress}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
-            </Pressable>
+            {secondaryLabel ? (
+              <Pressable
+                onPress={onSecondaryPress}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </AppBottomSheet>
@@ -95,6 +105,17 @@ const styles = StyleSheet.create({
   iconImage: {
     width: 34,
     height: 26,
+  },
+  iconWrapError: {
+    borderColor: colors.errorContainer,
+    shadowColor: colors.errorText,
+  },
+  iconImageError: {
+    width: 36,
+    height: 36,
+  },
+  titleError: {
+    color: colors.errorText,
   },
   title: {
     fontSize: 30,

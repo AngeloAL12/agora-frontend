@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CacheService } from '@/services/cacheService';
@@ -49,6 +50,16 @@ export const useClubs = () => {
       setLoading(false);
     }
   }, [token, fetchClubs]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      const cachedMy = CacheService.getMyClubs(token);
+      if (cachedMy === null) {
+        void fetchClubs(true);
+      }
+    }, [token, fetchClubs]),
+  );
 
   const myClubIds = new Set(myClubs.map((c) => c.id));
   const discoverClubs = allClubs.filter((c) => !myClubIds.has(c.id));
