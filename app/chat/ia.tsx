@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   NativeScrollEvent,
@@ -23,6 +22,8 @@ import {
 } from 'react-native-safe-area-context';
 
 import { NotificationsModal } from '@/components/NotificationsModal';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
@@ -51,6 +52,7 @@ export default function IaChatScreen() {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [chatInputHeight, setChatInputHeight] = useState(58);
+  const comingSoonSheetRef = useRef<BottomSheetModal>(null);
 
   const {
     messages,
@@ -197,13 +199,7 @@ export default function IaChatScreen() {
           value={input}
           onChangeText={setInput}
           onSend={() => handleSend()}
-          onAttach={() =>
-            Alert.alert(
-              'Próximamente',
-              'La función de adjuntar archivos estará disponible pronto.',
-              [{ text: 'Entendido', style: 'cancel' }],
-            )
-          }
+          onAttach={() => comingSoonSheetRef.current?.present()}
         />
       </View>
     </View>
@@ -241,6 +237,16 @@ export default function IaChatScreen() {
         notifications={notifications}
         loading={notificationsLoading}
         onNotificationPress={markRead}
+      />
+
+      <SuccessBottomSheet
+        ref={comingSoonSheetRef}
+        title="Próximamente"
+        message="La función de adjuntar archivos estará disponible pronto."
+        variant="success"
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => comingSoonSheetRef.current?.dismiss()}
       />
     </SafeAreaView>
   );

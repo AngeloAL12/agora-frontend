@@ -1,5 +1,7 @@
 import { Button } from '@/components/Button';
 import { SearchInput } from '@/components/SearchInput';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { getCareerIcon } from '@/constants/careers';
 import { useSearch } from '@/hooks/useSearch';
 import { useCareers } from '@/hooks/useCareers';
@@ -9,10 +11,9 @@ import { updateMyCareer } from '@/services/authService';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -36,6 +37,7 @@ export default function CareerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
+  const errorSheetRef = useRef<BottomSheetModal>(null);
 
   const filteredCareers = useSearch(searchQuery, careers, 'name');
 
@@ -55,10 +57,7 @@ export default function CareerScreen() {
       await updateUser({ id_career: selected.id });
       router.replace('/(tabs)/map');
     } catch {
-      Alert.alert(
-        'Error',
-        'No se pudo guardar tu carrera. Inténtalo de nuevo.',
-      );
+      errorSheetRef.current?.present();
     } finally {
       setIsSubmitting(false);
     }
@@ -213,6 +212,16 @@ export default function CareerScreen() {
           />
         )}
       </View>
+
+      <SuccessBottomSheet
+        ref={errorSheetRef}
+        title="Error"
+        message="No se pudo guardar tu carrera. Inténtalo de nuevo."
+        variant="error"
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => errorSheetRef.current?.dismiss()}
+      />
     </SafeAreaView>
   );
 }

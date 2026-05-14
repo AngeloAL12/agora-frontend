@@ -4,7 +4,6 @@ import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -16,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ConfirmBottomSheet from '@/components/ConfirmBottomSheet';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchInput } from '@/components/SearchInput';
 import MemberCard from '@/components/clubs/MemberCard';
@@ -42,6 +42,8 @@ export default function MembersScreen() {
   const { token, user } = useAuth();
 
   const confirmRef = useRef<BottomSheetModal>(null);
+  const errorSheetRef = useRef<BottomSheetModal>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +122,8 @@ export default function MembersScreen() {
         err && typeof err === 'object' && 'detail' in err
           ? String((err as { detail: unknown }).detail)
           : 'Ocurrió un error. Intenta de nuevo.';
-      Alert.alert('Error', detail);
+      setErrorMessage(detail);
+      errorSheetRef.current?.present();
     } finally {
       setActing(false);
       setPendingMemberId(null);
@@ -281,6 +284,16 @@ export default function MembersScreen() {
           confirmRef.current?.dismiss();
           setPendingMemberId(null);
         }}
+      />
+
+      <SuccessBottomSheet
+        ref={errorSheetRef}
+        title="Error"
+        message={errorMessage}
+        variant="error"
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => errorSheetRef.current?.dismiss()}
       />
     </View>
   );

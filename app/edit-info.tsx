@@ -9,6 +9,9 @@ import { Image as ExpoImage, type ImageSource } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import CirclePreviewModal from '@/components/CirclePreviewModal';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import React, {
   useCallback,
   useEffect,
@@ -18,7 +21,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -99,6 +101,12 @@ export default function EditInfoScreen() {
   const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCareerDropdownOpen, setIsCareerDropdownOpen] = useState(false);
+  const feedbackSheetRef = useRef<BottomSheetModal>(null);
+  const [feedbackSheet, setFeedbackSheet] = useState<{
+    title: string;
+    message: string;
+    variant: 'success' | 'error';
+  }>({ title: '', message: '', variant: 'success' });
   const [dropdownPosition, setDropdownPosition] = useState<{
     top?: number;
     bottom?: number;
@@ -217,10 +225,12 @@ export default function EditInfoScreen() {
   const pickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso requerido',
-        'Necesitamos acceso a la galería para cambiar la foto.',
-      );
+      setFeedbackSheet({
+        title: 'Permiso requerido',
+        message: 'Necesitamos acceso a la galería para cambiar la foto.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -236,14 +246,21 @@ export default function EditInfoScreen() {
 
   const handleSave = useCallback(async () => {
     if (!token) {
-      Alert.alert(
-        'Sesión no disponible',
-        'Vuelve a iniciar sesión para guardar los cambios.',
-      );
+      setFeedbackSheet({
+        title: 'Sesión no disponible',
+        message: 'Vuelve a iniciar sesión para guardar los cambios.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
       return;
     }
     if (!fullName.trim()) {
-      Alert.alert('Campo requerido', 'El nombre no puede estar vacío.');
+      setFeedbackSheet({
+        title: 'Campo requerido',
+        message: 'El nombre no puede estar vacío.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
       return;
     }
     try {
@@ -301,10 +318,20 @@ export default function EditInfoScreen() {
       });
       setInitialAvatarUri(nextAvatar);
       setAvatarUri(nextAvatar);
-      Alert.alert('Éxito', 'Los cambios se guardaron correctamente.');
+      setFeedbackSheet({
+        title: '¡Listo!',
+        message: 'Los cambios se guardaron correctamente.',
+        variant: 'success',
+      });
+      feedbackSheetRef.current?.present();
     } catch (error) {
       console.log('Error saving profile:', error);
-      Alert.alert('Error', 'No se pudo guardar la información del perfil.');
+      setFeedbackSheet({
+        title: 'Error',
+        message: 'No se pudo guardar la información del perfil.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
     } finally {
       setSaving(false);
     }
@@ -540,46 +567,27 @@ export default function EditInfoScreen() {
         </View>
       </Modal>
 
-      <Modal
+      <SuccessBottomSheet
+        ref={feedbackSheetRef}
+        title={feedbackSheet.title}
+        message={feedbackSheet.message}
+        variant={feedbackSheet.variant}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => feedbackSheetRef.current?.dismiss()}
+      />
+
+      <CirclePreviewModal
         visible={!!pendingAvatarUri}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPendingAvatarUri(null)}
-      >
-        <View style={styles.circlePreviewOverlay}>
-          <View style={styles.circlePreviewCard}>
-            <Text style={styles.circlePreviewTitle}>Vista previa de foto</Text>
-            <View style={styles.circlePreviewImageWrapper}>
-              {pendingAvatarUri && (
-                <Image
-                  source={{ uri: pendingAvatarUri }}
-                  style={styles.circlePreviewImage}
-                />
-              )}
-            </View>
-            <Text style={styles.circlePreviewHint}>
-              Así se verá tu foto de perfil
-            </Text>
-            <View style={styles.circlePreviewActions}>
-              <Pressable
-                style={styles.circlePreviewCancel}
-                onPress={() => setPendingAvatarUri(null)}
-              >
-                <Text style={styles.circlePreviewCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={styles.circlePreviewConfirm}
-                onPress={() => {
-                  setAvatarUri(pendingAvatarUri);
-                  setPendingAvatarUri(null);
-                }}
-              >
-                <Text style={styles.circlePreviewConfirmText}>Usar foto</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        uri={pendingAvatarUri}
+        title="Vista previa de foto"
+        hint="Así se verá tu foto de perfil"
+        onCancel={() => setPendingAvatarUri(null)}
+        onConfirm={() => {
+          setAvatarUri(pendingAvatarUri);
+          setPendingAvatarUri(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -811,72 +819,5 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: {
     fontFamily: theme.typography.fontFamily.interSemiBold,
     color: theme.palette.primary,
-  },
-  circlePreviewOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  circlePreviewCard: {
-    backgroundColor: theme.palette.surface,
-    borderRadius: 20,
-    padding: 28,
-    width: '100%',
-    alignItems: 'center',
-  },
-  circlePreviewTitle: {
-    fontSize: 17,
-    fontFamily: theme.typography.fontFamily.interBold,
-    color: theme.colors.blueDark,
-    marginBottom: 24,
-  },
-  circlePreviewImageWrapper: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-  },
-  circlePreviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  circlePreviewHint: {
-    marginTop: 16,
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 24,
-  },
-  circlePreviewActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  circlePreviewCancel: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  circlePreviewCancelText: {
-    fontSize: 15,
-    color: '#666',
-    fontFamily: theme.typography.fontFamily.interSemiBold,
-  },
-  circlePreviewConfirm: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: theme.colors.blueDark,
-    alignItems: 'center',
-  },
-  circlePreviewConfirmText: {
-    fontSize: 15,
-    color: '#fff',
-    fontFamily: theme.typography.fontFamily.interBold,
   },
 });

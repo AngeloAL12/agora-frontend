@@ -4,9 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -26,6 +25,8 @@ import {
   StatusMenu,
   TitleCard,
 } from '@/components/complaint';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import EvidenceUpload from '@/components/report/EvidenceUpload';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
@@ -75,6 +76,12 @@ function StaffComplaintDetailScreen() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [localEvidence, setLocalEvidence] = useState<LocalImageFile[]>([]);
+  const feedbackSheetRef = useRef<BottomSheetModal>(null);
+  const [feedbackSheet, setFeedbackSheet] = useState<{
+    title: string;
+    message: string;
+    variant: 'success' | 'error';
+  }>({ title: '', message: '', variant: 'error' });
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -102,10 +109,12 @@ function StaffComplaintDetailScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert(
-        'Permiso requerido',
-        'Necesitas permitir acceso a tus fotos.',
-      );
+      setFeedbackSheet({
+        title: 'Permiso requerido',
+        message: 'Necesitas permitir acceso a tus fotos.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
       return;
     }
 
@@ -136,10 +145,13 @@ function StaffComplaintDetailScreen() {
       setLocalEvidence([]);
       await refetch(true);
     } catch (err: any) {
-      Alert.alert(
-        'Error',
-        err?.detail || err?.message || 'No se pudo subir la evidencia.',
-      );
+      setFeedbackSheet({
+        title: 'Error',
+        message:
+          err?.detail || err?.message || 'No se pudo subir la evidencia.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
     } finally {
       setUploadingEvidence(false);
     }
@@ -150,10 +162,12 @@ function StaffComplaintDetailScreen() {
 
     if (status === 'RESOLVED' && complaint.images.length === 0) {
       setStatusMenuVisible(false);
-      Alert.alert(
-        'Evidencia requerida',
-        'Sube evidencia antes de marcar el reporte como resuelto.',
-      );
+      setFeedbackSheet({
+        title: 'Evidencia requerida',
+        message: 'Sube evidencia antes de marcar el reporte como resuelto.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
       return;
     }
 
@@ -164,10 +178,13 @@ function StaffComplaintDetailScreen() {
       await updateComplaintStatus(complaint.id, status, authPayload);
       await refetch(true);
     } catch (err: any) {
-      Alert.alert(
-        'Error',
-        err?.detail || err?.message || 'No se pudo actualizar el estado.',
-      );
+      setFeedbackSheet({
+        title: 'Error',
+        message:
+          err?.detail || err?.message || 'No se pudo actualizar el estado.',
+        variant: 'error',
+      });
+      feedbackSheetRef.current?.present();
     } finally {
       setUpdatingStatus(false);
     }
@@ -285,6 +302,16 @@ function StaffComplaintDetailScreen() {
         selectedStatus={currentStatus}
         onDismiss={() => setStatusMenuVisible(false)}
         onSelect={handleStatusChange}
+      />
+
+      <SuccessBottomSheet
+        ref={feedbackSheetRef}
+        title={feedbackSheet.title}
+        message={feedbackSheet.message}
+        variant={feedbackSheet.variant}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => feedbackSheetRef.current?.dismiss()}
       />
     </SafeAreaView>
   );
