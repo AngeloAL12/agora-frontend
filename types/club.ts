@@ -4,8 +4,9 @@ export interface ClubResponse {
   description: string;
   profile_image: string | null;
   cover_image: string | null;
-  id_category: number;
+  id_category: number | null;
   id_leader: number;
+  is_private: boolean;
   members_count: number;
   user_is_member?: boolean;
 }

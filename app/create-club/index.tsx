@@ -1,10 +1,10 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SegmentedControl from '@/components/SegmentedControl';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { useAuth } from '@/context/AuthContext';
 import { CacheService } from '@/services/cacheService';
-import { createClub, getClubCategories } from '@/services/clubService';
+import { createClub } from '@/services/clubService';
 import { recordClubVisit } from '@/services/recentClubsService';
-import { ClubCategory } from '@/types/club';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,8 +34,7 @@ export default function CreateClubFlow() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [idCategory, setIdCategory] = useState<number | null>(null);
-  const [categories, setCategories] = useState<ClubCategory[]>([]);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,12 +49,6 @@ export default function CreateClubFlow() {
       useNativeDriver: false,
     }).start();
   }, [step]);
-
-  useEffect(() => {
-    getClubCategories()
-      .then(setCategories)
-      .catch(() => setCategories([]));
-  }, []);
 
   const pickImage = async (type: 'logo' | 'cover') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -83,10 +76,6 @@ export default function CreateClubFlow() {
         Alert.alert('Faltan datos', 'Por favor, escribe el nombre del club.');
         return;
       }
-      if (!idCategory) {
-        Alert.alert('Faltan datos', 'Selecciona una categoría para el club.');
-        return;
-      }
       setStep(2);
     } else {
       if (isSubmitting) return;
@@ -100,7 +89,7 @@ export default function CreateClubFlow() {
         const formData = new FormData();
         formData.append('name', name);
         formData.append('description', description);
-        formData.append('id_category', idCategory!.toString());
+        formData.append('is_private', isPrivate.toString());
 
         if (logoUri) {
           formData.append('profile_image', {
@@ -217,29 +206,13 @@ export default function CreateClubFlow() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>CATEGORÍA</Text>
-                <View style={styles.categoryGrid}>
-                  {categories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        idCategory === cat.id && styles.categoryChipSelected,
-                      ]}
-                      onPress={() => setIdCategory(cat.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          idCategory === cat.id &&
-                            styles.categoryChipTextSelected,
-                        ]}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Text style={styles.label}>TIPO</Text>
+                <SegmentedControl
+                  options={['Abierto', 'Cerrado']}
+                  selectedIndex={isPrivate ? 1 : 0}
+                  onChange={(i) => setIsPrivate(i === 1)}
+                  hint="* Los clubes abiertos permiten que cualquier estudiante se una sin previa aprobación."
+                />
               </View>
             </View>
           ) : (
@@ -451,33 +424,6 @@ const styles = StyleSheet.create({
     color: '#1A2138',
   },
   textArea: { height: 120, paddingVertical: 16 },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F2F4F7',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  categoryChipSelected: {
-    backgroundColor: '#192A56',
-    borderColor: '#192A56',
-  },
-  categoryChipText: {
-    fontFamily: 'Inter',
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#434751',
-  },
-  categoryChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
   sectionContainer: { width: '100%', maxWidth: 358, marginBottom: 20 },
   sectionCard: {
     width: '100%',
