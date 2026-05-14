@@ -122,6 +122,11 @@ export function useChat(): UseChatReturn {
                 email: user.email,
               }
             : null,
+
+          history: messages.slice(-8).map((msg) => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.text,
+          })),
         }),
       });
 
