@@ -115,6 +115,7 @@ export default function CreateClubFlow() {
           successSheetRef.current?.present();
         }
       } catch (error: unknown) {
+        console.log('[createClub error]', JSON.stringify(error));
         const e = error as { detail?: string; message?: string };
         Alert.alert(
           'Atención',

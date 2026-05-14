@@ -13,7 +13,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -27,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppBottomSheet from '@/components/AppBottomSheet';
 import PrivateClubBottomSheet from '@/components/PrivateClubBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import EventCard from '@/components/clubs/EventCard';
 import PostCard from '@/components/clubs/PostCard';
 import { colors, typography } from '@/constants/theme';
@@ -81,6 +81,8 @@ export default function ClubDetailScreen() {
   const isFetchingMore = useRef(false);
   const leaveSheetRef = useRef<BottomSheetModal>(null);
   const privateClubSheetRef = useRef<BottomSheetModal>(null);
+  const requestSentSheetRef = useRef<BottomSheetModal>(null);
+  const errorSheetRef = useRef<BottomSheetModal>(null);
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
@@ -203,10 +205,7 @@ export default function ClubDetailScreen() {
     try {
       const result = await joinClub(club.id, token);
       if (result.request_id) {
-        Alert.alert(
-          'Solicitud enviada',
-          'El líder del club revisará tu solicitud. Te notificaremos cuando sea aprobada.',
-        );
+        requestSentSheetRef.current?.present();
       } else {
         setIsMember(true);
         setClub((prev) =>
@@ -214,7 +213,7 @@ export default function ClubDetailScreen() {
         );
       }
     } catch {
-      Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
+      errorSheetRef.current?.present();
     } finally {
       setMembershipLoading(false);
     }
@@ -247,7 +246,7 @@ export default function ClubDetailScreen() {
       setClub((prev) =>
         prev ? { ...prev, members_count: prev.members_count + 1 } : prev,
       );
-      Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
+      errorSheetRef.current?.present();
     } finally {
       setMembershipLoading(false);
     }
@@ -526,6 +525,25 @@ export default function ClubDetailScreen() {
         onCancel={() => privateClubSheetRef.current?.dismiss()}
         onDismiss={() => {}}
         loading={membershipLoading}
+      />
+
+      <SuccessBottomSheet
+        ref={requestSentSheetRef}
+        title="Solicitud enviada"
+        message="El líder del club revisará tu solicitud. Te notificaremos cuando sea aprobada."
+        primaryLabel="Entendido"
+        onPrimaryPress={() => requestSentSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+
+      <SuccessBottomSheet
+        ref={errorSheetRef}
+        variant="error"
+        title="Ups"
+        message="No pudimos procesar tu solicitud."
+        primaryLabel="Entendido"
+        onPrimaryPress={() => errorSheetRef.current?.dismiss()}
+        secondaryLabel=""
       />
 
       <AppBottomSheet ref={leaveSheetRef}>
