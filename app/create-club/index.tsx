@@ -35,10 +35,13 @@ export default function CreateClubFlow() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [logoUri, setLogoUri] = useState<string | null>(null);
-  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [logoAsset, setLogoAsset] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [coverAsset, setCoverAsset] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingLogoUri, setPendingLogoUri] = useState<string | null>(null);
+  const [pendingLogoAsset, setPendingLogoAsset] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const progressAnim = useRef(new Animated.Value(50)).current;
   const successSheetRef = useRef<BottomSheetModal>(null);
 
@@ -65,8 +68,8 @@ export default function CreateClubFlow() {
     });
 
     if (!result.canceled) {
-      if (type === 'logo') setPendingLogoUri(result.assets[0].uri);
-      else setCoverUri(result.assets[0].uri);
+      if (type === 'logo') setPendingLogoAsset(result.assets[0]);
+      else setCoverAsset(result.assets[0]);
     }
   };
 
@@ -91,19 +94,19 @@ export default function CreateClubFlow() {
         formData.append('description', description);
         formData.append('is_private', isPrivate.toString());
 
-        if (logoUri) {
+        if (logoAsset) {
           formData.append('profile_image', {
-            uri: logoUri,
-            name: 'photo.jpg',
-            type: 'image/jpeg',
+            uri: logoAsset.uri,
+            name: logoAsset.fileName || 'photo.jpg',
+            type: logoAsset.mimeType || 'image/jpeg',
           } as unknown as Blob);
         }
 
-        if (coverUri) {
+        if (coverAsset) {
           formData.append('cover_image', {
-            uri: coverUri,
-            name: 'cover.jpg',
-            type: 'image/jpeg',
+            uri: coverAsset.uri,
+            name: coverAsset.fileName || 'cover.jpg',
+            type: coverAsset.mimeType || 'image/jpeg',
           } as unknown as Blob);
         }
 
@@ -223,9 +226,9 @@ export default function CreateClubFlow() {
                 <View style={styles.sectionCard}>
                   <View style={styles.logoWrapper}>
                     <View style={[styles.logoCircle, { overflow: 'hidden' }]}>
-                      {logoUri && (
+                      {logoAsset && (
                         <Image
-                          source={{ uri: logoUri }}
+                          source={{ uri: logoAsset.uri }}
                           style={styles.fullImage}
                         />
                       )}
@@ -247,14 +250,14 @@ export default function CreateClubFlow() {
 
               <View style={styles.sectionContainer}>
                 <Text style={styles.label}>FOTO DE PORTADA</Text>
-                {coverUri ? (
+                {coverAsset ? (
                   <TouchableOpacity
                     style={styles.coverPreviewWrapper}
                     onPress={() => pickImage('cover')}
                     activeOpacity={0.85}
                   >
                     <Image
-                      source={{ uri: coverUri }}
+                      source={{ uri: coverAsset!.uri }}
                       style={styles.coverPreviewImage}
                       resizeMode="cover"
                     />
@@ -263,7 +266,7 @@ export default function CreateClubFlow() {
                         style={styles.coverDeleteBadge}
                         onPress={(e) => {
                           e.stopPropagation();
-                          setCoverUri(null);
+                          setCoverAsset(null);
                         }}
                         hitSlop={8}
                       >
@@ -320,18 +323,18 @@ export default function CreateClubFlow() {
       </View>
 
       <Modal
-        visible={!!pendingLogoUri}
+        visible={!!pendingLogoAsset}
         transparent
         animationType="fade"
-        onRequestClose={() => setPendingLogoUri(null)}
+        onRequestClose={() => setPendingLogoAsset(null)}
       >
         <View style={styles.circlePreviewOverlay}>
           <View style={styles.circlePreviewCard}>
             <Text style={styles.circlePreviewTitle}>Vista previa del logo</Text>
             <View style={styles.circlePreviewImageWrapper}>
-              {pendingLogoUri && (
+              {pendingLogoAsset && (
                 <Image
-                  source={{ uri: pendingLogoUri }}
+                  source={{ uri: pendingLogoAsset.uri }}
                   style={styles.circlePreviewImage}
                 />
               )}
@@ -342,15 +345,15 @@ export default function CreateClubFlow() {
             <View style={styles.circlePreviewActions}>
               <Pressable
                 style={styles.circlePreviewCancel}
-                onPress={() => setPendingLogoUri(null)}
+                onPress={() => setPendingLogoAsset(null)}
               >
                 <Text style={styles.circlePreviewCancelText}>Cancelar</Text>
               </Pressable>
               <Pressable
                 style={styles.circlePreviewConfirm}
                 onPress={() => {
-                  setLogoUri(pendingLogoUri);
-                  setPendingLogoUri(null);
+                  setLogoAsset(pendingLogoAsset);
+                  setPendingLogoAsset(null);
                 }}
               >
                 <Text style={styles.circlePreviewConfirmText}>Usar foto</Text>
