@@ -58,7 +58,7 @@ export default function CreateClubFlow() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaType.Images,
       allowsEditing: true,
       aspect: type === 'logo' ? [1, 1] : [12, 4],
       quality: 1,
