@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppBottomSheet from '@/components/AppBottomSheet';
+import PrivateClubBottomSheet from '@/components/PrivateClubBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import EventCard from '@/components/clubs/EventCard';
 import PostCard from '@/components/clubs/PostCard';
@@ -79,6 +80,7 @@ export default function ClubDetailScreen() {
 
   const isFetchingMore = useRef(false);
   const leaveSheetRef = useRef<BottomSheetModal>(null);
+  const privateClubSheetRef = useRef<BottomSheetModal>(null);
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
@@ -194,25 +196,38 @@ export default function ClubDetailScreen() {
     setRefreshing(false);
   }
 
-  const handleJoin = useCallback(async () => {
+  const handleJoinConfirm = useCallback(async () => {
     if (!club || !token || membershipLoading) return;
-    setIsMember(true);
-    setClub((prev) =>
-      prev ? { ...prev, members_count: prev.members_count + 1 } : prev,
-    );
+    privateClubSheetRef.current?.dismiss();
     setMembershipLoading(true);
     try {
-      await joinClub(club.id, token);
+      const result = await joinClub(club.id, token);
+      if (result.request_id) {
+        Alert.alert(
+          'Solicitud enviada',
+          'El líder del club revisará tu solicitud. Te notificaremos cuando sea aprobada.',
+        );
+      } else {
+        setIsMember(true);
+        setClub((prev) =>
+          prev ? { ...prev, members_count: prev.members_count + 1 } : prev,
+        );
+      }
     } catch {
-      setIsMember(false);
-      setClub((prev) =>
-        prev ? { ...prev, members_count: prev.members_count - 1 } : prev,
-      );
       Alert.alert('Ups', 'No pudimos procesar tu solicitud.');
     } finally {
       setMembershipLoading(false);
     }
   }, [club, token, membershipLoading]);
+
+  const handleJoin = useCallback(() => {
+    if (!club || membershipLoading) return;
+    if (club.is_private) {
+      privateClubSheetRef.current?.present();
+    } else {
+      void handleJoinConfirm();
+    }
+  }, [club, membershipLoading, handleJoinConfirm]);
 
   const handleLeave = useCallback(async () => {
     if (!club || !token || !user || membershipLoading) return;
@@ -503,6 +518,15 @@ export default function ClubDetailScreen() {
           <Ionicons name="add" size={32} color={colors.gray900} />
         </TouchableOpacity>
       )}
+
+      <PrivateClubBottomSheet
+        ref={privateClubSheetRef}
+        clubName={club.name}
+        onRequest={handleJoinConfirm}
+        onCancel={() => privateClubSheetRef.current?.dismiss()}
+        onDismiss={() => {}}
+        loading={membershipLoading}
+      />
 
       <AppBottomSheet ref={leaveSheetRef}>
         <View style={styles.leaveSheetContainer}>

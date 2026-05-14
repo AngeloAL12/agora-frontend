@@ -32,7 +32,7 @@ export const getClubCategories = (): Promise<ClubCategory[]> =>
 export const joinClub = (
   clubId: number,
   token: string,
-): Promise<{ message: string }> =>
+): Promise<{ message: string; request_id?: number }> =>
   apiRequest({ method: 'POST', path: `/clubs/${clubId}/members`, token });
 
 export const createClub = (
