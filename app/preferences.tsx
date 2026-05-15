@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage, type ImageSource } from 'expo-image';
 import { theme } from '@/constants/theme';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -56,6 +57,12 @@ export default function PreferencesScreen() {
   const [homeScreen, setHomeScreen] = useState<HomeScreenKey>('complaints');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const feedbackSheetRef = useRef<BottomSheetModal>(null);
+  const [feedbackSheet, setFeedbackSheet] = useState<{
+    title: string;
+    message: string;
+    variant: 'success' | 'error';
+  }>({ title: '', message: '', variant: 'success' });
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -83,13 +90,19 @@ export default function PreferencesScreen() {
         homeScreen,
         notificationsEnabled: notificationsOn,
       });
-      Alert.alert('Éxito', 'Las preferencias se guardaron correctamente.');
+      setFeedbackSheet({
+        title: '¡Listo!',
+        message: 'Las preferencias se guardaron correctamente.',
+        variant: 'success',
+      });
+      feedbackSheetRef.current?.present();
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : 'No se pudieron guardar las preferencias.';
-      Alert.alert('Error', message);
+      setFeedbackSheet({ title: 'Error', message, variant: 'error' });
+      feedbackSheetRef.current?.present();
     } finally {
       setSaving(false);
     }
@@ -231,6 +244,16 @@ export default function PreferencesScreen() {
           )}
         </Pressable>
       </View>
+
+      <SuccessBottomSheet
+        ref={feedbackSheetRef}
+        title={feedbackSheet.title}
+        message={feedbackSheet.message}
+        variant={feedbackSheet.variant}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => feedbackSheetRef.current?.dismiss()}
+      />
     </SafeAreaView>
   );
 }

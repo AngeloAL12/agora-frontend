@@ -155,9 +155,9 @@ export function useClubChat(clubId: string): UseClubChatReturn {
       setMessages((prev) => {
         const next = [...prev, optimisticMsg];
         sessionMessagesByClub[clubId] = next;
-        chatSummaryStore.update(clubId, `Tú: ${text}`, optimisticMsg.timestamp);
         return next;
       });
+      chatSummaryStore.update(clubId, `Tú: ${text}`, optimisticMsg.timestamp);
     } catch {
       setChatError('No se pudo enviar el mensaje.');
     } finally {
