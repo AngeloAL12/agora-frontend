@@ -1,6 +1,10 @@
+import CirclePreviewModal from '@/components/CirclePreviewModal';
+import CircularImagePicker from '@/components/CircularImagePicker';
+import CoverImagePicker from '@/components/CoverImagePicker';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import SegmentedControl from '@/components/SegmentedControl';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { CacheService } from '@/services/cacheService';
 import { createClub } from '@/services/clubService';
@@ -11,11 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -25,7 +26,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { theme } from '../../constants/theme';
+
+const appendImage = (
+  fd: FormData,
+  field: string,
+  asset: ImagePicker.ImagePickerAsset,
+  fallbackName: string,
+) =>
+  fd.append(field, {
+    uri: asset.uri,
+    name: asset.fileName || fallbackName,
+    type: asset.mimeType || 'image/jpeg',
+  } as unknown as Blob);
 
 export default function CreateClubFlow() {
   const router = useRouter();
@@ -44,6 +56,11 @@ export default function CreateClubFlow() {
     useState<ImagePicker.ImagePickerAsset | null>(null);
   const progressAnim = useRef(new Animated.Value(50)).current;
   const successSheetRef = useRef<BottomSheetModal>(null);
+  const errorSheetRef = useRef<BottomSheetModal>(null);
+  const [errorSheet, setErrorSheet] = useState<{
+    title: string;
+    message: string;
+  }>({ title: '', message: '' });
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -53,10 +70,17 @@ export default function CreateClubFlow() {
     }).start();
   }, [step]);
 
+  const showError = (title: string, message: string) => {
+    setErrorSheet({ title, message });
+    errorSheetRef.current?.present();
+  };
+
+  const goToClubs = () => router.replace('/clubs');
+
   const pickImage = async (type: 'logo' | 'cover') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tus fotos.');
+      showError('Permiso denegado', 'Necesitamos acceso a tus fotos.');
       return;
     }
 
@@ -76,7 +100,7 @@ export default function CreateClubFlow() {
   const handleNext = async () => {
     if (step === 1) {
       if (!name.trim()) {
-        Alert.alert('Faltan datos', 'Por favor, escribe el nombre del club.');
+        showError('Faltan datos', 'Por favor, escribe el nombre del club.');
         return;
       }
       setStep(2);
@@ -85,7 +109,7 @@ export default function CreateClubFlow() {
       setIsSubmitting(true);
       try {
         if (!token) {
-          Alert.alert('Sesión expirada', 'Por favor inicia sesión de nuevo.');
+          showError('Sesión expirada', 'Por favor inicia sesión de nuevo.');
           return;
         }
 
@@ -94,21 +118,10 @@ export default function CreateClubFlow() {
         formData.append('description', description);
         formData.append('is_private', isPrivate.toString());
 
-        if (logoAsset) {
-          formData.append('profile_image', {
-            uri: logoAsset.uri,
-            name: logoAsset.fileName || 'photo.jpg',
-            type: logoAsset.mimeType || 'image/jpeg',
-          } as unknown as Blob);
-        }
-
-        if (coverAsset) {
-          formData.append('cover_image', {
-            uri: coverAsset.uri,
-            name: coverAsset.fileName || 'cover.jpg',
-            type: coverAsset.mimeType || 'image/jpeg',
-          } as unknown as Blob);
-        }
+        if (logoAsset)
+          appendImage(formData, 'profile_image', logoAsset, 'photo.jpg');
+        if (coverAsset)
+          appendImage(formData, 'cover_image', coverAsset, 'cover.jpg');
 
         const result = await createClub(formData, token);
         if (result?.id) {
@@ -120,7 +133,7 @@ export default function CreateClubFlow() {
       } catch (error: unknown) {
         console.log('[createClub error]', JSON.stringify(error));
         const e = error as { detail?: string; message?: string };
-        Alert.alert(
+        showError(
           'Atención',
           e.detail || e.message || 'No se pudo crear el club',
         );
@@ -132,7 +145,7 @@ export default function CreateClubFlow() {
 
   const handleBack = () => {
     if (step === 2) setStep(1);
-    else router.replace('/clubs');
+    else goToClubs();
   };
 
   return (
@@ -224,24 +237,10 @@ export default function CreateClubFlow() {
               <View style={styles.sectionContainer}>
                 <Text style={styles.label}>LOGO</Text>
                 <View style={styles.sectionCard}>
-                  <View style={styles.logoWrapper}>
-                    <View style={[styles.logoCircle, { overflow: 'hidden' }]}>
-                      {logoAsset && (
-                        <Image
-                          source={{ uri: logoAsset.uri }}
-                          style={styles.fullImage}
-                        />
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={() => pickImage('logo')}
-                    >
-                      <View style={styles.plusCircle}>
-                        <Ionicons name="add" size={20} color="#FFFFFF" />
-                      </View>
-                    </TouchableOpacity>
-                  </View>
+                  <CircularImagePicker
+                    uri={logoAsset?.uri ?? null}
+                    onPress={() => pickImage('logo')}
+                  />
                   <Text style={styles.helperText}>
                     Mínimo recomendado: 400px x 400px.
                   </Text>
@@ -250,53 +249,12 @@ export default function CreateClubFlow() {
 
               <View style={styles.sectionContainer}>
                 <Text style={styles.label}>FOTO DE PORTADA</Text>
-                {coverAsset ? (
-                  <TouchableOpacity
-                    style={styles.coverPreviewWrapper}
-                    onPress={() => pickImage('cover')}
-                    activeOpacity={0.85}
-                  >
-                    <Image
-                      source={{ uri: coverAsset!.uri }}
-                      style={styles.coverPreviewImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.coverEditOverlay}>
-                      <Pressable
-                        style={styles.coverDeleteBadge}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          setCoverAsset(null);
-                        }}
-                        hitSlop={8}
-                      >
-                        <Ionicons name="close" size={14} color="#fff" />
-                      </Pressable>
-                      <View style={styles.coverEditBadge}>
-                        <Ionicons name="pencil" size={14} color="#fff" />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.sectionCard}>
-                    <TouchableOpacity
-                      style={[styles.coverWrapper, { overflow: 'hidden' }]}
-                      onPress={() => pickImage('cover')}
-                    >
-                      <Image
-                        source={require('../../assets/images/Background.png')}
-                        style={styles.coverPlaceholder}
-                        resizeMode="contain"
-                      />
-                    </TouchableOpacity>
-                    <Text style={styles.selectFileText}>
-                      Seleccionar archivo
-                    </Text>
-                    <Text style={styles.helperText}>
-                      Mínimo recomendado: 1200px x 400px.
-                    </Text>
-                  </View>
-                )}
+                <CoverImagePicker
+                  asset={coverAsset}
+                  onPick={() => pickImage('cover')}
+                  onRemove={() => setCoverAsset(null)}
+                  placeholder={require('../assets/images/Background.png')}
+                />
               </View>
             </View>
           )}
@@ -322,46 +280,17 @@ export default function CreateClubFlow() {
         </View>
       </View>
 
-      <Modal
+      <CirclePreviewModal
         visible={!!pendingLogoAsset}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPendingLogoAsset(null)}
-      >
-        <View style={styles.circlePreviewOverlay}>
-          <View style={styles.circlePreviewCard}>
-            <Text style={styles.circlePreviewTitle}>Vista previa del logo</Text>
-            <View style={styles.circlePreviewImageWrapper}>
-              {pendingLogoAsset && (
-                <Image
-                  source={{ uri: pendingLogoAsset.uri }}
-                  style={styles.circlePreviewImage}
-                />
-              )}
-            </View>
-            <Text style={styles.circlePreviewHint}>
-              Así se verá el logo del club
-            </Text>
-            <View style={styles.circlePreviewActions}>
-              <Pressable
-                style={styles.circlePreviewCancel}
-                onPress={() => setPendingLogoAsset(null)}
-              >
-                <Text style={styles.circlePreviewCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={styles.circlePreviewConfirm}
-                onPress={() => {
-                  setLogoAsset(pendingLogoAsset);
-                  setPendingLogoAsset(null);
-                }}
-              >
-                <Text style={styles.circlePreviewConfirmText}>Usar foto</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        uri={pendingLogoAsset?.uri ?? null}
+        title="Vista previa del logo"
+        hint="Así se verá el logo del club"
+        onCancel={() => setPendingLogoAsset(null)}
+        onConfirm={() => {
+          setLogoAsset(pendingLogoAsset);
+          setPendingLogoAsset(null);
+        }}
+      />
 
       <SuccessBottomSheet
         ref={successSheetRef}
@@ -369,8 +298,18 @@ export default function CreateClubFlow() {
         message="Tu club ha sido creado exitosamente. Ya puedes empezar a invitar miembros."
         primaryLabel="Ver mis clubes"
         secondaryLabel=""
-        onPrimaryPress={() => router.replace('/clubs')}
-        onDismiss={() => router.replace('/clubs')}
+        onPrimaryPress={goToClubs}
+        onDismiss={goToClubs}
+      />
+
+      <SuccessBottomSheet
+        ref={errorSheetRef}
+        title={errorSheet.title}
+        message={errorSheet.message}
+        variant="error"
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => errorSheetRef.current?.dismiss()}
       />
     </KeyboardAvoidingView>
   );
@@ -439,77 +378,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoWrapper: {
-    position: 'relative',
-    width: 90,
-    height: 90,
-    marginBottom: 16,
-  },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#ECEEF1',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  coverWrapper: {
-    width: '100%',
-    height: 110,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  coverPlaceholder: { width: '65%', height: '65%' },
-  fullImage: { width: '100%', height: '100%' },
-  coverPreviewWrapper: {
-    width: '100%',
-    height: 140,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  coverPreviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  coverEditOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    padding: 10,
-    gap: 8,
-  },
-  coverDeleteBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#CC3333CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  coverEditBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#192A56CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  plusCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#192A56',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: { position: 'absolute', bottom: -5, right: -5 },
-  selectFileText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#192A56',
-    marginBottom: 8,
-  },
   helperText: { fontSize: 12, color: '#434751' },
   footer: {
     width: '100%',
@@ -527,75 +395,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  mainButtonDisabled: {
-    opacity: 0.6,
-  },
+  mainButtonDisabled: { opacity: 0.6 },
   mainButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  circlePreviewOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  circlePreviewCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 28,
-    width: '100%',
-    alignItems: 'center',
-  },
-  circlePreviewTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#192A56',
-    marginBottom: 24,
-  },
-  circlePreviewImageWrapper: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-  },
-  circlePreviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  circlePreviewHint: {
-    marginTop: 16,
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 24,
-  },
-  circlePreviewActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  circlePreviewCancel: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  circlePreviewCancelText: {
-    fontSize: 15,
-    color: '#666',
-    fontWeight: '600',
-  },
-  circlePreviewConfirm: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#192A56',
-    alignItems: 'center',
-  },
-  circlePreviewConfirmText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '700',
-  },
 });
