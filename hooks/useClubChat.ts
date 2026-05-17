@@ -5,6 +5,7 @@ import {
   formatIncomingTimestamp,
   ManagedClubMessage,
 } from '@/services/clubChatManager';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useAuthRequest } from './useAuthRequest';
@@ -32,15 +33,25 @@ interface UseClubChatReturn {
   input: string;
   setInput: (text: string) => void;
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   isSending: boolean;
   chatError: string | null;
   handleSend: () => void;
+  loadMoreMessages: () => Promise<void>;
   clearError: () => void;
 }
+
+const LIMIT = 50;
+const sessionPageByClub: Record<string, number> = {};
+const sessionHasMoreByClub: Record<string, boolean> = {};
+
 
 export function clearSessionMessageCache() {
   for (const key of Object.keys(sessionMessagesByClub)) {
     delete sessionMessagesByClub[key];
+    delete sessionPageByClub[key];
+    delete sessionHasMoreByClub[key];
   }
 }
 
@@ -63,17 +74,18 @@ export function useClubChat(clubId: string): UseClubChatReturn {
   const [isLoading, setIsLoading] = useState(
     () => (sessionMessagesByClub[clubId] ?? []).length === 0,
   );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(
+    () => sessionHasMoreByClub[clubId] ?? true,
+  );
   const [isSending, setIsSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
-  const loadMessages = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await authRequest<ClubMessageResponse[]>({
-        method: 'GET',
-        path: `/clubs/${clubId}/messages?limit=50`,
-      });
-      const loaded: ClubMessage[] = data.map((msg) => ({
+  const pageRef = useRef<number>(sessionPageByClub[clubId] ?? 1);
+
+  const mapMessages = useCallback(
+    (data: ClubMessageResponse[]): ClubMessage[] =>
+      data.map((msg) => ({
         id: String(msg.id),
         text: msg.content,
         senderId: String(msg.user.id),
@@ -81,7 +93,23 @@ export function useClubChat(clubId: string): UseClubChatReturn {
         senderAvatar: msg.user.photo ?? null,
         timestamp: formatIncomingTimestamp(msg.created_at),
         isMe: msg.user.id === currentUserId,
-      }));
+      })),
+    [currentUserId],
+  );
+
+  const loadMessages = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await authRequest<ClubMessageResponse[]>({
+        method: 'GET',
+        path: `/clubs/${clubId}/messages?limit=${LIMIT}&page=1`,
+      });
+      const loaded = mapMessages(data);
+      pageRef.current = 1;
+      sessionPageByClub[clubId] = 1;
+      const more = data.length === LIMIT;
+      sessionHasMoreByClub[clubId] = more;
+      setHasMore(more);
       sessionMessagesByClub[clubId] = loaded;
       setMessages(loaded);
       const last = loaded[loaded.length - 1];
@@ -91,40 +119,72 @@ export function useClubChat(clubId: string): UseClubChatReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [clubId, authRequest, currentUserId]);
+  }, [clubId, authRequest, mapMessages]);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = pageRef.current + 1;
+      const data = await authRequest<ClubMessageResponse[]>({
+        method: 'GET',
+        path: `/clubs/${clubId}/messages?limit=${LIMIT}&page=${nextPage}`,
+      });
+      const older = mapMessages(data);
+      pageRef.current = nextPage;
+      sessionPageByClub[clubId] = nextPage;
+      const more = data.length === LIMIT;
+      sessionHasMoreByClub[clubId] = more;
+      setHasMore(more);
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const deduped = older.filter((m) => !existingIds.has(m.id));
+        const next = [...deduped, ...prev];
+        sessionMessagesByClub[clubId] = next;
+        return next;
+      });
+    } catch {
+      setChatError('No se pudieron cargar más mensajes.');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [clubId, authRequest, mapMessages, isLoadingMore, hasMore]);
 
   useEffect(() => {
-    chatSummaryStore.markRead(clubId);
-
-    // Only fetch history if not already cached
     if ((sessionMessagesByClub[clubId] ?? []).length === 0) {
       loadMessages();
     } else {
       setIsLoading(false);
     }
-
-    const onMessage = (incoming: ManagedClubMessage) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === incoming.id)) return prev;
-        const optimisticIdx = incoming.isMe
-          ? prev.findLastIndex(
-              (m) => m.id.startsWith('opt_') && m.text === incoming.text,
-            )
-          : -1;
-        const next =
-          optimisticIdx !== -1
-            ? prev.map((m, i) => (i === optimisticIdx ? incoming : m))
-            : [...prev, incoming];
-        sessionMessagesByClub[clubId] = next;
-        return next;
-      });
-    };
-
-    clubChatManager.addListener(clubId, onMessage);
-    return () => {
-      clubChatManager.removeListener(clubId, onMessage);
-    };
   }, [clubId, loadMessages]);
+
+  useFocusEffect(
+    useCallback(() => {
+      chatSummaryStore.markRead(clubId);
+
+      const onMessage = (incoming: ManagedClubMessage) => {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === incoming.id)) return prev;
+          const optimisticIdx = incoming.isMe
+            ? prev.findLastIndex(
+                (m) => m.id.startsWith('opt_') && m.text === incoming.text,
+              )
+            : -1;
+          const next =
+            optimisticIdx !== -1
+              ? prev.map((m, i) => (i === optimisticIdx ? incoming : m))
+              : [...prev, incoming];
+          sessionMessagesByClub[clubId] = next;
+          return next;
+        });
+      };
+
+      clubChatManager.addListener(clubId, onMessage);
+      return () => {
+        clubChatManager.removeListener(clubId, onMessage);
+      };
+    }, [clubId]),
+  );
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -172,9 +232,12 @@ export function useClubChat(clubId: string): UseClubChatReturn {
     input,
     setInput,
     isLoading,
+    isLoadingMore,
+    hasMore,
     isSending,
     chatError,
     handleSend,
+    loadMoreMessages,
     clearError,
   };
 }

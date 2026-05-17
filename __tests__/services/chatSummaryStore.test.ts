@@ -40,11 +40,13 @@ describe('chatSummaryStore', () => {
 
     chatSummaryStore.update('club-1', 'hello', '10:00 AM');
 
-    expect(chatSummaryStore.get('club-1')).toEqual({
+    const summary = chatSummaryStore.get('club-1');
+    expect(summary).toMatchObject({
       lastMessage: 'hello',
       timestamp: '10:00 AM',
       unreadCount: 0,
     });
+    expect(summary?.sortKey).toBeDefined();
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -60,11 +62,13 @@ describe('chatSummaryStore', () => {
     chatSummaryStore.updateWithUnread('club-1', 'new', '10:00 AM');
     chatSummaryStore.updateWithUnread('club-1', 'newer', '10:01 AM');
 
-    expect(chatSummaryStore.get('club-1')).toEqual({
+    const summary = chatSummaryStore.get('club-1');
+    expect(summary).toMatchObject({
       lastMessage: 'newer',
       timestamp: '10:01 AM',
       unreadCount: 2,
     });
+    expect(summary?.sortKey).toBeDefined();
   });
 
   it('markRead resets unreadCount to 0', () => {

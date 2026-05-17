@@ -43,9 +43,12 @@ export default function ClubChatScreen() {
     input,
     setInput,
     isLoading,
+    isLoadingMore,
+    hasMore,
     isSending,
     chatError,
     handleSend,
+    loadMoreMessages,
     clearError,
   } = useClubChat(resolvedId);
 
@@ -53,10 +56,11 @@ export default function ClubChatScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [chatInputHeight, setChatInputHeight] = useState(58);
+  const initialScrollDoneRef = useRef(false);
 
-  const scrollToEnd = useCallback(() => {
+  const scrollToEnd = useCallback((animated = true) => {
     setTimeout(
-      () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+      () => scrollViewRef.current?.scrollToEnd({ animated }),
       100,
     );
   }, []);
@@ -82,6 +86,12 @@ export default function ClubChatScreen() {
   }, [isAtBottom, scrollToEnd]);
 
   useEffect(() => {
+    if (messages.length === 0) return;
+    if (!initialScrollDoneRef.current) {
+      initialScrollDoneRef.current = true;
+      scrollToEnd(false);
+      return;
+    }
     if (isAtBottom) scrollToEnd();
   }, [messages.length, isSending, isAtBottom, scrollToEnd]);
 
@@ -98,6 +108,9 @@ export default function ClubChatScreen() {
     const isCloseToBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
     if (isCloseToBottom !== isAtBottom) setIsAtBottom(isCloseToBottom);
+    if (contentOffset.y <= 50 && hasMore && !isLoadingMore) {
+      loadMoreMessages();
+    }
   };
 
   const inputBottomPadding = keyboardVisible ? 16 : insets.bottom + 16;
@@ -109,7 +122,13 @@ export default function ClubChatScreen() {
       accessibilityRole="button"
       accessibilityLabel="Volver a Mensajes"
     >
-      <Ionicons name="chevron-back" size={24} color={colors.white} />
+      <Ionicons name="arrow-back" size={24} color={colors.white} />
+    </Pressable>
+  );
+
+  const moreAction = (
+    <Pressable style={styles.moreButton} accessibilityRole="button">
+      <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
     </Pressable>
   );
 
@@ -117,7 +136,12 @@ export default function ClubChatScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-        <ScreenHeader title={chatName} align="left" leftAction={backAction} />
+        <ScreenHeader
+          title={chatName}
+          align="center"
+          leftAction={backAction}
+          rightAction={moreAction}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.bluePrimary} />
         </View>
@@ -140,13 +164,21 @@ export default function ClubChatScreen() {
         scrollEventThrottle={16}
       >
         <View style={styles.chatSection}>
+          {isLoadingMore && (
+            <ActivityIndicator
+              size="small"
+              color={colors.bluePrimary}
+              style={styles.loadingMore}
+            />
+          )}
           {messages.map((msg) => (
             <ChatBubble
               key={msg.id}
               sender={msg.isMe ? 'user' : 'assistant'}
               message={msg.text}
               timestamp={msg.timestamp}
-              senderName={msg.isMe ? undefined : msg.senderName}
+              senderName={msg.isMe ? 'Tú' : msg.senderName}
+              senderAvatar={msg.isMe ? undefined : (msg.senderAvatar ?? null)}
             />
           ))}
 
@@ -192,7 +224,13 @@ export default function ClubChatScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
-      <ScreenHeader title={chatName} align="left" leftAction={backAction} />
+      <ScreenHeader
+        title={chatName}
+        align="center"
+        leftAction={backAction}
+        rightAction={moreAction}
+        titleStyle={{ fontSize: 24 }}
+      />
 
       {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
@@ -237,6 +275,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
+  loadingMore: {
+    marginBottom: 8,
+  },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -270,6 +311,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreButton: {
     width: 36,
     height: 36,
     alignItems: 'center',

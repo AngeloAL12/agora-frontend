@@ -36,20 +36,27 @@ export default function MessagesScreen() {
     chatSummaryStore.getSnapshot,
   );
 
-  const chatsWithSummaries = useMemo(
-    () =>
-      chats.map((chat) => {
-        const summary = summaries[chat.id];
-        if (!summary) return chat;
-        return {
-          ...chat,
-          lastMessage: summary.lastMessage || chat.lastMessage,
-          timestamp: summary.timestamp || chat.timestamp,
-          unreadCount: summary.unreadCount,
-        };
-      }),
-    [summaries, chats],
-  );
+  const chatsWithSummaries = useMemo(() => {
+    const mapped = chats.map((chat) => {
+      const summary = summaries[chat.id];
+      if (!summary) return chat;
+      return {
+        ...chat,
+        lastMessage: summary.lastMessage || chat.lastMessage,
+        timestamp: summary.timestamp || chat.timestamp,
+        unreadCount: summary.unreadCount,
+        sortKey: summary.sortKey,
+      };
+    });
+
+    return mapped.sort((a, b) => {
+      if (a.type === 'ia') return -1;
+      if (b.type === 'ia') return 1;
+      const skA = a.sortKey ?? 0;
+      const skB = b.sortKey ?? 0;
+      return skB - skA;
+    });
+  }, [summaries, chats]);
 
   const filteredChats = useMemo(() => {
     if (activeFilter === 'unread') {
