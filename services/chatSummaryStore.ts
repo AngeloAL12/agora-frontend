@@ -4,6 +4,7 @@ export interface ChatSummary {
   lastMessage: string;
   timestamp: string;
   unreadCount: number;
+  sortKey?: number;
 }
 
 type Listener = () => void;
@@ -41,7 +42,12 @@ export const chatSummaryStore = {
     const prev = summaries[chatId];
     summaries = {
       ...summaries,
-      [chatId]: { lastMessage, timestamp, unreadCount: prev?.unreadCount ?? 0 },
+      [chatId]: {
+        lastMessage,
+        timestamp,
+        unreadCount: prev?.unreadCount ?? 0,
+        sortKey: Date.now(),
+      },
     };
     notify();
     schedulePersist();
@@ -55,6 +61,7 @@ export const chatSummaryStore = {
         lastMessage,
         timestamp,
         unreadCount: (prev?.unreadCount ?? 0) + 1,
+        sortKey: Date.now(),
       },
     };
     notify();
