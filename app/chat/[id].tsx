@@ -43,9 +43,12 @@ export default function ClubChatScreen() {
     input,
     setInput,
     isLoading,
+    isLoadingMore,
+    hasMore,
     isSending,
     chatError,
     handleSend,
+    loadMoreMessages,
     clearError,
   } = useClubChat(resolvedId);
 
@@ -53,10 +56,11 @@ export default function ClubChatScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [chatInputHeight, setChatInputHeight] = useState(58);
+  const initialScrollDoneRef = useRef(false);
 
-  const scrollToEnd = useCallback(() => {
+  const scrollToEnd = useCallback((animated = true) => {
     setTimeout(
-      () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+      () => scrollViewRef.current?.scrollToEnd({ animated }),
       100,
     );
   }, []);
@@ -82,6 +86,12 @@ export default function ClubChatScreen() {
   }, [isAtBottom, scrollToEnd]);
 
   useEffect(() => {
+    if (messages.length === 0) return;
+    if (!initialScrollDoneRef.current) {
+      initialScrollDoneRef.current = true;
+      scrollToEnd(false);
+      return;
+    }
     if (isAtBottom) scrollToEnd();
   }, [messages.length, isSending, isAtBottom, scrollToEnd]);
 
@@ -98,6 +108,9 @@ export default function ClubChatScreen() {
     const isCloseToBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
     if (isCloseToBottom !== isAtBottom) setIsAtBottom(isCloseToBottom);
+    if (contentOffset.y <= 50 && hasMore && !isLoadingMore) {
+      loadMoreMessages();
+    }
   };
 
   const inputBottomPadding = keyboardVisible ? 16 : insets.bottom + 16;
@@ -151,6 +164,13 @@ export default function ClubChatScreen() {
         scrollEventThrottle={16}
       >
         <View style={styles.chatSection}>
+          {isLoadingMore && (
+            <ActivityIndicator
+              size="small"
+              color={colors.bluePrimary}
+              style={styles.loadingMore}
+            />
+          )}
           {messages.map((msg) => (
             <ChatBubble
               key={msg.id}
@@ -254,6 +274,9 @@ const styles = StyleSheet.create({
   chatSection: {
     paddingVertical: 8,
     gap: 8,
+  },
+  loadingMore: {
+    marginBottom: 8,
   },
   errorContainer: {
     flexDirection: 'row',
