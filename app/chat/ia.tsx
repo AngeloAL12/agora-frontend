@@ -21,17 +21,17 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import SuccessBottomSheet from '@/components/SuccessBottomSheet';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
 import { SuggestedQuestionsSection } from '@/components/ia/SuggestedQuestionsSection';
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { WelcomeSection } from '@/components/ia/WelcomeSection';
-import { colors, typography } from '@/constants/theme';
+import { colors, palette, typography } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
 import { Ionicons } from '@expo/vector-icons';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 
 const SUGGESTED_QUESTIONS = [
@@ -56,10 +56,12 @@ export default function IaChatScreen() {
     input,
     setInput,
     isLoading,
+    isSlowRequest,
     chatError,
     handleSend,
     handleSuggestedQuestion,
     clearError,
+    clearMessages,
   } = useChat();
   const scrollToEnd = useCallback(() => {
     setTimeout(
@@ -166,6 +168,12 @@ export default function IaChatScreen() {
 
           {isLoading && <TypingIndicator />}
 
+          {isLoading && isSlowRequest && (
+            <Text style={styles.slowRequestText}>
+              Esto está tardando más de lo esperado...
+            </Text>
+          )}
+
           {chatError && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>⚠️ {chatError}</Text>
@@ -196,7 +204,7 @@ export default function IaChatScreen() {
           value={input}
           onChangeText={setInput}
           onSend={() => handleSend()}
-          onAttach={() => comingSoonSheetRef.current?.present()}
+          onAttach={clearMessages}
         />
       </View>
     </View>
@@ -207,7 +215,7 @@ export default function IaChatScreen() {
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
       <ScreenHeader
-        title="Búfalo IA"
+        title="Bufi"
         align="center"
         leftAction={backAction}
         rightAction={moreAction}
@@ -297,6 +305,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
     color: colors.error,
+  },
+  slowRequestText: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.interRegular,
+    color: palette.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 4,
   },
   inputContainer: {
     zIndex: 10,
