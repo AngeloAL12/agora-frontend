@@ -126,7 +126,7 @@ export const ScreenHeader = ({
                   numberOfLines={1}
                 >
                   {title ?? ''}
-
+                </Text>
                 <View style={styles.slot}>{resolvedRightAction ?? null}</View>
               </>
             ) : (
