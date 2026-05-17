@@ -1,5 +1,6 @@
 import { colors, typography } from '@/constants/theme';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -33,7 +34,10 @@ export const ChatInput = ({
                 styles.attachButton,
                 pressed && { opacity: 0.7 },
               ]}
-              onPress={onAttach}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onAttach?.();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Adjuntar archivo"
             >
@@ -63,7 +67,10 @@ export const ChatInput = ({
                 styles.sendButton,
                 pressed && { opacity: 0.85 },
               ]}
-              onPress={onSend}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSend();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Enviar mensaje"
             >

@@ -15,6 +15,14 @@ const N8N_URL = process.env.EXPO_PUBLIC_N8N_URL ?? '';
 
 // Session-level message cache — survives navigation within the same app session.
 const sessionMessages: Message[] = [];
+let lastActivityAt = 0;
+
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 hour
+
+const clearSession = () => {
+  sessionMessages.splice(0, sessionMessages.length);
+  lastActivityAt = 0;
+};
 
 const formatTimestamp = (): string => {
   const now = new Date();
@@ -32,19 +40,28 @@ interface UseChatReturn {
   input: string;
   setInput: (text: string) => void;
   isLoading: boolean;
+  isSlowRequest: boolean;
   chatError: string | null;
   handleSend: (textOverride?: string) => void;
   handleSuggestedQuestion: (text: string) => void;
   clearError: () => void;
+  clearMessages: () => void;
 }
 
 export function useChat(): UseChatReturn {
   const { token, user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(() => [
-    ...sessionMessages,
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (
+      lastActivityAt > 0 &&
+      Date.now() - lastActivityAt > INACTIVITY_LIMIT_MS
+    ) {
+      clearSession();
+    }
+    return [...sessionMessages];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSlowRequest, setIsSlowRequest] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
   const msgCounterRef = useRef(0);
@@ -53,6 +70,7 @@ export function useChat(): UseChatReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSendingRef = useRef(false);
   const mountedRef = useRef(true);
+  const sessionIdRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -74,6 +92,7 @@ export function useChat(): UseChatReturn {
     }
 
     isSendingRef.current = true;
+    const currentSession = sessionIdRef.current;
 
     const userMessage: Message = {
       id: nextId(),
@@ -83,6 +102,7 @@ export function useChat(): UseChatReturn {
     };
 
     sessionMessages.push(userMessage);
+    lastActivityAt = Date.now();
     chatSummaryStore.update(
       'bufalo-ia',
       userMessage.text,
@@ -94,6 +114,7 @@ export function useChat(): UseChatReturn {
       setChatError(null);
     }
 
+    let slowTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       // timeout to send
       await new Promise((resolve) => setTimeout(resolve, 800));
@@ -104,6 +125,10 @@ export function useChat(): UseChatReturn {
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const timeout = setTimeout(() => controller.abort(), 30_000);
+
+      slowTimer = setTimeout(() => {
+        if (mountedRef.current) setIsSlowRequest(true);
+      }, 15_000);
 
       const response = await fetch(N8N_URL, {
         method: 'POST',
@@ -149,7 +174,9 @@ export function useChat(): UseChatReturn {
         sender: 'assistant',
         timestamp: formatTimestamp(),
       };
+      if (currentSession !== sessionIdRef.current) return;
       sessionMessages.push(assistantMessage);
+      lastActivityAt = Date.now();
       if (mountedRef.current) {
         chatSummaryStore.update(
           'bufalo-ia',
@@ -165,8 +192,10 @@ export function useChat(): UseChatReturn {
         );
       }
       clearTimeout(timeout);
+      clearTimeout(slowTimer);
     } catch (err) {
-      if (mountedRef.current) {
+      clearTimeout(slowTimer);
+      if (mountedRef.current && currentSession === sessionIdRef.current) {
         if (err instanceof Error && err.name === 'AbortError') {
           setChatError('El asistente tardó demasiado. Intenta de nuevo.');
         } else {
@@ -174,7 +203,10 @@ export function useChat(): UseChatReturn {
         }
       }
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+        setIsSlowRequest(false);
+      }
       isSendingRef.current = false;
     }
   };
@@ -185,14 +217,28 @@ export function useChat(): UseChatReturn {
 
   const clearError = () => setChatError(null);
 
+  const clearMessages = () => {
+    sessionIdRef.current += 1;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    isSendingRef.current = false;
+    clearSession();
+    setMessages([]);
+    setIsLoading(false);
+    setIsSlowRequest(false);
+    setChatError(null);
+  };
+
   return {
     messages,
     input,
     setInput,
     isLoading,
+    isSlowRequest,
     chatError,
     handleSend,
     handleSuggestedQuestion,
     clearError,
+    clearMessages,
   };
 }
