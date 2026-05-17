@@ -1,5 +1,19 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import React from 'react';
 import { useClubChat, clearSessionMessageCache } from '../../hooks/useClubChat';
+
+jest.mock('expo-router', () => {
+  const React = require('react');
+  return {
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      const cb = React.useCallback(effect, []);
+      React.useEffect(() => {
+        const cleanup = cb();
+        return cleanup;
+      }, [cb]);
+    },
+  };
+});
 
 const mockAuthRequest = jest.fn();
 jest.mock('../../hooks/useAuthRequest', () => ({
