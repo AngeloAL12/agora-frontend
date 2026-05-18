@@ -59,10 +59,7 @@ export default function ClubChatScreen() {
   const initialScrollDoneRef = useRef(false);
 
   const scrollToEnd = useCallback((animated = true) => {
-    setTimeout(
-      () => scrollViewRef.current?.scrollToEnd({ animated }),
-      100,
-    );
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated }), 100);
   }, []);
 
   useEffect(() => {

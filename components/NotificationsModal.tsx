@@ -82,7 +82,9 @@ export function NotificationsModal({
                       notification={item}
                       onResolved={(id) => onNotificationPress?.(id)}
                     />
-                    {!isLast && <View style={[styles.divider, { marginTop: 8 }]} />}
+                    {!isLast && (
+                      <View style={[styles.divider, { marginTop: 8 }]} />
+                    )}
                   </View>
                 );
               }

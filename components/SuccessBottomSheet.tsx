@@ -55,7 +55,9 @@ const SuccessBottomSheet = React.forwardRef<
             />
           </View>
 
-          <Text style={[styles.title, isError && styles.titleError]}>{title}</Text>
+          <Text style={[styles.title, isError && styles.titleError]}>
+            {title}
+          </Text>
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.actionsContainer}>
