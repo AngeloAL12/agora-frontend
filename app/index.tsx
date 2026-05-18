@@ -17,20 +17,22 @@ export default function IndexScreen() {
     | '/(tabs)/clubs'
     | '/(tabs)/profile'
   >('/(tabs)/map');
+  const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     readPreferences()
       .then((prefs) => {
-        if (!mounted || !prefs) return;
-        const homeScreen = normalizeHomeScreen(prefs.homeScreen);
+        if (!mounted) return;
+        const homeScreen = normalizeHomeScreen(prefs?.homeScreen);
         if (homeScreen) {
           setHomeRoute(HOME_ROUTE_BY_KEY[homeScreen]);
         }
+        setOnboardingSeen(prefs?.onboardingSeen ?? false);
       })
       .catch(() => {
-        // default to map
+        if (mounted) setOnboardingSeen(false);
       });
 
     return () => {
@@ -38,12 +40,13 @@ export default function IndexScreen() {
     };
   }, []);
 
-  if (isLoading) return <View style={{ flex: 1 }} />;
+  if (isLoading || onboardingSeen === null) return <View style={{ flex: 1 }} />;
 
   if (token) {
-    if (user?.id_career == null) return <Redirect href="/career" />;
+    if (user?.id_career == null) return <Redirect href="/setup/name" />;
     return <Redirect href={homeRoute} />;
   }
 
-  return <Redirect href="/auth/onboarding" />;
+  if (onboardingSeen) return <Redirect href="/auth/onboarding" />;
+  return <Redirect href="/auth/slides" />;
 }

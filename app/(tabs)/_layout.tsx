@@ -9,7 +9,7 @@ export default function TabsLayout() {
 
   if (!token) return <Redirect href="/auth/onboarding" />;
 
-  if (user?.id_career == null) return <Redirect href="/career" />;
+  if (user?.id_career == null) return <Redirect href="/setup/name" />;
 
   return (
     <Tabs

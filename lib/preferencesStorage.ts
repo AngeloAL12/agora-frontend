@@ -12,6 +12,7 @@ export type LegacyHomeScreenKey = 'reports' | 'ia';
 export type AppPreferences = {
   homeScreen?: HomeScreenKey | LegacyHomeScreenKey;
   notificationsEnabled?: boolean;
+  onboardingSeen?: boolean;
 };
 
 const PREFS_FILE_URI = FileSystem.documentDirectory
@@ -96,4 +97,9 @@ export async function savePreferences(
     PREFS_FILE_URI,
     JSON.stringify(preferences),
   );
+}
+
+export async function markOnboardingSeen(): Promise<void> {
+  const existing = await readPreferences().catch(() => null);
+  await savePreferences({ ...existing, onboardingSeen: true });
 }

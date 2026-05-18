@@ -30,7 +30,7 @@ import type { Career } from '@/types/career';
 
 export default function CareerScreen() {
   const router = useRouter();
-  const { token, updateUser, logout } = useAuth();
+  const { token, updateUser } = useAuth();
   const { careers, loading, error, refetch } = useCareers();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -127,21 +127,20 @@ export default function CareerScreen() {
       >
         <Pressable
           style={styles.backButton}
-          onPress={async () => {
-            await logout();
-            router.replace('/auth/onboarding');
+          onPress={() => {
+            router.replace('/setup/name');
           }}
         >
           <Ionicons name="arrow-back" size={20} color={colors.gray950} />
         </Pressable>
         <Text style={styles.headerTitle}>Carrera</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerStep}>2/2</Text>
       </View>
 
       {/* Content header */}
       <View style={styles.contentHeader}>
         <Text style={styles.label}>¡YA CASI ESTAMOS!</Text>
-        <Text style={styles.title}>Selecciona tu{'\n'}Ingeniería</Text>
+        <Text style={styles.title}>Selecciona tu{'\n'}Carrera</Text>
       </View>
 
       {/* Search bar */}
@@ -262,8 +261,14 @@ const styles = StyleSheet.create({
     color: colors.gray950,
     letterSpacing: -0.5,
   },
-  headerSpacer: {
+  headerStep: {
+    fontSize: 20,
+    fontFamily: typography.fontFamily.manropeBold,
+    color: colors.gray950,
+    letterSpacing: -0.5,
     width: 32,
+    textAlign: 'right',
+    paddingRight: 8,
   },
 
   contentHeader: {

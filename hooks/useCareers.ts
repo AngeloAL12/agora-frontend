@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { CAREERS_LIST } from '@/constants/careers';
 import { getCareers } from '@/services/careerService';
 import type { Career } from '@/types/career';
 
@@ -23,16 +24,12 @@ export function useCareers(token?: string) {
       setError(null);
       try {
         const data = await getCareers(token);
-        careersCache = data ?? [];
+        careersCache = data ?? [...CAREERS_LIST];
         setCareers(careersCache);
-      } catch (error) {
-        careersCache = null;
-        setCareers([]);
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'No se pudieron cargar las carreras.',
-        );
+      } catch {
+        careersCache = [...CAREERS_LIST];
+        setCareers(careersCache);
+        setError(null);
       } finally {
         setLoading(false);
       }
