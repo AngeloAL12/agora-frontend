@@ -119,7 +119,7 @@ export default function MapScreen() {
     return result?.path ?? null;
   }, [routeOrigin, routeDestination]);
 
-  // ── Distance to selected building ─────────────────────────────────────────
+  // Distance to selected building ─────────────────────────────────────────
   const distanceText = useMemo(() => {
     if (!pixelPosition || !selectedBuildingId) return null;
     const building = BUILDINGS.find((b) => b.id === selectedBuildingId);
