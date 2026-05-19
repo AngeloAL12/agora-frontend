@@ -142,6 +142,7 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
     const panGesture = Gesture.Pan()
       .minPointers(1)
       .maxPointers(1)
+      .minDistance(10)
       .onUpdate((e) => {
         const c = clampPt(
           savedTx.value + e.translationX,
@@ -156,7 +157,6 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         savedTy.value = ty.value;
       });
 
-    // ── Double-tap: zoom in on tap point, or reset ──
     const doubleTap = Gesture.Tap()
       .numberOfTaps(2)
       .onEnd((e) => {
@@ -186,7 +186,7 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         }
       });
 
-    const composed = Gesture.Race(doubleTap, pinchGesture, panGesture);
+    const composed = Gesture.Race(pinchGesture, panGesture, doubleTap);
 
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [

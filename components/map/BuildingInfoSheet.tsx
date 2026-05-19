@@ -3,14 +3,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { forwardRef, useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import { SvgXml } from 'react-native-svg';
 
 import AppBottomSheet from '@/components/AppBottomSheet';
@@ -64,14 +58,6 @@ const BuildingInfoSheet = forwardRef<BottomSheetModal, BuildingInfoSheetProps>(
     const [panoramaInitialIndex, setPanoramaInitialIndex] = useState(0);
 
     const renderContent = useCallback(() => {
-      if (loading) {
-        return (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.bluePrimary} />
-          </View>
-        );
-      }
-
       if (!buildingData && !building) return null;
 
       const categoryKey = buildingData?.category ?? 'edificio';
@@ -120,62 +106,69 @@ const BuildingInfoSheet = forwardRef<BottomSheetModal, BuildingInfoSheetProps>(
             )}
           </View>
 
-          {/* Photo gallery (regular + 360) */}
-          {(galleryImages.length > 0 ||
-            (building?.views_360 ?? []).length > 0) && (
-            <FlatList
-              data={[
-                ...galleryImages.map((img) => ({
-                  ...img,
-                  is360: false as const,
-                })),
-                ...(building?.views_360 ?? []).map((img) => ({
-                  ...img,
-                  is360: true as const,
-                })),
-              ]}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) =>
-                `${item.is360 ? '360' : 'img'}-${item.id}`
-              }
-              renderItem={({ item, index }) => {
-                if (item.is360) {
-                  const idx360 = index - galleryImages.length;
+          {/* Photo gallery — skeleton while loading, real content after */}
+          {loading ? (
+            <View style={styles.gallerySkeleton}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.gallerySkeletonCard} />
+              ))}
+            </View>
+          ) : (
+            (galleryImages.length > 0 || views360.length > 0) && (
+              <FlatList
+                data={[
+                  ...galleryImages.map((img) => ({
+                    ...img,
+                    is360: false as const,
+                  })),
+                  ...views360.map((img) => ({
+                    ...img,
+                    is360: true as const,
+                  })),
+                ]}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) =>
+                  `${item.is360 ? '360' : 'img'}-${item.id}`
+                }
+                renderItem={({ item, index }) => {
+                  if (item.is360) {
+                    const idx360 = index - galleryImages.length;
+                    return (
+                      <Pressable
+                        style={styles.galleryCard}
+                        onPress={() => {
+                          setPanoramaInitialIndex(idx360);
+                          setPanoramaVisible(true);
+                        }}
+                      >
+                        <ExpoImage
+                          source={{ uri: item.url }}
+                          style={styles.galleryImage}
+                          contentFit="cover"
+                        />
+                        <View style={styles.badge360}>
+                          <Text style={styles.badge360Text}>360°</Text>
+                        </View>
+                      </Pressable>
+                    );
+                  }
                   return (
                     <Pressable
                       style={styles.galleryCard}
-                      onPress={() => {
-                        setPanoramaInitialIndex(idx360);
-                        setPanoramaVisible(true);
-                      }}
+                      onPress={() => setViewerIndex(index)}
                     >
                       <ExpoImage
                         source={{ uri: item.url }}
                         style={styles.galleryImage}
                         contentFit="cover"
                       />
-                      <View style={styles.badge360}>
-                        <Text style={styles.badge360Text}>360°</Text>
-                      </View>
                     </Pressable>
                   );
-                }
-                return (
-                  <Pressable
-                    style={styles.galleryCard}
-                    onPress={() => setViewerIndex(index)}
-                  >
-                    <ExpoImage
-                      source={{ uri: item.url }}
-                      style={styles.galleryImage}
-                      contentFit="cover"
-                    />
-                  </Pressable>
-                );
-              }}
-              contentContainerStyle={styles.galleryList}
-            />
+                }}
+                contentContainerStyle={styles.galleryList}
+              />
+            )
           )}
 
           {/* Action buttons */}
@@ -318,6 +311,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   // ── Gallery ─────────────────────────────────────────────────────────────────
+  gallerySkeleton: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  gallerySkeletonCard: {
+    width: 118,
+    height: 105,
+    borderRadius: 12,
+    backgroundColor: '#E8EDF2',
+  },
   galleryList: {
     gap: 8,
   },
