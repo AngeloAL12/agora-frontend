@@ -119,7 +119,7 @@ export default function MapScreen() {
     return result?.path ?? null;
   }, [routeOrigin, routeDestination]);
 
-  // ── Distance to selected building ─────────────────────────────────────────
+  // Distance to selected building ─────────────────────────────────────────
   const distanceText = useMemo(() => {
     if (!pixelPosition || !selectedBuildingId) return null;
     const building = BUILDINGS.find((b) => b.id === selectedBuildingId);
@@ -129,6 +129,9 @@ export default function MapScreen() {
     const m = Math.round(pixelDistanceToMeters(dx, dy));
     return `A ${m} metros de tu ubicación`;
   }, [pixelPosition, selectedBuildingId]);
+
+  // Incremented on each tap — lets async callbacks self-discard if stale
+  const requestIdRef = useRef(0);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleBuildingPress = useCallback(
@@ -146,6 +149,8 @@ export default function MapScreen() {
         return;
       }
 
+      const myId = ++requestIdRef.current;
+
       setSelectedBuildingId(building.id);
       setBuildingLoading(true);
       setBuildingDetail(null);
@@ -154,12 +159,16 @@ export default function MapScreen() {
       try {
         if (token) {
           const detail = await getBuildingDetail(building.id, token);
-          setBuildingDetail(detail);
+          if (requestIdRef.current === myId) {
+            setBuildingDetail(detail);
+          }
         }
       } catch {
         // Silent fail — sheet shows category + name at minimum
       } finally {
-        setBuildingLoading(false);
+        if (requestIdRef.current === myId) {
+          setBuildingLoading(false);
+        }
       }
     },
     [token, selectingField],
