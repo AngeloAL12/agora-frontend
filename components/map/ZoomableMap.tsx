@@ -142,6 +142,7 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
     const panGesture = Gesture.Pan()
       .minPointers(1)
       .maxPointers(1)
+      .minDistance(10)
       .onUpdate((e) => {
         const c = clampPt(
           savedTx.value + e.translationX,
@@ -186,7 +187,7 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         }
       });
 
-    const composed = Gesture.Race(doubleTap, pinchGesture, panGesture);
+    const composed = Gesture.Race(pinchGesture, panGesture, doubleTap);
 
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [
