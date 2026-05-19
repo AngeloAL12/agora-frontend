@@ -83,10 +83,11 @@ export function getPanoramaHtml(imageUrl: string, pannellumJs: string): string {
       startTime = Date.now();
     });
     document.addEventListener('touchend', function(e) {
-      var dx = e.changedTouches[0].clientX - startX;
-      var dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && Date.now() - startTime < 300) {
-        window.ReactNativeWebView.postMessage('tap');
+      var dx = Math.abs(e.changedTouches[0].clientX - startX);
+      var dy = Math.abs(e.changedTouches[0].clientY - startY);
+      var dt = Date.now() - startTime;
+      if (dx < 10 && dy < 10 && dt < 300) {
+        post('tap');
       }
     });
   <\/script>
