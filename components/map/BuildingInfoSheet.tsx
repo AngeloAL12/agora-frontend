@@ -239,9 +239,15 @@ BuildingInfoSheet.displayName = 'BuildingInfoSheet';
 export default BuildingInfoSheet;
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
+  gallerySkeleton: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  gallerySkeletonCard: {
+    width: 118,
+    height: 105,
+    borderRadius: 12,
+    backgroundColor: '#E8EDF2',
   },
   content: {
     width: '100%',
