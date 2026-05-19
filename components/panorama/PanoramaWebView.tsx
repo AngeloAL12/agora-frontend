@@ -11,20 +11,29 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { getPanoramaHtml } from './panoramaHtml';
 
+const PANNELLUM_CDN =
+  'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js';
+
+let pannellumJsCache: string | null = null;
+
+async function fetchPannellumJs(): Promise<string> {
+  if (pannellumJsCache) return pannellumJsCache;
+  const res = await fetch(PANNELLUM_CDN);
+  pannellumJsCache = await res.text();
+  return pannellumJsCache;
+}
+
+function getOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+}
+
 interface PanoramaWebViewProps {
   imageUrl: string;
   onTap: () => void;
-}
-
-async function fetchAsDataUrl(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
@@ -34,6 +43,7 @@ export default function PanoramaWebView({
   onTap,
 }: PanoramaWebViewProps) {
   const [html, setHtml] = useState<string | null>(null);
+  const [baseUrl, setBaseUrl] = useState<string>('');
   const webviewOpacity = useSharedValue(0);
   const blurOpacity = useSharedValue(1);
 
@@ -41,9 +51,10 @@ export default function PanoramaWebView({
     setHtml(null);
     webviewOpacity.value = 0;
     blurOpacity.value = 1;
-    fetchAsDataUrl(imageUrl)
-      .then((dataUrl) => setHtml(getPanoramaHtml(dataUrl)))
-      .catch(() => setHtml(getPanoramaHtml(imageUrl)));
+    setBaseUrl(getOrigin(imageUrl));
+    fetchPannellumJs()
+      .then((pannellumJs) => setHtml(getPanoramaHtml(imageUrl, pannellumJs)))
+      .catch(() => {});
   }, [imageUrl, webviewOpacity, blurOpacity]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
@@ -53,6 +64,8 @@ export default function PanoramaWebView({
       blurOpacity.value = withTiming(0, { duration: 400 });
     } else if (data === 'tap') {
       onTap();
+    } else {
+      console.log('[PanoramaWebView]', data);
     }
   };
 
@@ -79,13 +92,15 @@ export default function PanoramaWebView({
       {html && (
         <Animated.View style={[StyleSheet.absoluteFill, webviewStyle]}>
           <WebView
-            source={{ html }}
+            source={{ html, baseUrl }}
             style={styles.webview}
             onMessage={handleMessage}
             scrollEnabled={false}
             bounces={false}
             allowsInlineMediaPlayback
             javaScriptEnabled
+            domStorageEnabled
+            mixedContentMode="always"
           />
         </Animated.View>
       )}
