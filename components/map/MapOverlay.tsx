@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Pressable } from 'react-native-gesture-handler';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Svg from 'react-native-svg';
 
 import { MAP_HEIGHT, MAP_WIDTH } from '@/constants/mapData';
@@ -15,7 +14,13 @@ import RoutePath from './RoutePath';
 import UserLocationDot from './UserLocationDot';
 import { DISPLAY_H, DISPLAY_W } from './ZoomableMap';
 
-const HIT_SIZE = (MARKER_CIRCLE_R + MARKER_PILL_GAP + MARKER_PILL_H) * 2;
+const SCALE_X = DISPLAY_W / MAP_WIDTH;
+const SCALE_Y = DISPLAY_H / MAP_HEIGHT;
+
+// Hit area in SVG units, converted to display pixels
+const HIT_SIZE_SVG = (MARKER_CIRCLE_R + MARKER_PILL_GAP + MARKER_PILL_H) * 2;
+const HIT_W = HIT_SIZE_SVG * SCALE_X;
+const HIT_H = HIT_SIZE_SVG * SCALE_Y;
 
 interface MapOverlayProps {
   buildings: BuildingData[];
@@ -47,20 +52,29 @@ export default function MapOverlay({
             isSelected={building.id === selectedBuildingId}
           />
         ))}
-        {userPosition && <UserLocationDot position={userPosition} />}
       </Svg>
 
-      <View style={styles.hitLayer} pointerEvents="box-none">
+      {userPosition && (
+        <UserLocationDot
+          position={userPosition}
+          scaleX={SCALE_X}
+          scaleY={SCALE_Y}
+        />
+      )}
+
+      {/* Hit areas are positioned in display-pixel coordinates to avoid
+          transformOrigin (unsupported on New Architecture in release builds). */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         {buildings.map((building) => (
           <Pressable
             key={building.id}
             onPress={() => onBuildingPress?.(building)}
             style={{
               position: 'absolute',
-              left: building.position.x - HIT_SIZE / 2,
-              top: building.position.y - MARKER_CIRCLE_R,
-              width: HIT_SIZE,
-              height: HIT_SIZE,
+              left: building.position.x * SCALE_X - HIT_W / 2,
+              top: building.position.y * SCALE_Y - MARKER_CIRCLE_R * SCALE_Y,
+              width: HIT_W,
+              height: HIT_H,
             }}
           />
         ))}
@@ -68,18 +82,3 @@ export default function MapOverlay({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  hitLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
-    transformOrigin: 'top left',
-    transform: [
-      { scaleX: DISPLAY_W / MAP_WIDTH },
-      { scaleY: DISPLAY_H / MAP_HEIGHT },
-    ],
-  },
-});

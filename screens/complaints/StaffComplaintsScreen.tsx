@@ -1,3 +1,4 @@
+import { ComplaintLoadingState } from '@/components/complaint';
 import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StaffDateFilters } from '@/components/staffReports/StaffDateFilters';
@@ -7,7 +8,6 @@ import { colors, typography } from '@/constants/theme';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import type { Complaint } from '@/hooks/useComplaints';
 import { useStaffComplaints } from '@/hooks/useStaffComplaints';
-import { ComplaintLoadingState } from '@/components/complaint';
 import { DateFilter, isWithinDateFilter } from '@/utils/complaints';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -89,7 +89,7 @@ export function StaffComplaintsScreen() {
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
       <ScreenHeader
-        title="Reportes"
+        title="Reporte de mejoras"
         align="left"
         showNotificationBell
         onNotificationPress={() => setNotificationsVisible(true)}

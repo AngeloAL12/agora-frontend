@@ -1,14 +1,14 @@
-import * as Haptics from 'expo-haptics';
-import { NotificationsModal } from '@/components/NotificationsModal';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/Button';
+import { ComplaintLoadingState } from '@/components/complaint';
+import { NotificationsModal } from '@/components/NotificationsModal';
 import { ReportCard } from '@/components/ReportCard';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useComplaints } from '@/hooks/useComplaints';
-import { ComplaintLoadingState } from '@/components/complaint';
 import { normalizeComplaintStatus } from '@/utils/complaints';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
@@ -65,7 +65,7 @@ export function UserComplaintsScreen() {
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
 
       <ScreenHeader
-        title="Reportes"
+        title="Reporte de mejoras"
         align="left"
         showNotificationBell
         onNotificationPress={() => setNotificationsVisible(true)}

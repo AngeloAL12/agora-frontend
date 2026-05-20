@@ -317,16 +317,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   // ── Gallery ─────────────────────────────────────────────────────────────────
-  gallerySkeleton: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  gallerySkeletonCard: {
-    width: 118,
-    height: 105,
-    borderRadius: 12,
-    backgroundColor: '#E8EDF2',
-  },
   galleryList: {
     gap: 8,
   },
