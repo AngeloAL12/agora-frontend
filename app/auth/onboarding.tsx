@@ -1,11 +1,9 @@
-import LoginBottomSheet from '@/components/LoginBottomSheet';
 import { colors, typography } from '@/constants/theme';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useSocialLogin } from '@/hooks/useSocialLogin';
 import { Image as ExpoImage } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRef } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -13,16 +11,23 @@ import {
 } from 'react-native';
 
 export default function Onboarding() {
-  const loginSheetRef = useRef<BottomSheetModal>(null);
   const { height } = useWindowDimensions();
-
-  const handleOpenLogin = () => {
-    loginSheetRef.current?.present();
-  };
+  const {
+    loadingProvider,
+    error,
+    handleGooglePress,
+    handleMicrosoftPress,
+    googleReady,
+  } = useSocialLogin();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.school}>TecNM Mexicali</Text>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.container}
+      bounces={false}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.school}>Agora</Text>
 
       <View style={[styles.imageContainer, { maxHeight: height * 0.4 }]}>
         <ExpoImage
@@ -32,48 +37,93 @@ export default function Onboarding() {
         />
       </View>
 
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>¡Bienvenido Búfalo!</Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.title}>Inicia Sesión</Text>
         <Text style={styles.subtitle}>
-          Se parte de la comunidad ahora mismo
+          Accede solo con tu cuenta institucional
         </Text>
-      </View>
 
-      <View style={styles.spacer} />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <View style={styles.buttonSection}>
-        <Pressable style={styles.buttonWrapper} onPress={handleOpenLogin}>
-          <LinearGradient
-            colors={[colors.blueSecondary, colors.bluePrimary]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.button}
+        <View style={styles.buttonsContainer}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.loginButton,
+              styles.googleButton,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={handleGooglePress}
+            disabled={!googleReady || loadingProvider !== null}
           >
-            <Text style={styles.buttonText}>Empezar</Text>
             <ExpoImage
-              source={require('@/assets/icons/right_arrow.svg')}
-              style={styles.buttonIcon}
+              source={require('@/assets/icons/google_logo.svg')}
+              style={styles.googleIcon}
               contentFit="contain"
             />
-          </LinearGradient>
-        </Pressable>
-      </View>
+            <Text style={styles.googleButtonText}>
+              {loadingProvider === 'google'
+                ? 'Cargando...'
+                : 'Continuar con Google'}
+            </Text>
+          </Pressable>
 
-      <LoginBottomSheet
-        ref={loginSheetRef}
-        onDismiss={() => loginSheetRef.current?.dismiss()}
-      />
-    </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.loginButton,
+              styles.microsoftButton,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={handleMicrosoftPress}
+            disabled={loadingProvider !== null}
+          >
+            <ExpoImage
+              source={require('@/assets/icons/microsoft_logo.svg')}
+              style={styles.microsoftIcon}
+              contentFit="contain"
+            />
+            <Text style={styles.microsoftButtonText}>
+              {loadingProvider === 'microsoft'
+                ? 'Cargando...'
+                : 'Continuar con Microsoft'}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* TODO: implementar navegación de ayuda */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.helpButton,
+            pressed && { opacity: 0.8 },
+          ]}
+        >
+          <Text style={styles.helpText}>¿Problemas para iniciar sesión?</Text>
+          <ExpoImage
+            source={require('@/assets/icons/right_top_arrow.svg')}
+            style={styles.helpIcon}
+            contentFit="contain"
+          />
+        </Pressable>
+
+        <Text style={styles.termsText}>
+          Al continuar, aceptas nuestros{' '}
+          <Text style={styles.linkText}>Términos de Servicio</Text> y{' '}
+          <Text style={styles.linkText}>Privacidad</Text>.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
     backgroundColor: colors.backgroundScreen,
+  },
+  container: {
+    flexGrow: 1,
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 80,
+    paddingBottom: 40,
     paddingHorizontal: 16,
   },
   school: {
@@ -87,7 +137,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    maxHeight: undefined,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 21,
@@ -96,55 +145,111 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  textContainer: {
+  contentContainer: {
+    width: '100%',
     alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
-    fontFamily: typography.fontFamily.manropeExtraBold,
+    fontSize: 24,
+    fontFamily: typography.fontFamily.manropeBold,
     color: colors.gray950,
-    textAlign: 'center',
-    letterSpacing: -0.75,
+    marginBottom: 8,
+    letterSpacing: -0.6,
   },
   subtitle: {
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interRegular,
+    fontSize: 16,
     color: colors.gray700,
+    fontFamily: typography.fontFamily.interRegular,
     textAlign: 'center',
-    marginTop: 8,
+    marginBottom: 32,
+    lineHeight: 24,
   },
-  spacer: {
-    flex: 1,
+  errorText: {
+    fontFamily: typography.fontFamily.interRegular,
+    fontSize: 14,
+    color: colors.error,
+    textAlign: 'center',
+    marginBottom: 16,
   },
-  buttonSection: {
+  buttonsContainer: {
     width: '100%',
-    gap: 12,
+    gap: 16,
+    marginBottom: 32,
   },
-  buttonWrapper: {
+  loginButton: {
     width: '100%',
-    borderRadius: 12,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 32,
-    elevation: 8,
-  },
-  button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 32,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 12,
-    gap: 12,
   },
-  buttonText: {
+  googleButton: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.gray950,
+  },
+  microsoftButton: {
+    backgroundColor: colors.bluePrimary,
+    shadowColor: colors.bluePrimary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  microsoftIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  microsoftButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.interSemiBold,
     color: colors.white,
-    fontSize: 18,
-    fontFamily: typography.fontFamily.manropeBold,
   },
-  buttonIcon: {
-    width: 16,
-    height: 16,
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  helpText: {
+    fontSize: 14,
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.interMedium,
+  },
+  helpIcon: {
+    width: 10,
+    height: 10,
+    marginLeft: 6,
+  },
+  termsText: {
+    fontSize: 12,
+    color: colors.gray700,
+    textAlign: 'center',
+    fontFamily: typography.fontFamily.interMedium,
+    lineHeight: 16,
+  },
+  linkText: {
+    color: colors.blueSecondary,
+    fontFamily: typography.fontFamily.interBold,
   },
 });
