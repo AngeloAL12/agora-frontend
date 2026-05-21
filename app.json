@@ -107,6 +107,7 @@
         }
       ]
     ],
+    "newArchEnabled": false,
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
