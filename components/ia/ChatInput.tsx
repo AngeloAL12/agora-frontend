@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 const addIcon = require('@/assets/icons/AiBot/add.svg');
 const sendIcon = require('@/assets/icons/AiBot/arrow-send.svg');
@@ -14,6 +14,7 @@ interface ChatInputProps {
   onSend: () => void;
   onAttach?: () => void;
   placeholder?: string;
+  showAttach?: boolean;
 }
 
 export const ChatInput = ({
@@ -22,6 +23,7 @@ export const ChatInput = ({
   onSend,
   onAttach,
   placeholder = 'Preguntar al asistente',
+  showAttach = false,
 }: ChatInputProps) => {
   return (
     <View style={styles.outerContainer}>
@@ -29,24 +31,26 @@ export const ChatInput = ({
         <BlurView intensity={60} tint="light" style={styles.blurContainer}>
           <View style={styles.innerContainer}>
             {/* Attach button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.attachButton,
-                pressed && { opacity: 0.7 },
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                onAttach?.();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Adjuntar archivo"
-            >
-              <ExpoImage
-                source={addIcon}
-                style={styles.addIcon}
-                contentFit="contain"
-              />
-            </Pressable>
+            {showAttach && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.attachButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  onAttach?.();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Adjuntar archivo"
+              >
+                <ExpoImage
+                  source={addIcon}
+                  style={styles.addIcon}
+                  contentFit="contain"
+                />
+              </Pressable>
+            )}
 
             {/* Text input */}
             <TextInput
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     gap: 8,
     padding: 9,
   },
@@ -130,12 +134,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.interRegular,
     color: colors.gray950,
-    paddingVertical: 9,
-    paddingTop: 9,
+    paddingTop: Platform.OS === 'ios' ? 12 : 9,
+    paddingBottom: Platform.OS === 'ios' ? 11 : 9,
     paddingHorizontal: 12,
     minHeight: 40,
     maxHeight: 100,
     backgroundColor: 'transparent',
+    textAlignVertical: 'center',
   },
   sendButton: {
     width: 40,
