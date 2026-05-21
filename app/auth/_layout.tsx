@@ -1,13 +1,13 @@
-import { colors, typography } from '@/constants/theme';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 import { useAuth } from '@/context/AuthContext';
 import { Redirect, Stack } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 export default function AuthLayout() {
   const { token, isLoading, isAuthenticating } = useAuth();
 
   if (isLoading) {
-    return <View style={{ flex: 1 }} />;
+    return <CustomLoadingScreen />;
   }
 
   if (token) {
@@ -19,11 +19,10 @@ export default function AuthLayout() {
       <Stack screenOptions={{ headerShown: false }} />
       {isAuthenticating ? (
         <View style={styles.loaderOverlay}>
-          <ActivityIndicator size="large" color={colors.bluePrimary} />
-          <Text style={styles.loaderTitle}>Iniciando sesión...</Text>
-          <Text style={styles.loaderSubtitle}>
-            Estamos validando tu cuenta institucional.
-          </Text>
+          <CustomLoadingScreen
+            message="Iniciando sesión..."
+            subtitle="Estamos validando tu cuenta institucional."
+          />
         </View>
       ) : null}
     </View>
@@ -36,23 +35,5 @@ const styles = StyleSheet.create({
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundScreen,
-    paddingHorizontal: 24,
-  },
-  loaderTitle: {
-    marginTop: 20,
-    fontSize: 24,
-    fontFamily: typography.fontFamily.manropeBold,
-    color: colors.gray950,
-  },
-  loaderSubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interRegular,
-    color: colors.gray700,
-    textAlign: 'center',
   },
 });

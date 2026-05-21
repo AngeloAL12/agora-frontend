@@ -4,6 +4,7 @@ import { NotificationsModal } from '@/components/NotificationsModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchInput } from '@/components/SearchInput';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationsContext } from '@/context/NotificationsContext';
@@ -18,7 +19,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -92,12 +92,7 @@ export default function ClubsScreen() {
   const fabBottom = insets.bottom + 96;
 
   if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingCenter}>
-        <ActivityIndicator size="large" color={colors.bluePrimary} />
-        <Text style={styles.loadingText}>Conectando con Agora...</Text>
-      </View>
-    );
+    return <CustomLoadingScreen message="Conectando con Agora..." />;
   }
 
   return (
