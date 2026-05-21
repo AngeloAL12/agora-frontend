@@ -1,22 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { colors } from '@/constants/theme';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 export function ComplaintLoadingState() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <ActivityIndicator size="large" color={colors.bluePrimary} />
-    </SafeAreaView>
-  );
+  return <CustomLoadingScreen message="Cargando reportes..." />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.whiteSoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

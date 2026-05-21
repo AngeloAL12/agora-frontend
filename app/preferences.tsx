@@ -26,6 +26,8 @@ import {
   savePreferences,
 } from '@/lib/preferencesStorage';
 
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+
 const MapIcon = require('@/assets/icons/navbar/map.svg') as ImageSource;
 const ReportsIcon = require('@/assets/icons/navbar/reports.svg') as ImageSource;
 const MailboxIcon = require('@/assets/icons/navbar/mailbox.svg') as ImageSource;
@@ -108,6 +110,10 @@ export default function PreferencesScreen() {
     }
   }, [notificationsOn, homeScreen]);
 
+  if (loading) {
+    return <CustomLoadingScreen message="Cargando preferencias..." />;
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -131,101 +137,93 @@ export default function PreferencesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.palette.primary} />
+        {/* ── Notificaciones ── */}
+        <Text style={styles.sectionLabel}>NOTIFICACIONES</Text>
+        <View style={styles.card}>
+          <View style={styles.notifRow}>
+            <View
+              style={[
+                styles.iconBox,
+                {
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderRadius: 12,
+                },
+              ]}
+            >
+              <ExpoImage
+                source={NotificationsIcon}
+                style={{
+                  width: NAV_ICON_SIZE,
+                  height: NAV_ICON_SIZE,
+                  tintColor: theme.palette.primary,
+                }}
+                contentFit="contain"
+              />
+            </View>
+            <Text style={styles.rowLabel}>Notificaciones</Text>
+            <Switch
+              value={notificationsOn}
+              onValueChange={setNotificationsOn}
+              trackColor={{
+                false: theme.colors.gray100,
+                true: theme.palette.primary,
+              }}
+              thumbColor={theme.colors.white}
+            />
           </View>
-        ) : (
-          <>
-            {/* ── Notificaciones ── */}
-            <Text style={styles.sectionLabel}>NOTIFICACIONES</Text>
-            <View style={styles.card}>
-              <View style={styles.notifRow}>
-                <View
-                  style={[
-                    styles.iconBox,
-                    {
-                      backgroundColor: theme.colors.primaryContainer,
-                      borderRadius: 12,
-                    },
+        </View>
+
+        {/* ── Pantalla de inicio ── */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
+          PANTALLA DE INICIO
+        </Text>
+        <View style={styles.card}>
+          {HOME_SCREEN_OPTIONS.map((option, index) => {
+            const isSelected = homeScreen === option.id;
+            const iconColor = theme.palette.primary;
+
+            return (
+              <React.Fragment key={option.id}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.optionRow,
+                    { opacity: pressed ? 0.7 : 1 },
                   ]}
+                  onPress={() => setHomeScreen(option.id)}
                 >
-                  <ExpoImage
-                    source={NotificationsIcon}
-                    style={{
-                      width: NAV_ICON_SIZE,
-                      height: NAV_ICON_SIZE,
-                      tintColor: theme.palette.primary,
-                    }}
-                    contentFit="contain"
-                  />
-                </View>
-                <Text style={styles.rowLabel}>Notificaciones</Text>
-                <Switch
-                  value={notificationsOn}
-                  onValueChange={setNotificationsOn}
-                  trackColor={{
-                    false: theme.colors.gray100,
-                    true: theme.palette.primary,
-                  }}
-                  thumbColor={theme.colors.white}
-                />
-              </View>
-            </View>
+                  {/* SVG icon */}
+                  <View style={styles.iconBox}>
+                    <ExpoImage
+                      source={option.Icon}
+                      style={{
+                        width: NAV_ICON_SIZE,
+                        height: NAV_ICON_SIZE,
+                        tintColor: iconColor,
+                      }}
+                      contentFit="contain"
+                    />
+                  </View>
 
-            {/* ── Pantalla de inicio ── */}
-            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
-              PANTALLA DE INICIO
-            </Text>
-            <View style={styles.card}>
-              {HOME_SCREEN_OPTIONS.map((option, index) => {
-                const isSelected = homeScreen === option.id;
-                const iconColor = theme.palette.primary;
+                  <Text style={styles.rowLabel}>{option.label}</Text>
 
-                return (
-                  <React.Fragment key={option.id}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.optionRow,
-                        { opacity: pressed ? 0.7 : 1 },
-                      ]}
-                      onPress={() => setHomeScreen(option.id)}
-                    >
-                      {/* SVG icon */}
-                      <View style={styles.iconBox}>
-                        <ExpoImage
-                          source={option.Icon}
-                          style={{
-                            width: NAV_ICON_SIZE,
-                            height: NAV_ICON_SIZE,
-                            tintColor: iconColor,
-                          }}
-                          contentFit="contain"
-                        />
-                      </View>
+                  {/* Radio button */}
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      isSelected && styles.radioOuterSelected,
+                    ]}
+                  >
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                </Pressable>
 
-                      <Text style={styles.rowLabel}>{option.label}</Text>
-
-                      {/* Radio button */}
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          isSelected && styles.radioOuterSelected,
-                        ]}
-                      >
-                        {isSelected && <View style={styles.radioInner} />}
-                      </View>
-                    </Pressable>
-
-                    {index < HOME_SCREEN_OPTIONS.length - 1 && (
-                      <View style={styles.divider} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </View>
-          </>
-        )}
+                {index < HOME_SCREEN_OPTIONS.length - 1 && (
+                  <View style={styles.divider} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>

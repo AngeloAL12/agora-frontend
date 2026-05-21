@@ -3,7 +3,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 import ConfirmBottomSheet from '@/components/ConfirmBottomSheet';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -149,11 +149,7 @@ export default function MembersScreen() {
         : 'Transferir liderazgo';
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.bluePrimary} />
-      </View>
-    );
+    return <CustomLoadingScreen message="Cargando miembros..." />;
   }
 
   return (

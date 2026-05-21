@@ -2,7 +2,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
@@ -67,11 +68,7 @@ export default function EventDetailScreen() {
   }, [load]);
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.bluePrimary} />
-      </View>
-    );
+    return <CustomLoadingScreen message="Cargando evento..." />;
   }
 
   if (!event) {

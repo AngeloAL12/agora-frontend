@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -26,6 +25,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 const TABS: { label: string; value: NotificationCategory | 'ALL' }[] = [
   { label: 'Todos', value: 'ALL' },
@@ -63,6 +63,10 @@ export default function NotificationsScreen() {
     await refetch();
     setRefreshing(false);
   };
+
+  if (loading && !refreshing) {
+    return <CustomLoadingScreen message="Cargando notificaciones..." />;
+  }
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.container}>
@@ -102,11 +106,7 @@ export default function NotificationsScreen() {
             </Pressable>
           ))}
         </View>
-        {loading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={colors.bluePrimary} size="large" />
-          </View>
-        ) : notifications.length === 0 ? (
+        {notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons
               name="notifications-off-outline"

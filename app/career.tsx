@@ -26,6 +26,8 @@ import {
 } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+
 import type { Career } from '@/types/career';
 
 export default function CareerScreen() {
@@ -100,17 +102,7 @@ export default function CareerScreen() {
   };
 
   if (loadingInitialCareers) {
-    return (
-      <SafeAreaView
-        style={styles.container}
-        edges={['bottom', 'left', 'right']}
-      >
-        <StatusBar backgroundColor={colors.backgroundScreen} style="dark" />
-        <View style={styles.loadingScreen}>
-          <ActivityIndicator color={colors.bluePrimary} size="large" />
-        </View>
-      </SafeAreaView>
-    );
+    return <CustomLoadingScreen message="Cargando carreras..." />;
   }
 
   return (

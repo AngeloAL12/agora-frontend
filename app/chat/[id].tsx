@@ -22,6 +22,8 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
@@ -130,20 +132,7 @@ export default function ClubChatScreen() {
   );
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-        <ScreenHeader
-          title={chatName}
-          align="center"
-          leftAction={backAction}
-          rightAction={moreAction}
-        />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.bluePrimary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <CustomLoadingScreen message="Cargando chat..." />;
   }
 
   const renderContent = (paddingBottom: number) => (

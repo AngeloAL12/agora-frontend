@@ -48,6 +48,8 @@ import {
 import { recordClubVisit } from '@/services/recentClubsService';
 import { ClubEvent, ClubPost, ClubResponse } from '@/types/club';
 
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+
 type Tab = 'posts' | 'events';
 
 const PAGE_SIZE = 20;
@@ -425,11 +427,7 @@ export default function ClubDetailScreen() {
   ]);
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.bluePrimary} />
-      </View>
-    );
+    return <CustomLoadingScreen message="Cargando club..." />;
   }
 
   if (!club) {

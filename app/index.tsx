@@ -2,6 +2,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 import {
   HOME_ROUTE_BY_KEY,
   normalizeHomeScreen,
@@ -40,7 +41,7 @@ export default function IndexScreen() {
     };
   }, []);
 
-  if (isLoading || onboardingSeen === null) return <View style={{ flex: 1 }} />;
+  if (isLoading || onboardingSeen === null) return <CustomLoadingScreen />;
 
   if (token) {
     if (user?.id_career == null) return <Redirect href="/setup/name" />;

@@ -1,13 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -23,6 +17,7 @@ import { ChatFilter, FilterChips } from '@/components/chats/FilterChips';
 import { chatSummaryStore } from '@/services/chatSummaryStore';
 import { colors, typography } from '@/constants/theme';
 import { useMyChats } from '@/hooks/useMyChats';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -82,6 +77,10 @@ export default function MessagesScreen() {
     router.push(`/chat/${id}${params}`);
   };
 
+  if (isLoading) {
+    return <CustomLoadingScreen message="Cargando mensajes..." />;
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar backgroundColor={colors.bluePrimary} style="light" />
@@ -101,11 +100,7 @@ export default function MessagesScreen() {
           onFilterChange={setActiveFilter}
         />
 
-        {isLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={colors.bluePrimary} />
-          </View>
-        ) : error ? (
+        {error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
           </View>

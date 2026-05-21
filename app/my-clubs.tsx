@@ -9,18 +9,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 export default function MyClubsScreen() {
   const router = useRouter();
@@ -52,6 +46,10 @@ export default function MyClubsScreen() {
     }, [token]),
   );
 
+  if (loading) {
+    return <CustomLoadingScreen message="Cargando mis clubes..." />;
+  }
+
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
       <StatusBar backgroundColor={colors.white} style="dark" />
@@ -77,47 +75,40 @@ export default function MyClubsScreen() {
       />
 
       <View style={styles.content}>
-        {loading ? (
-          <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color={colors.bluePrimary} />
-            <Text style={styles.loadingText}>Cargando tus clubes...</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: scrollPaddingBottom },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
           </View>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: scrollPaddingBottom },
-            ]}
-          >
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
-            </View>
 
-            <View style={styles.list}>
-              {sortedClubs.map((club) => (
-                <ClubCard
-                  key={club.id}
-                  name={club.name}
-                  imageSource={
-                    club.profile_image ? { uri: club.profile_image } : undefined
-                  }
-                  onPress={() =>
-                    router.push({
-                      pathname: '/club/[id]' as never,
-                      params: { id: club.id },
-                    })
-                  }
-                />
-              ))}
-              {clubs.length === 0 && (
-                <Text style={styles.emptyText}>
-                  Aún no formas parte de ningún club.
-                </Text>
-              )}
-            </View>
-          </ScrollView>
-        )}
+          <View style={styles.list}>
+            {sortedClubs.map((club) => (
+              <ClubCard
+                key={club.id}
+                name={club.name}
+                imageSource={
+                  club.profile_image ? { uri: club.profile_image } : undefined
+                }
+                onPress={() =>
+                  router.push({
+                    pathname: '/club/[id]' as never,
+                    params: { id: club.id },
+                  })
+                }
+              />
+            ))}
+            {clubs.length === 0 && (
+              <Text style={styles.emptyText}>
+                Aún no formas parte de ningún club.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
