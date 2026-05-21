@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import React, {
@@ -9,20 +8,26 @@ import React, {
   useState,
 } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ChatInput } from '@/components/ia/ChatInput';
+
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import ImageViewer from '@/components/ImageViewer';
@@ -209,11 +214,36 @@ export default function PostCommentsScreen() {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [inputHeight, setInputHeight] = useState(58);
   const listRef = useRef<FlatList>(null);
-  const inputRef = useRef<TextInput>(null);
+
+  // Mirror exactly the chat screen keyboard tracking
+  const keyboard = useAnimatedKeyboard();
+  const animatedKeyboardStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboard.height.value + 16, insets.bottom + 16),
+  }));
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () =>
+      setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(hideEvent, () =>
+      setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const inputBottomPadding = keyboardVisible ? 16 : insets.bottom + 16;
 
   const parsedImages = useMemo<ClubPostImage[]>(() => {
     try {
@@ -260,13 +290,12 @@ export default function PostCommentsScreen() {
   }
 
   function handleCommentPress() {
-    inputRef.current?.focus();
+    // ChatInput manages its own focus
   }
 
   async function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || !token || !clubId || !postId) return;
-    setSending(true);
     try {
       const newComment = await createPostComment(
         Number(clubId),
@@ -286,8 +315,6 @@ export default function PostCommentsScreen() {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch {
       // silently ignore
-    } finally {
-      setSending(false);
     }
   }
 
@@ -357,6 +384,47 @@ export default function PostCommentsScreen() {
     );
   }
 
+  if (loading) {
+    return <CustomLoadingScreen message="Cargando publicación..." />;
+  }
+
+  const renderContent = (paddingBottom: number) => (
+    <View style={styles.flex}>
+      <FlatList
+        ref={listRef}
+        data={comments}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderComment}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: inputHeight + paddingBottom + 12 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>Sé el primero en comentar.</Text>
+        }
+      />
+
+      {/* Input — exactly like chat screen */}
+      <View
+        style={[
+          styles.inputContainer,
+          { position: 'absolute', bottom: paddingBottom, left: 0, right: 0 },
+        ]}
+        onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
+      >
+        <ChatInput
+          value={text}
+          onChangeText={setText}
+          onSend={handleSend}
+          placeholder="Escribe un comentario..."
+        />
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.root}>
       <ScreenHeader
@@ -368,61 +436,19 @@ export default function PostCommentsScreen() {
         containerStyle={styles.header}
       />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.bluePrimary} />
-          </View>
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={comments}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderComment}
-            ListHeaderComponent={listHeader}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>Sé el primero en comentar.</Text>
-            }
-          />
-        )}
-
-        {/* Input bar */}
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder="Escribe un comentario..."
-            placeholderTextColor={colors.searchPlaceholder}
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={500}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-          />
-          <Pressable
-            style={[
-              styles.sendBtn,
-              (!text.trim() || sending) && styles.sendBtnDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!text.trim() || sending}
-            activeOpacity={0.8}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Ionicons name="send" size={18} color={colors.white} />
-            )}
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+      {Platform.OS === 'ios' ? (
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior="padding"
+          keyboardVerticalOffset={0}
+        >
+          {renderContent(inputBottomPadding)}
+        </KeyboardAvoidingView>
+      ) : (
+        <Animated.View style={[styles.flex, animatedKeyboardStyle]}>
+          {renderContent(0)}
+        </Animated.View>
+      )}
 
       <ImageViewer
         visible={imageModalVisible}
@@ -543,6 +569,9 @@ const styles = StyleSheet.create({
   header: { shadowOpacity: 0, elevation: 0 },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  inputContainer: {
+    zIndex: 10,
+  },
 
   listContent: {
     paddingTop: 4,
@@ -625,40 +654,5 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginTop: 2,
-  },
-
-  // Input bar
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle20,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.gray100,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interRegular,
-    color: colors.gray950,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 9999,
-    backgroundColor: colors.bluePrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  sendBtnDisabled: {
-    opacity: 0.4,
   },
 });
