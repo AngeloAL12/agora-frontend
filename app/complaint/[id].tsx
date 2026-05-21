@@ -200,6 +200,7 @@ function StaffComplaintDetailScreen() {
 
   const currentStatus = normalizeComplaintStatus(complaint.status);
   const currentStatusMeta = getComplaintStatusMeta(currentStatus);
+  const isSuggestion = complaint.type === 'SUGGESTION';
 
   return (
     <SafeAreaView
@@ -214,33 +215,37 @@ function StaffComplaintDetailScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.white} />
           </Pressable>
 
-          <Text style={styles.staffHeaderTitle}>Detalles</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.staffHeaderTitle}>Detalles</Text>
+          </View>
 
-          <Pressable
-            style={[
-              styles.statusSelector,
-              { backgroundColor: currentStatusMeta.bg },
-            ]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setStatusMenuVisible(true);
-            }}
-            disabled={updatingStatus}
-          >
-            <Text
+          {!isSuggestion && (
+            <Pressable
               style={[
-                styles.statusSelectorText,
-                { color: currentStatusMeta.text },
+                styles.statusSelector,
+                { backgroundColor: currentStatusMeta.bg },
               ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setStatusMenuVisible(true);
+              }}
+              disabled={updatingStatus}
             >
-              {updatingStatus ? 'Actualizando' : currentStatusMeta.label}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={14}
-              color={currentStatusMeta.text}
-            />
-          </Pressable>
+              <Text
+                style={[
+                  styles.statusSelectorText,
+                  { color: currentStatusMeta.text },
+                ]}
+              >
+                {updatingStatus ? 'Actualizando' : currentStatusMeta.label}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={14}
+                color={currentStatusMeta.text}
+              />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -264,37 +269,39 @@ function StaffComplaintDetailScreen() {
           <Text style={styles.descriptionText}>{complaint.description}</Text>
         </View>
 
-        <View style={[styles.card, styles.evidenceCard]}>
-          <Text style={styles.cardLabel}>Evidencia</Text>
-          {complaint.images.length > 0 ? (
-            complaint.images.map((img) => (
-              <View key={img.id} style={styles.staffImageContainer}>
-                <Image
-                  source={{ uri: img.url }}
-                  style={styles.evidenceImage}
-                  contentFit="cover"
-                />
-                <View style={styles.imageOverlay} />
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyEvidenceText}>
-              Aun no hay evidencia cargada.
-            </Text>
-          )}
+        {!isSuggestion && (
+          <View style={[styles.card, styles.evidenceCard]}>
+            <Text style={styles.cardLabel}>Evidencia</Text>
+            {complaint.images.length > 0 ? (
+              complaint.images.map((img) => (
+                <View key={img.id} style={styles.staffImageContainer}>
+                  <Image
+                    source={{ uri: img.url }}
+                    style={styles.evidenceImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.imageOverlay} />
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyEvidenceText}>
+                Aun no hay evidencia cargada.
+              </Text>
+            )}
 
-          <EvidenceUpload
-            images={localEvidence}
-            onPickImage={pickEvidence}
-            onRemoveImage={(index) =>
-              setLocalEvidence((prev) => prev.filter((_, i) => i !== index))
-            }
-            disabled={uploadingEvidence}
-          />
-          {uploadingEvidence ? (
-            <Text style={styles.uploadingText}>Subiendo evidencia...</Text>
-          ) : null}
-        </View>
+            <EvidenceUpload
+              images={localEvidence}
+              onPickImage={pickEvidence}
+              onRemoveImage={(index) =>
+                setLocalEvidence((prev) => prev.filter((_, i) => i !== index))
+              }
+              disabled={uploadingEvidence}
+            />
+            {uploadingEvidence ? (
+              <Text style={styles.uploadingText}>Subiendo evidencia...</Text>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
 
       <StatusMenu
@@ -427,9 +434,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  titleContainer: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: -1,
+  },
   staffHeaderTitle: {
-    flex: 1,
-    textAlign: 'center',
     color: colors.white,
     fontSize: 20,
     lineHeight: 28,

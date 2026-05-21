@@ -10,12 +10,13 @@ import { colors } from '@/constants/theme';
 interface ConfirmSubmitSheetProps {
   onConfirm: () => void;
   isLoading: boolean;
+  isSuggestion?: boolean;
 }
 
 const ConfirmSubmitSheet = forwardRef<
   BottomSheetModal,
   ConfirmSubmitSheetProps
->(({ onConfirm, isLoading }, ref) => {
+>(({ onConfirm, isLoading, isSuggestion }, ref) => {
   const handlePressConfirm = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onConfirm();
@@ -40,8 +41,9 @@ const ConfirmSubmitSheet = forwardRef<
 
         <Text style={styles.sheetTitle}>Confirmar Envío</Text>
         <Text style={styles.sheetMessage}>
-          Una vez enviado, no podrás editar este reporte. ¿Seguro que quieres
-          enviarlo?
+          {isSuggestion
+            ? 'Una vez enviada, no podrás editar esta sugerencia. ¿Seguro que quieres enviarla?'
+            : 'Una vez enviado, no podrás editar este reporte. ¿Seguro que quieres enviarlo?'}
         </Text>
 
         <View style={styles.sheetActions}>

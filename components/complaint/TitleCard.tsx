@@ -12,6 +12,7 @@ type TitleCardProps = {
 
 export function TitleCard({ complaint }: TitleCardProps) {
   const statusMeta = getComplaintStatusMeta(complaint.status);
+  const isSuggestion = complaint.type === 'SUGGESTION';
   const formattedDate = new Date(complaint.created_at).toLocaleDateString(
     'es-MX',
     {
@@ -25,11 +26,13 @@ export function TitleCard({ complaint }: TitleCardProps) {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardLabel}>Titulo</Text>
-        <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
-          <Text style={[styles.badgeText, { color: statusMeta.text }]}>
-            {statusMeta.label}
-          </Text>
-        </View>
+        {!isSuggestion && (
+          <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
+            <Text style={[styles.badgeText, { color: statusMeta.text }]}>
+              {statusMeta.label}
+            </Text>
+          </View>
+        )}
       </View>
       <Text style={styles.title}>{complaint.title}</Text>
       <View style={styles.dateRow}>
