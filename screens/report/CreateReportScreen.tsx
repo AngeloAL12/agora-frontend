@@ -320,6 +320,16 @@ export default function CreateReportScreen() {
 
       <SuccessBottomSheet
         ref={successBottomSheetRef}
+        message={
+          isSuggestion
+            ? 'Tu sugerencia ha sido enviada exitosamente al personal académico.'
+            : 'Tu reporte ha sido enviado exitosamente al personal académico.'
+        }
+        secondaryLabel={
+          isSuggestion
+            ? 'Ver detalles de la sugerencia'
+            : 'Ver detalles del reporte'
+        }
         onPrimaryPress={() => {
           successBottomSheetRef.current?.dismiss();
           router.replace('/complaints');
@@ -336,6 +346,7 @@ export default function CreateReportScreen() {
         ref={confirmBottomSheetRef}
         isLoading={loading}
         onConfirm={onSubmit}
+        isSuggestion={isSuggestion}
       />
 
       <Modal

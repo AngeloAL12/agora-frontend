@@ -7,6 +7,7 @@ import { getComplaintStatusMeta } from '@/utils/complaints';
 
 interface ReportCardProps {
   folio: string;
+  type?: string;
   title: string;
   description: string;
   date: string;
@@ -16,6 +17,7 @@ interface ReportCardProps {
 
 export const ReportCard = ({
   folio,
+  type,
   title,
   description,
   date,
@@ -23,16 +25,21 @@ export const ReportCard = ({
   onPress,
 }: ReportCardProps) => {
   const statusMeta = getComplaintStatusMeta(status);
+  const isSuggestion = type === 'SUGGESTION';
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.cardHeader}>
-        <Text style={styles.folio}>FOLIO #{folio}</Text>
-        <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
-          <Text style={[styles.badgeText, { color: statusMeta.text }]}>
-            {statusMeta.label}
-          </Text>
-        </View>
+        <Text style={styles.folio}>
+          {isSuggestion ? 'Sugerencia' : `FOLIO #${folio}`}
+        </Text>
+        {!isSuggestion && (
+          <View style={[styles.badge, { backgroundColor: statusMeta.bg }]}>
+            <Text style={[styles.badgeText, { color: statusMeta.text }]}>
+              {statusMeta.label}
+            </Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.title}>{title}</Text>

@@ -66,4 +66,38 @@ describe('ConfirmSubmitSheet Component', () => {
 
     expect(mockOnConfirm).not.toHaveBeenCalled();
   });
+
+  it('debe mostrar el mensaje de sugerencia cuando isSuggestion es true', () => {
+    const mockOnConfirm = jest.fn();
+    const { getByText } = render(
+      <ConfirmSubmitSheet
+        isLoading={false}
+        onConfirm={mockOnConfirm}
+        isSuggestion={true}
+      />,
+    );
+
+    expect(
+      getByText(
+        'Una vez enviada, no podrás editar esta sugerencia. ¿Seguro que quieres enviarla?',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('debe mostrar el mensaje de reporte cuando isSuggestion es false o undefined', () => {
+    const mockOnConfirm = jest.fn();
+    const { getByText } = render(
+      <ConfirmSubmitSheet
+        isLoading={false}
+        onConfirm={mockOnConfirm}
+        isSuggestion={false}
+      />,
+    );
+
+    expect(
+      getByText(
+        'Una vez enviado, no podrás editar este reporte. ¿Seguro que quieres enviarlo?',
+      ),
+    ).toBeTruthy();
+  });
 });

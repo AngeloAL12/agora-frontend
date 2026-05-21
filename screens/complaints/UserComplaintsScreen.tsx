@@ -125,6 +125,7 @@ export function UserComplaintsScreen() {
                   <ReportCard
                     key={item.id || index}
                     folio={`${item.id}`}
+                    type={item.type}
                     title={item.title}
                     description={
                       item.description || 'Sin descripcion detallada por ahora.'
