@@ -2,10 +2,9 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 
 import { loginWithGoogle, loginWithMicrosoft } from '@/services/authService';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { exchangeCodeAsync } from 'expo-auth-session';
 import { router } from 'expo-router';
-import LoginBottomSheet from '../../components/LoginBottomSheet';
+import Onboarding from '../../../app/auth/onboarding';
 
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
@@ -74,51 +73,11 @@ jest.mock('react-native-reanimated', () => ({
   useSharedValue: (val: unknown) => ({ value: val }),
 }));
 
-jest.mock('@gorhom/bottom-sheet', () => {
-  const { forwardRef } = require('react');
-  const { View } = require('react-native');
-
-  const BottomSheetModal = forwardRef(
-    ({ children }: { children: React.ReactNode }, _ref: unknown) => (
-      <View>{children}</View>
-    ),
-  );
-  BottomSheetModal.displayName = 'BottomSheetModal';
-
-  const BottomSheetView = ({ children }: { children: React.ReactNode }) => (
-    <View>{children}</View>
-  );
-  BottomSheetView.displayName = 'BottomSheetView';
-
-  const BottomSheetBackdrop = () => null;
-  BottomSheetBackdrop.displayName = 'BottomSheetBackdrop';
-
-  const BottomSheetModalProvider = ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) => <View>{children}</View>;
-  BottomSheetModalProvider.displayName = 'BottomSheetModalProvider';
-
-  const useBottomSheetInternal = () => ({
-    animatedPosition: { value: 0 },
-  });
-
-  return {
-    BottomSheetModal,
-    BottomSheetView,
-    BottomSheetBackdrop,
-    BottomSheetModalProvider,
-    useBottomSheetInternal,
-  };
-});
-
-function renderSheet() {
-  const ref = React.createRef<BottomSheetModal>();
-  return render(<LoginBottomSheet ref={ref} />);
+function renderOnboarding() {
+  return render(<Onboarding />);
 }
 
-describe('LoginBottomSheet', () => {
+describe('Onboarding Screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGoogleResponse = null;
@@ -142,13 +101,13 @@ describe('LoginBottomSheet', () => {
   });
 
   it('renders Google and Microsoft buttons', () => {
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     expect(getByText('Continuar con Google')).toBeTruthy();
     expect(getByText('Continuar con Microsoft')).toBeTruthy();
   });
 
   it('pressing Google button calls promptGoogle and shows loading only on Google button', () => {
-    const { getByText, queryByText } = renderSheet();
+    const { getByText, queryByText } = renderOnboarding();
     fireEvent.press(getByText('Continuar con Google'));
     expect(mockPromptGoogle).toHaveBeenCalledTimes(1);
     expect(getByText('Cargando...')).toBeTruthy();
@@ -157,19 +116,19 @@ describe('LoginBottomSheet', () => {
   });
 
   it('pressing Microsoft button calls promptMicrosoft', () => {
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     fireEvent.press(getByText('Continuar con Microsoft'));
     expect(mockPromptMicrosoft).toHaveBeenCalledTimes(1);
   });
 
   it('google cancel response clears loading state', async () => {
-    const { getByText, rerender } = renderSheet();
+    const { getByText, rerender } = renderOnboarding();
 
     fireEvent.press(getByText('Continuar con Google'));
     expect(getByText('Cargando...')).toBeTruthy();
 
     mockGoogleResponse = { type: 'cancel' };
-    rerender(<LoginBottomSheet ref={React.createRef<BottomSheetModal>()} />);
+    rerender(<Onboarding />);
     await act(async () => {});
 
     expect(getByText('Continuar con Google')).toBeTruthy();
@@ -177,13 +136,13 @@ describe('LoginBottomSheet', () => {
   });
 
   it('microsoft dismiss response clears loading state', async () => {
-    const { getByText, rerender } = renderSheet();
+    const { getByText, rerender } = renderOnboarding();
 
     fireEvent.press(getByText('Continuar con Microsoft'));
     expect(getByText('Cargando...')).toBeTruthy();
 
     mockMicrosoftResponse = { type: 'dismiss' };
-    rerender(<LoginBottomSheet ref={React.createRef<BottomSheetModal>()} />);
+    rerender(<Onboarding />);
     await act(async () => {});
 
     expect(getByText('Continuar con Microsoft')).toBeTruthy();
@@ -202,7 +161,7 @@ describe('LoginBottomSheet', () => {
 
     mockGoogleResponse = { type: 'success', params: { code: 'auth-code' } };
 
-    renderSheet();
+    renderOnboarding();
 
     // Let useEffect fire and exchangeCodeAsync run
     await act(async () => {});
@@ -217,7 +176,7 @@ describe('LoginBottomSheet', () => {
   it('googleResponse success without code sets error', async () => {
     mockGoogleResponse = { type: 'success', params: {} };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el token de Google.')).toBeTruthy();
@@ -227,7 +186,7 @@ describe('LoginBottomSheet', () => {
     mockGoogleRequest = null;
     mockGoogleResponse = { type: 'success', params: { code: 'auth-code' } };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el token de Google.')).toBeTruthy();
@@ -236,7 +195,7 @@ describe('LoginBottomSheet', () => {
   it('googleResponse type error sets error message', async () => {
     mockGoogleResponse = { type: 'error' };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(
@@ -259,7 +218,7 @@ describe('LoginBottomSheet', () => {
       params: { code: 'ms-auth-code' },
     };
 
-    renderSheet();
+    renderOnboarding();
     await act(async () => {});
     expect(exchangeCodeAsync).toHaveBeenCalled();
     await act(async () => {});
@@ -271,7 +230,7 @@ describe('LoginBottomSheet', () => {
   it('microsoftResponse success without code sets error', async () => {
     mockMicrosoftResponse = { type: 'success', params: {} };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el token de Microsoft.')).toBeTruthy();
@@ -284,7 +243,7 @@ describe('LoginBottomSheet', () => {
       params: { code: 'ms-auth-code' },
     };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el token de Microsoft.')).toBeTruthy();
@@ -300,7 +259,7 @@ describe('LoginBottomSheet', () => {
       params: { code: 'ms-auth-code' },
     };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(
@@ -318,7 +277,7 @@ describe('LoginBottomSheet', () => {
       params: { code: 'ms-auth-code' },
     };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(
@@ -329,7 +288,7 @@ describe('LoginBottomSheet', () => {
   it('microsoftResponse type error sets error message', async () => {
     mockMicrosoftResponse = { type: 'error' };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(
@@ -346,7 +305,7 @@ describe('LoginBottomSheet', () => {
 
     mockGoogleResponse = { type: 'success', params: { code: 'auth-code' } };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
     await act(async () => {});
 
@@ -363,7 +322,7 @@ describe('LoginBottomSheet', () => {
 
     mockGoogleResponse = { type: 'success', params: { code: 'auth-code' } };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('Error al intercambiar el token de Google.')).toBeTruthy();
@@ -375,7 +334,7 @@ describe('LoginBottomSheet', () => {
 
     mockGoogleResponse = { type: 'success', params: { code: 'auth-code' } };
 
-    const { getByText } = renderSheet();
+    const { getByText } = renderOnboarding();
     await act(async () => {});
 
     expect(getByText('No se pudo obtener el id_token de Google.')).toBeTruthy();
