@@ -1,3 +1,4 @@
+import MediaPicker from '@/components/MediaPicker';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { getMe } from '@/services/authService';
@@ -207,70 +208,12 @@ export default function CreatePostScreen() {
             />
 
             {/* Media area */}
-            <View style={styles.mediaSection}>
-              {images.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.thumbnailList}
-                >
-                  {images.map((img) => (
-                    <View key={img.uri} style={styles.thumbnailWrap}>
-                      <ExpoImage
-                        source={{ uri: img.uri }}
-                        style={styles.thumbnail}
-                        contentFit="cover"
-                      />
-                      <Pressable
-                        style={styles.removeBtn}
-                        onPress={() => removeImage(img.uri)}
-                      >
-                        <Ionicons
-                          name="close-circle"
-                          size={20}
-                          color={colors.white}
-                        />
-                      </Pressable>
-                    </View>
-                  ))}
-                  {images.length < MAX_IMAGES && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.addMoreBtn,
-                        { opacity: pressed ? 0.7 : 1 },
-                      ]}
-                      onPress={pickImages}
-                    >
-                      <Ionicons
-                        name="add"
-                        size={28}
-                        color={colors.blueSecondary}
-                      />
-                    </Pressable>
-                  )}
-                </ScrollView>
-              ) : (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.mediaPlaceholder,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
-                  onPress={pickImages}
-                >
-                  <View style={styles.mediaIconCircle}>
-                    <ExpoImage
-                      source={require('@/assets/icons/clubs/image.svg')}
-                      style={styles.mediaIcon}
-                      contentFit="contain"
-                      tintColor={colors.blueSecondary}
-                    />
-                  </View>
-                  <Text style={styles.mediaPlaceholderText}>
-                    Añadir fotos o videos
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+            <MediaPicker
+              images={images}
+              onPick={pickImages}
+              onRemove={removeImage}
+              maxImages={MAX_IMAGES}
+            />
           </View>
 
           {error ? <Text style={styles.errorMsg}>{error}</Text> : null}
@@ -407,79 +350,6 @@ const styles = StyleSheet.create({
     color: colors.gray950,
     minHeight: 160,
     lineHeight: 28,
-  },
-
-  // Media section
-  mediaSection: {
-    paddingTop: 16,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    overflow: 'hidden',
-  },
-  mediaPlaceholder: {
-    borderWidth: 2,
-    borderColor: colors.borderSubtle30,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingVertical: 28,
-    alignItems: 'center',
-    gap: 8,
-  },
-  mediaIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 9999,
-    backgroundColor: '#D8E2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mediaIcon: {
-    width: 22,
-    height: 22,
-  },
-  mediaPlaceholderText: {
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interBold,
-    color: 'rgba(67,71,81,0.6)',
-    lineHeight: 20,
-  },
-
-  // Thumbnail grid
-  thumbnailList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 10,
-    flexDirection: 'row',
-  },
-  thumbnailWrap: {
-    position: 'relative',
-  },
-  thumbnail: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-  },
-  removeBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  addMoreBtn: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.borderSubtle20,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // Error
