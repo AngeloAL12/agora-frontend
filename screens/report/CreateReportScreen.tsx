@@ -17,6 +17,7 @@ import {
 
 import { Button } from '@/components/Button';
 import ConfirmSubmitSheet from '@/components/ConfirmSubmitSheet';
+import MediaPicker from '@/components/MediaPicker';
 import CategoryChip from '@/components/report/CategoryChip';
 import FormField from '@/components/report/FormField';
 import SegmentedControl from '@/components/report/SegmentedControl';
@@ -282,30 +283,14 @@ export default function CreateReportScreen() {
                     Máximo 3 ({images.length}/3)
                   </Text>
                 </View>
-
-                <Pressable style={styles.evidenceBox} onPress={pickImage}>
-                  <Ionicons name="camera-outline" size={28} color="#495361" />
-                  <Text style={styles.evidenceText}>SUBIR</Text>
-                </Pressable>
-
-                {images.length > 0 && (
-                  <View style={styles.imageList}>
-                    {images.map((image, index) => (
-                      <View
-                        key={`${image.uri}-${index}`}
-                        style={styles.imageItem}
-                      >
-                        <Text style={styles.imageName} numberOfLines={1}>
-                          {image.name}
-                        </Text>
-
-                        <Pressable onPress={() => removeImage(index)}>
-                          <Text style={styles.removeText}>Eliminar</Text>
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <MediaPicker
+                  images={images}
+                  onPick={pickImage}
+                  onRemove={(uri) =>
+                    removeImage(images.findIndex((i) => i.uri === uri))
+                  }
+                  maxImages={3}
+                />
               </View>
             )}
 
@@ -552,51 +537,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   evidenceLimit: {
     fontSize: 12,
     fontFamily: typography.fontFamily.interBold,
     color: colors.bluePrimary,
-  },
-  evidenceBox: {
-    height: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.searchPlaceholder,
-    backgroundColor: colors.gray100,
-  },
-  evidenceText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontFamily: typography.fontFamily.interBold,
-    color: colors.gray700,
-  },
-  imageList: {
-    marginTop: 12,
-    gap: 8,
-  },
-  imageItem: {
-    backgroundColor: colors.gray100,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  imageName: {
-    flex: 1,
-    marginRight: 12,
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interRegular,
-    color: colors.gray950,
-  },
-  removeText: {
-    fontSize: 14,
-    fontFamily: typography.fontFamily.interBold,
-    color: colors.error,
   },
 });
