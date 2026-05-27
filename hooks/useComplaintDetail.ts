@@ -21,6 +21,8 @@ export interface ComplaintDetail {
   has_appealed: boolean;
   created_at: string;
   images: ComplaintImage[];
+  evidences: ComplaintImage[];
+  resolution_comment: string | null;
 }
 
 export const useComplaintDetail = (id: string | undefined | null) => {

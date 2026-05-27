@@ -95,11 +95,12 @@ export async function updateComplaintStatus(
   complaintId: number | string,
   status: ComplaintStatus,
   payload: AuthenticatedRequestPayload,
+  comment?: string,
 ) {
   return apiRequest({
     method: 'PATCH',
     path: `/complaints/${complaintId}/status`,
-    body: { status },
+    body: { status, ...(comment ? { comment } : {}) },
     token: payload.token,
     refreshToken: payload.refreshToken,
     onTokenRefreshed: payload.onTokenRefreshed,
