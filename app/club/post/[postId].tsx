@@ -29,13 +29,13 @@ import { ChatInput } from '@/components/ia/ChatInput';
 
 import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
-import { ScreenHeader } from '@/components/ScreenHeader';
 import ImageViewer from '@/components/ImageViewer';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLikes } from '@/context/LikesContext';
-import { createPostComment, getPostComments } from '@/services/clubService';
 import { useDebouncedLike } from '@/hooks/useDebouncedLike';
+import { createPostComment, getPostComments } from '@/services/clubService';
 import { ClubPostImage, PostComment } from '@/types/club';
 
 function getInitials(name: string): string {
@@ -289,10 +289,6 @@ export default function PostCommentsScreen() {
     );
   }
 
-  function handleCommentPress() {
-    // ChatInput manages its own focus
-  }
-
   async function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || !token || !clubId || !postId) return;
@@ -316,6 +312,10 @@ export default function PostCommentsScreen() {
     } catch {
       // silently ignore
     }
+  }
+
+  function handleCommentPress() {
+    listRef.current?.scrollToEnd({ animated: true });
   }
 
   function handleAvatarError(userId: number) {

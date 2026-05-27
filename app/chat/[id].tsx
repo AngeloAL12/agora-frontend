@@ -125,11 +125,11 @@ export default function ClubChatScreen() {
     </Pressable>
   );
 
-  const moreAction = (
-    <Pressable style={styles.moreButton} accessibilityRole="button">
-      <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
-    </Pressable>
-  );
+  // const moreAction = (
+  //   <Pressable style={styles.moreButton} accessibilityRole="button">
+  //     <Ionicons name="ellipsis-vertical" size={22} color={colors.white} />
+  //   </Pressable>
+  // );
 
   if (isLoading) {
     return <CustomLoadingScreen message="Cargando chat..." />;
@@ -214,7 +214,7 @@ export default function ClubChatScreen() {
         title={chatName}
         align="center"
         leftAction={backAction}
-        rightAction={moreAction}
+        // rightAction={moreAction}
         titleStyle={{ fontSize: 24 }}
       />
 
