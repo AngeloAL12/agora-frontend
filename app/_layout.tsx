@@ -5,9 +5,11 @@ import { useAppFonts } from '@/hooks/useFonts';
 import { useNotificationsPreference } from '@/hooks/useNotificationsPreference';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { savePushToken } from '@/services/authService';
+import { NoInternetModal } from '@/components/NoInternetModal';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function AppContent() {
@@ -49,9 +51,12 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <View style={{ flex: 1 }}>
+        <NoInternetModal />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }
