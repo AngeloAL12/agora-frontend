@@ -1,6 +1,5 @@
-import { Image as ExpoImage } from 'expo-image';
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -202,11 +201,11 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.animatedContainer, animatedStyle]}>
             <View style={styles.mapWrapper}>
-              <ExpoImage
+              <Image
                 source={mapSource}
                 style={styles.mapImage}
-                contentFit="fill"
-                cachePolicy="disk"
+                resizeMode="stretch"
+                resizeMethod="resize"
               />
               {children}
             </View>

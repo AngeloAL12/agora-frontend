@@ -16,7 +16,6 @@ import { ClubResponse } from '@/types/club';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -97,8 +96,6 @@ export default function ClubsScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
-      <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-
       <ScreenHeader
         align="left"
         showNotificationBell

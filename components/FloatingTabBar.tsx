@@ -1,6 +1,5 @@
 import * as Haptics from 'expo-haptics';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
 import { Image as ExpoImage, type ImageSource } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -89,7 +88,7 @@ export function FloatingTabBar({
       ]}
       pointerEvents="box-none"
     >
-      <BlurView intensity={80} tint="light" style={styles.pill}>
+      <View style={styles.pill}>
         {indicatorReady && (
           <Animated.View
             style={[
@@ -144,7 +143,7 @@ export function FloatingTabBar({
             </Pressable>
           );
         })}
-      </BlurView>
+      </View>
     </View>
   );
 }
@@ -169,7 +168,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: FLOATING_TAB_BAR_HEIGHT,
     borderRadius: 9999,
-    overflow: 'hidden',
     backgroundColor: colors.whiteTransparent90,
     paddingHorizontal: 10,
   },

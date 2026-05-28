@@ -1,7 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
-import React, { useState } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
+import React from 'react';
+import {
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -88,10 +94,11 @@ export default function ImageViewer({
             </Pressable>
             {images[selectedIndex] && (
               <Animated.View style={imageAnimatedStyle}>
-                <ExpoImage
+                <Image
                   source={{ uri: images[selectedIndex].url }}
                   style={styles.image}
-                  contentFit="contain"
+                  resizeMode="contain"
+                  resizeMethod="resize"
                 />
               </Animated.View>
             )}
