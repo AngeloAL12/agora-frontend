@@ -5,9 +5,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -81,7 +87,7 @@ const normalizeComplaintStatus = (status: string): string => {
 };
 
 export default function ProfileScreen() {
-  const { user, token, refreshToken, setTokens, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const {
@@ -319,8 +325,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
-
       {/* Hero Section */}
       <View style={[styles.heroBackground, { paddingTop: insets.top + 8 }]}>
         <View style={styles.heroShadowContainer}>
@@ -331,10 +335,11 @@ export default function ProfileScreen() {
               >
                 <View style={styles.avatarPlaceholder}>
                   {avatarSource ? (
-                    <ExpoImage
-                      source={avatarSource}
+                    <Image
+                      source={{ uri: String(avatarSource) }}
                       style={{ width: 96, height: 96, borderRadius: 48 }}
-                      contentFit="cover"
+                      resizeMode="cover"
+                      resizeMethod="resize"
                     />
                   ) : (
                     <Text style={styles.avatarText}>
