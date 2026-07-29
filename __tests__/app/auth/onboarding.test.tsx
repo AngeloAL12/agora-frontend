@@ -103,9 +103,11 @@ describe('Onboarding Screen', () => {
       user: null,
       isLoading: false,
       isAuthenticating: false,
+      authError: null,
       logout: jest.fn(),
       startAuthentication: mockStartAuthentication,
       finishAuthentication: mockFinishAuthentication,
+      setAuthError: jest.fn(),
     });
   });
 

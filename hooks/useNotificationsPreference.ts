@@ -1,7 +1,5 @@
-import * as SecureStore from 'expo-secure-store';
+import { readPreferences, savePreferences } from '@/lib/preferencesStorage';
 import { useCallback, useEffect, useState } from 'react';
-
-const NOTIFICATIONS_ENABLED_KEY = 'agora_notifications_enabled';
 
 type NotificationsPreferenceState = {
   notificationsEnabled: boolean;
@@ -16,10 +14,10 @@ export function useNotificationsPreference(): NotificationsPreferenceState {
   useEffect(() => {
     let isMounted = true;
 
-    SecureStore.getItemAsync(NOTIFICATIONS_ENABLED_KEY)
-      .then((storedValue) => {
+    readPreferences()
+      .then((prefs) => {
         if (!isMounted) return;
-        setNotificationsEnabledState(storedValue !== 'false');
+        setNotificationsEnabledState(prefs?.notificationsEnabled ?? true);
       })
       .catch(() => {
         if (!isMounted) return;
@@ -37,10 +35,8 @@ export function useNotificationsPreference(): NotificationsPreferenceState {
   const setNotificationsEnabled = useCallback(async (enabled: boolean) => {
     setNotificationsEnabledState(enabled);
     try {
-      await SecureStore.setItemAsync(
-        NOTIFICATIONS_ENABLED_KEY,
-        enabled ? 'true' : 'false',
-      );
+      const existing = await readPreferences().catch(() => null);
+      await savePreferences({ ...existing, notificationsEnabled: enabled });
     } catch {
       setNotificationsEnabledState((currentValue) => !currentValue);
     }

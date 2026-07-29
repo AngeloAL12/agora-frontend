@@ -34,6 +34,7 @@ export type UseSocialLoginReturn = {
   error: string | null;
   handleGooglePress: () => void;
   handleMicrosoftPress: () => void;
+  handleDismissError: () => void;
   googleReady: boolean;
 };
 
@@ -44,7 +45,15 @@ function isRunningInExpoGo(): boolean {
 export function useSocialLogin(): UseSocialLoginReturn {
   const auth = useAuth();
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const error = localError ?? auth.authError;
+  const setError = useCallback(
+    (err: string | null) => {
+      setLocalError(err);
+      auth.setAuthError(err);
+    },
+    [auth],
+  );
   const lastHandledGoogleCodeRef = useRef<string | null>(null);
   const lastHandledMicrosoftCodeRef = useRef<string | null>(null);
   const googleClientId = GOOGLE_IOS_CLIENT_ID;
@@ -97,7 +106,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
         setLoadingProvider(null);
       }
     },
-    [auth],
+    [auth, setError],
   );
 
   const handleGoogleAuthorizationCode = useCallback(
@@ -135,7 +144,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
         }
 
         await handleLoginResponse(() => loginWithGoogle(idToken));
-      } catch (err) {
+      } catch {
         auth.finishAuthentication();
         setError('Error al intercambiar el token de Google.');
         setLoadingProvider(null);
@@ -147,6 +156,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
       googleRedirectUri,
       googleRequest,
       handleLoginResponse,
+      setError,
     ],
   );
 
@@ -178,6 +188,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
     googleRequest,
     handleGoogleAuthorizationCode,
     loadingProvider,
+    setError,
   ]);
 
   useEffect(() => {
@@ -191,6 +202,8 @@ export function useSocialLogin(): UseSocialLoginReturn {
         typeof queryParams?.code === 'string' ? queryParams.code : null;
 
       if (code) {
+        auth.startAuthentication();
+        setLoadingProvider('google');
         handleGoogleAuthorizationCode(code);
       }
     };
@@ -202,7 +215,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
     });
 
     return () => subscription.remove();
-  }, [googleRedirectUri, handleGoogleAuthorizationCode]);
+  }, [auth, googleRedirectUri, handleGoogleAuthorizationCode]);
 
   useEffect(() => {
     if (microsoftResponse?.type === 'success') {
@@ -268,7 +281,13 @@ export function useSocialLogin(): UseSocialLoginReturn {
     microsoftRequest,
     handleLoginResponse,
     loadingProvider,
+    setError,
   ]);
+
+  const handleDismissError = useCallback(() => {
+    setLocalError(null);
+    auth.setAuthError(null);
+  }, [auth]);
 
   const handleGooglePress = useCallback(() => {
     if (Platform.OS === 'android' && isRunningInExpoGo()) {
@@ -280,11 +299,10 @@ export function useSocialLogin(): UseSocialLoginReturn {
       return;
     }
 
-    setError(null);
     auth.startAuthentication();
     setLoadingProvider('google');
     promptGoogle();
-  }, [auth, googleClientId, googleRedirectUri, promptGoogle]);
+  }, [auth, promptGoogle, setError]);
 
   const handleMicrosoftPress = useCallback(() => {
     if (Platform.OS === 'android' && isRunningInExpoGo()) {
@@ -296,17 +314,17 @@ export function useSocialLogin(): UseSocialLoginReturn {
       return;
     }
 
-    setError(null);
     auth.startAuthentication();
     setLoadingProvider('microsoft');
     promptMicrosoft();
-  }, [auth, promptMicrosoft]);
+  }, [auth, promptMicrosoft, setError]);
 
   return {
     loadingProvider,
     error,
     handleGooglePress,
     handleMicrosoftPress,
+    handleDismissError,
     googleReady: !!googleRequest,
   };
 }
