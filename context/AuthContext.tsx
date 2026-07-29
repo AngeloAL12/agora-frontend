@@ -36,6 +36,7 @@ type AuthState = {
   isLoading: boolean;
   isAuthenticating: boolean;
   isDemoMode: boolean;
+  authError: string | null;
 };
 
 type AuthContextValue = AuthState & {
@@ -45,6 +46,7 @@ type AuthContextValue = AuthState & {
   updateUser: (patch: Partial<AuthUser>) => Promise<void>;
   startAuthentication: () => void;
   finishAuthentication: () => void;
+  setAuthError: (error: string | null) => void;
   enableDemoSession: () => Promise<void>;
 };
 
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
     isAuthenticating: false,
     isDemoMode: false,
+    authError: null,
   });
 
   const stateRef = useRef(state);
@@ -129,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               isLoading: false,
               isAuthenticating: currentState.isAuthenticating,
               isDemoMode: false,
+              authError: currentState.authError,
             };
           }
 
@@ -140,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               isLoading: false,
               isAuthenticating: currentState.isAuthenticating,
               isDemoMode: true,
+              authError: currentState.authError,
             };
           }
 
@@ -150,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading: false,
             isAuthenticating: currentState.isAuthenticating,
             isDemoMode: false,
+            authError: currentState.authError,
           };
         });
       } catch {
@@ -164,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 isLoading: false,
                 isAuthenticating: currentState.isAuthenticating,
                 isDemoMode: false,
+                authError: currentState.authError,
               },
         );
       }
@@ -186,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
       isAuthenticating: false,
       isDemoMode: false,
+      authError: null,
     });
   }, []);
 
@@ -225,6 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
       isAuthenticating: false,
       isDemoMode: false,
+      authError: null,
     });
   }, []);
   logoutRef.current = logout;
@@ -244,6 +253,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((currentState) => ({
       ...currentState,
       isAuthenticating: true,
+      authError: null,
+    }));
+  }, []);
+
+  const setAuthError = useCallback((error: string | null) => {
+    setState((currentState) => ({
+      ...currentState,
+      authError: error,
     }));
   }, []);
 
@@ -265,6 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
       isAuthenticating: false,
       isDemoMode: true,
+      authError: null,
     });
 
     await Promise.allSettled([
@@ -286,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         startAuthentication,
         finishAuthentication,
+        setAuthError,
         enableDemoSession,
       }}
     >

@@ -94,7 +94,9 @@ async function fetchExpoPushToken(): Promise<string | null> {
   }
 }
 
-async function registerForPushNotifications(): Promise<PushNotificationsState> {
+async function registerForPushNotifications(
+  requestPermission = true,
+): Promise<PushNotificationsState> {
   if (Platform.OS === 'android' && isRunningInExpoGo()) {
     if (__DEV__) {
       console.warn(
@@ -107,7 +109,10 @@ async function registerForPushNotifications(): Promise<PushNotificationsState> {
   configureNotificationHandler();
   await configureAndroidChannel();
 
-  const permissionStatus = await resolvePermissionStatus();
+  const permissionStatus = requestPermission
+    ? await resolvePermissionStatus()
+    : (await Notifications.getPermissionsAsync()).status;
+
   if (permissionStatus !== 'granted') {
     return { expoPushToken: null, permissionStatus };
   }
@@ -147,7 +152,7 @@ export function usePushNotifications(enabled = true): PushNotificationsState {
         nextAppState === 'active';
 
       if (returningToForeground) {
-        registerForPushNotifications().then(setState);
+        registerForPushNotifications(false).then(setState);
       }
 
       appState.current = nextAppState;

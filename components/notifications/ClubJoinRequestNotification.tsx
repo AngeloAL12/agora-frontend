@@ -88,7 +88,7 @@ export default function ClubJoinRequestNotification({
           <Text style={styles.bodyText} numberOfLines={3}>
             <Text style={styles.requesterName}>{requesterName}</Text>
             <Text> quiere unirse a tu club </Text>
-            <Text style={styles.clubName}>"{clubName}".</Text>
+            <Text style={styles.clubName}>&quot;{clubName}&quot;.</Text>
           </Text>
           <Text style={styles.timestamp}>
             {formatRelativeTime(notification.created_at)}
