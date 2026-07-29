@@ -40,10 +40,14 @@ export default function RoutePanel({
 }: RoutePanelProps) {
   if (!visible) return null;
 
+  const removeAccents = (s: string) =>
+    s.normalize('NFD').replace(/\p{M}/gu, '');
+  const q = removeAccents(searchQuery.toLowerCase().trim());
   const filtered = BUILDINGS.filter(
     (b) =>
-      b.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.code.toLowerCase().includes(searchQuery.toLowerCase()),
+      removeAccents(b.label.toLowerCase()).includes(q) ||
+      removeAccents(b.code.toLowerCase()).includes(q) ||
+      b.aliases.some((a) => removeAccents(a.toLowerCase()).includes(q)),
   );
 
   return (

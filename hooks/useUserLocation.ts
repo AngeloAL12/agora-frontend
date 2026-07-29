@@ -1,20 +1,31 @@
 import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 
-import { GPS_REFERENCE_POINTS } from '@/constants/mapData';
+import { CAMPUS_BOUNDS, GPS_REFERENCE_POINTS } from '@/constants/mapData';
 import type { MapPosition } from '@/types/map';
 import { gpsToPixel, initTransform } from '@/utils/coordinateTransform';
 
+function isInsideCampus(latitude: number, longitude: number): boolean {
+  return (
+    latitude >= CAMPUS_BOUNDS.south &&
+    latitude <= CAMPUS_BOUNDS.north &&
+    longitude >= CAMPUS_BOUNDS.west &&
+    longitude <= CAMPUS_BOUNDS.east
+  );
+}
+
 interface UserLocationState {
   pixelPosition: MapPosition | null;
+  isOnCampus: boolean;
   heading: number | null;
   error: string | null;
   permissionGranted: boolean;
 }
 
-export function useUserLocation(enabled: boolean): UserLocationState {
+export function useUserLocation(): UserLocationState {
   const [state, setState] = useState<UserLocationState>({
     pixelPosition: null,
+    isOnCampus: false,
     heading: null,
     error: null,
     permissionGranted: false,
@@ -23,12 +34,6 @@ export function useUserLocation(enabled: boolean): UserLocationState {
   const transformReady = useRef(false);
 
   useEffect(() => {
-    if (!enabled) {
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
-      return;
-    }
-
     const hasValidRefs = GPS_REFERENCE_POINTS.some(
       (r) => r.gps.latitude !== 0 || r.gps.longitude !== 0,
     );
@@ -63,13 +68,16 @@ export function useUserLocation(enabled: boolean): UserLocationState {
         (location) => {
           if (cancelled) return;
           const { latitude, longitude } = location.coords;
-          const pixel = transformReady.current
-            ? gpsToPixel(latitude, longitude)
-            : null;
+          const onCampus = isInsideCampus(latitude, longitude);
+          const pixel =
+            onCampus && transformReady.current
+              ? gpsToPixel(latitude, longitude)
+              : null;
 
           setState((s) => ({
             ...s,
             pixelPosition: pixel,
+            isOnCampus: onCampus,
             heading: location.coords.heading ?? null,
           }));
         },
@@ -81,7 +89,7 @@ export function useUserLocation(enabled: boolean): UserLocationState {
       subscriptionRef.current?.remove();
       subscriptionRef.current = null;
     };
-  }, [enabled]);
+  }, []);
 
   return state;
 }
