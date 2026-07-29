@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "agora-frontend",
+    "name": "Agora",
     "slug": "agora-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,8 +14,14 @@
       }
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.agora.frontend",
+      "deploymentTarget": "17.0",
+      "icon": {
+        "dark": "./assets/images/appicon/ios-dark.png",
+        "light": "./assets/images/appicon/ios-default.png",
+        "tinted": "./assets/images/appicon/ios-tinted.png"
+      },
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -53,10 +59,10 @@
         }
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#1C3058",
+        "foregroundImage": "./assets/images/appicon/android-foreground.png",
+        "backgroundImage": "./assets/images/appicon/android-background.png",
+        "monochromeImage": "./assets/images/appicon/android-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -75,12 +81,15 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/appicon/android-splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
+          "backgroundColor": "#E6F4FE",
+          "ios": {
+            "image": "./assets/images/appicon/ios-splash.png",
+            "imageWidth": 200,
+            "resizeMode": "contain",
+            "backgroundColor": "#208AEF"
           }
         }
       ],
@@ -104,6 +113,14 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Se requiere acceso a tu ubicación para mostrarte en el mapa del campus."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
         }
       ]
     ],

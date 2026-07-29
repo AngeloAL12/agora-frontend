@@ -63,9 +63,18 @@ jest.mock('expo-image', () => ({
   Image: () => null,
 }));
 
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, top: 0, left: 0, right: 0 }),
-}));
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    useSafeAreaInsets: () => ({ bottom: 0, top: 0, left: 0, right: 0 }),
+    SafeAreaView: ({ children, style, ...props }: any) => (
+      <View style={style} {...props}>
+        {children}
+      </View>
+    ),
+  };
+});
 
 jest.mock('react-native-reanimated', () => ({
   useAnimatedReaction: jest.fn(),

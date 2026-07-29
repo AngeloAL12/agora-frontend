@@ -3,12 +3,12 @@ import { useSocialLogin } from '@/hooks/useSocialLogin';
 import { Image as ExpoImage } from 'expo-image';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Onboarding() {
   const { height } = useWindowDimensions();
@@ -21,17 +21,12 @@ export default function Onboarding() {
   } = useSocialLogin();
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.container}
-      bounces={false}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeAreaView style={styles.container}>
       <Text style={styles.school}>Agora</Text>
 
       <View style={[styles.imageContainer, { maxHeight: height * 0.4 }]}>
         <ExpoImage
-          source={require('@/assets/images/loginOverviewCard.png')}
+          source={require('@/assets/images/loginOverviewCard.webp')}
           style={styles.image}
           contentFit="contain"
         />
@@ -110,20 +105,17 @@ export default function Onboarding() {
           <Text style={styles.linkText}>Privacidad</Text>.
         </Text>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
     flex: 1,
     backgroundColor: colors.backgroundScreen,
-  },
-  container: {
-    flexGrow: 1,
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 20,
+    paddingBottom: 20,
     paddingHorizontal: 16,
   },
   school: {
@@ -132,14 +124,14 @@ const styles = StyleSheet.create({
     color: colors.blueSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 21,
+    marginBottom: 16,
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 21,
+    marginBottom: 16,
   },
   image: {
     width: '100%',
@@ -163,7 +155,7 @@ const styles = StyleSheet.create({
     color: colors.gray700,
     fontFamily: typography.fontFamily.interRegular,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     lineHeight: 24,
   },
   errorText: {
@@ -176,7 +168,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: '100%',
     gap: 16,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   loginButton: {
     width: '100%',
@@ -229,7 +221,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   helpText: {
     fontSize: 14,

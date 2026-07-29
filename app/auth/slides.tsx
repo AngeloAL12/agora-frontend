@@ -4,7 +4,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -15,9 +15,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-const DOT_SIZE = 10;
-const DOT_GAP = 8;
-const EXPANDED_WIDTH = DOT_SIZE * 2 + DOT_GAP; // width a dot expands to when "filled"
+const DOT_SIZE = 12;
+const DOT_GAP = 28;
 
 const SLIDES = [
   {
@@ -28,7 +27,7 @@ const SLIDES = [
   },
   {
     image: require('@/assets/images/onboardings/screen2.png'),
-    title: 'Tú voz importa',
+    title: 'Tu voz importa',
     subtitle:
       'Ayúdanos a mejorar el campus informando cualquier desperfecto de forma rápida y sencilla.',
   },
@@ -40,43 +39,26 @@ const SLIDES = [
   },
 ] as const;
 
-function Dot({ state }: { state: 'active' | 'completed' | 'upcoming' }) {
-  const widthAnim = useRef(
-    new Animated.Value(state === 'completed' ? EXPANDED_WIDTH : DOT_SIZE),
-  ).current;
-
-  // Animate to correct target whenever state changes
-  const targetWidth =
-    state === 'active' || state === 'upcoming' ? DOT_SIZE : EXPANDED_WIDTH;
-
-  Animated.timing(widthAnim, {
-    toValue: targetWidth,
-    duration: 300,
-    easing: Easing.out(Easing.cubic),
-    useNativeDriver: false,
-  }).start();
-
-  if (state === 'upcoming') {
-    return <View style={styles.dotUpcoming} />;
-  }
-
-  return (
-    <Animated.View
-      style={[
-        styles.dotFilled,
-        {
-          width: widthAnim,
-          opacity: state === 'active' ? 1 : 0.7,
-        },
-      ]}
-    />
-  );
-}
-
 export default function SlidesScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
   const { height } = useWindowDimensions();
+
+  const activeIndexVal = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(activeIndexVal, {
+      toValue: activeIndex,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [activeIndex]);
+
+  const activeWidth = activeIndexVal.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [DOT_SIZE, DOT_SIZE * 2 + DOT_GAP, DOT_SIZE * 3 + DOT_GAP * 2],
+  });
 
   const handleNext = async () => {
     if (activeIndex < SLIDES.length - 1) {
@@ -114,19 +96,22 @@ export default function SlidesScreen() {
       <View style={styles.spacer} />
 
       <View style={styles.bottomRow}>
-        <View style={styles.dotsRow}>
-          {SLIDES.map((_, i) => (
-            <Dot
-              key={i}
-              state={
-                i < activeIndex
-                  ? 'completed'
-                  : i === activeIndex
-                    ? 'active'
-                    : 'upcoming'
-              }
+        <View style={styles.dotsWrapper}>
+          <View style={styles.dotsContainer}>
+            <View style={styles.dotsBackgroundRow}>
+              {SLIDES.map((_, i) => (
+                <View key={i} style={styles.dotInactive} />
+              ))}
+            </View>
+            <Animated.View
+              style={[
+                styles.dotActive,
+                {
+                  width: activeWidth,
+                },
+              ]}
             />
-          ))}
+          </View>
         </View>
 
         <Pressable style={styles.buttonWrapper} onPress={handleNext}>
@@ -205,24 +190,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dotsRow: {
+  dotsWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -24, // Compensate the container padding (24) so it centers between the absolute edge of the screen and the button
+  },
+  dotsContainer: {
+    position: 'relative',
+    height: DOT_SIZE,
+    justifyContent: 'center',
+  },
+  dotsBackgroundRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: DOT_GAP,
   },
-  dotFilled: {
-    height: DOT_SIZE,
-    borderRadius: DOT_SIZE / 2,
-    backgroundColor: colors.blueSecondary,
-  },
-  dotUpcoming: {
+  dotInactive: {
     width: DOT_SIZE,
     height: DOT_SIZE,
     borderRadius: DOT_SIZE / 2,
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.blueSecondary,
-    opacity: 0.4,
+    backgroundColor: '#E5E7EB',
+  },
+  dotActive: {
+    position: 'absolute',
+    left: 0,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
+    backgroundColor: colors.blueSecondary,
   },
   buttonWrapper: {
     borderRadius: 12,

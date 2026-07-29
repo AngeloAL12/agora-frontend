@@ -8,9 +8,12 @@ import { savePushToken } from '@/services/authService';
 import { NoInternetModal } from '@/components/NoInternetModal';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
   const { token, refreshToken, setTokens, logout } = useAuth();
@@ -46,6 +49,12 @@ function AppContent() {
 
 export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 
