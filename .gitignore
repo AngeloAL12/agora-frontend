@@ -49,3 +49,6 @@ coverage
 
 .idea
 .vscode
+
+# Local agent permissions
+.claude/settings.local.json

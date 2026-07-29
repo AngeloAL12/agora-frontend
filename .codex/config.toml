@@ -1,0 +1,12 @@
+[mcp_servers.caveman-shrink]
+command = "npx"
+args = [
+    "-y",
+    "caveman-shrink",
+]
+
+[mcp_servers.cloudflare]
+url = "https://bindings.mcp.cloudflare.com/mcp"
+
+[mcp_servers.figma-remote-mcp]
+url = "https://mcp.figma.com/mcp"
