@@ -1,5 +1,6 @@
 import { colors, typography } from '@/constants/theme';
 import { Image as ExpoImage } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -52,6 +53,7 @@ interface CustomLoadingScreenProps {
   subtitle?: string;
   backgroundColor?: string;
   textColor?: string;
+  statusBarStyle?: 'light' | 'dark' | 'auto' | 'inverted';
 }
 
 export default function CustomLoadingScreen({
@@ -59,6 +61,7 @@ export default function CustomLoadingScreen({
   subtitle,
   backgroundColor,
   textColor,
+  statusBarStyle,
 }: CustomLoadingScreenProps) {
   const [sequenceIndex, setSequenceIndex] = useState(0);
 
@@ -73,10 +76,41 @@ export default function CustomLoadingScreen({
 
   const frameIndex = frameSequence[sequenceIndex];
 
+  // Decide status bar style: default to 'dark' (black icons/text) since the default background is light (#F7F9FB).
+  // If statusBarStyle is explicitly passed, use it.
+  // Otherwise, if textColor is white or backgroundColor is a dark color, use 'light'.
+  let finalStatusBarStyle: 'light' | 'dark' | 'auto' | 'inverted' = 'dark';
+  if (statusBarStyle) {
+    finalStatusBarStyle = statusBarStyle;
+  } else if (
+    textColor === '#FFFFFF' ||
+    textColor === 'white' ||
+    textColor === colors.white
+  ) {
+    finalStatusBarStyle = 'light';
+  } else if (
+    backgroundColor === 'black' ||
+    backgroundColor === '#000000' ||
+    backgroundColor === '#000' ||
+    backgroundColor === colors.black ||
+    backgroundColor === colors.bluePrimary ||
+    backgroundColor === colors.blueSecondary ||
+    backgroundColor === colors.blueDark
+  ) {
+    finalStatusBarStyle = 'light';
+  }
+
+  const statusBarBgColor =
+    backgroundColor !== undefined ? backgroundColor : colors.backgroundScreen;
+
   return (
     <View
       style={[styles.container, backgroundColor ? { backgroundColor } : null]}
     >
+      <StatusBar
+        style={finalStatusBarStyle}
+        backgroundColor={statusBarBgColor}
+      />
       <View style={styles.animationContainer}>
         <ExpoImage
           source={loadingFrames[frameIndex]}
