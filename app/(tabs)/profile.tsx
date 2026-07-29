@@ -8,6 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -235,7 +236,10 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* Botón: Ayuda y soporte */}
-        <Pressable style={styles.menuItem}>
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => Linking.openURL('https://lnk.bio/nexora')}
+        >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
               <ExpoImage

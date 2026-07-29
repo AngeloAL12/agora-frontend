@@ -1,6 +1,17 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -23,7 +34,14 @@ export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
 
-  const { chats, isLoading, error } = useMyChats();
+  const { chats, isLoading, error, refetch } = useMyChats();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(true);
+    setRefreshing(false);
+  }, [refetch]);
 
   const summaries = useSyncExternalStore(
     chatSummaryStore.subscribe,
@@ -91,6 +109,14 @@ export default function MessagesScreen() {
           { paddingBottom: scrollPaddingBottom },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.bluePrimary]}
+            tintColor={colors.bluePrimary}
+          />
+        }
       >
         <FilterChips
           activeFilter={activeFilter}

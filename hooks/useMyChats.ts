@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClubChat } from '@/constants/chats';
@@ -33,33 +34,42 @@ export function useMyChats() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchChats = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const clubs = await authRequest<ClubDetailResponse[]>({
-        method: 'GET',
-        path: '/clubs/me',
-      });
-      const clubChats: ClubChat[] = clubs.map((club) => ({
-        id: String(club.id),
-        name: club.name,
-        type: 'club' as const,
-        avatarSource: club.profile_image ? { uri: club.profile_image } : null,
-        lastMessage: '',
-        timestamp: '',
-      }));
-      setChats([IA_CHAT, ...clubChats]);
-    } catch {
-      setError('No se pudieron cargar los chats.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [authRequest]);
+  const fetchChats = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
+      setError(null);
+      try {
+        const clubs = await authRequest<ClubDetailResponse[]>({
+          method: 'GET',
+          path: '/clubs/me',
+        });
+        const clubChats: ClubChat[] = clubs.map((club) => ({
+          id: String(club.id),
+          name: club.name,
+          type: 'club' as const,
+          avatarSource: club.profile_image ? { uri: club.profile_image } : null,
+          lastMessage: '',
+          timestamp: '',
+        }));
+        setChats([IA_CHAT, ...clubChats]);
+      } catch {
+        setError('No se pudieron cargar los chats.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [authRequest],
+  );
 
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchChats(true);
+    }, [fetchChats]),
+  );
 
   useEffect(() => {
     if (!token || !user?.id) return;
