@@ -7,7 +7,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { BlurView } from 'expo-blur';
 import React, { useCallback, useRef } from 'react';
-import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 
@@ -106,6 +106,9 @@ const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetProps>(
         enableDynamicSizing
         backdropComponent={renderBackdrop}
         onDismiss={onDismiss}
+        onAnimate={(fromIndex, toIndex) => {
+          if (fromIndex === -1 && toIndex >= 0) Keyboard.dismiss();
+        }}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.indicator}
         style={styles.sheetOuter}
