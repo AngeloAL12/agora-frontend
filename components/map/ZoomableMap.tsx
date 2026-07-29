@@ -1,6 +1,5 @@
-import { Image as ExpoImage } from 'expo-image';
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -50,6 +49,7 @@ function clampPt(x: number, y: number, s: number) {
 export interface ZoomableMapRef {
   zoomIn: () => void;
   zoomOut: () => void;
+  focusOnPoint: (mapX: number, mapY: number, targetScale?: number) => void;
 }
 
 interface ZoomableMapProps {
@@ -94,6 +94,27 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         savedTx.value = c.x;
         savedTy.value = c.y;
       },
+      focusOnPoint: (mapX: number, mapY: number, targetScale: number = 2.5) => {
+        const newScale = Math.min(
+          MAX_SCALE,
+          Math.max(targetScale, scale.value),
+        );
+
+        const lx = MAP_LEFT + (mapX / MAP_WIDTH) * DISPLAY_W;
+        const ly = MAP_TOP + (mapY / MAP_HEIGHT) * DISPLAY_H;
+
+        const rawTx = newScale * (SCREEN_W / 2 - lx);
+        const rawTy = newScale * (SCREEN_H / 2 - ly);
+        const c = clampPt(rawTx, rawTy, newScale);
+
+        scale.value = withTiming(newScale, { duration: 350 });
+        tx.value = withTiming(c.x, { duration: 350 });
+        ty.value = withTiming(c.y, { duration: 350 });
+
+        savedScale.value = newScale;
+        savedTx.value = c.x;
+        savedTy.value = c.y;
+      },
     }));
 
     // ── Pinch: incremental formula so clamped frames apply d=1 (no jitter) ──
@@ -109,11 +130,23 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         const eScaleDelta = e.scale / prevEScale.value;
         prevEScale.value = e.scale;
 
-        const newScale = Math.max(
-          MIN_SCALE,
-          Math.min(MAX_SCALE, scale.value * eScaleDelta),
-        );
-        const d = newScale / scale.value; // 1.0 when clamped → pure pan
+        const rawNewScale = scale.value * eScaleDelta;
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, rawNewScale));
+
+        // Freeze when at boundary: pinch past it OR noise oscillating around 1.0
+        const atBoundary =
+          rawNewScale <= MIN_SCALE ||
+          rawNewScale >= MAX_SCALE ||
+          (newScale === MIN_SCALE && Math.abs(eScaleDelta - 1) < 0.01) ||
+          (newScale === MAX_SCALE && Math.abs(eScaleDelta - 1) < 0.01);
+        if (atBoundary) {
+          prevFocalX.value = e.focalX;
+          prevFocalY.value = e.focalY;
+          scale.value = newScale;
+          return;
+        }
+
+        const d = newScale / scale.value;
 
         const cfx = e.focalX - SCREEN_W / 2;
         const cfy = e.focalY - SCREEN_H / 2;
@@ -202,11 +235,11 @@ const ZoomableMap = forwardRef<ZoomableMapRef, ZoomableMapProps>(
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.animatedContainer, animatedStyle]}>
             <View style={styles.mapWrapper}>
-              <ExpoImage
+              <Image
                 source={mapSource}
                 style={styles.mapImage}
-                contentFit="fill"
-                cachePolicy="disk"
+                resizeMode="stretch"
+                resizeMethod="resize"
               />
               {children}
             </View>

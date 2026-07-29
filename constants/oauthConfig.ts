@@ -21,15 +21,10 @@ function buildGoogleScheme(rawClientId: string): string {
 }
 
 const rawGoogleIosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
-const rawGoogleAndroidId =
-  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '';
 
 export const GOOGLE_IOS_CLIENT_ID = normalizeGoogleClientId(rawGoogleIosId);
-export const GOOGLE_ANDROID_CLIENT_ID =
-  normalizeGoogleClientId(rawGoogleAndroidId);
 
 export const GOOGLE_IOS_REDIRECT_URI = `${buildGoogleScheme(rawGoogleIosId)}:/`;
-export const GOOGLE_ANDROID_REDIRECT_URI = `${buildGoogleScheme(rawGoogleAndroidId)}:/`;
 
 export const googleDiscovery = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',

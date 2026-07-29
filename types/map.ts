@@ -3,12 +3,13 @@ export interface MapPosition {
   y: number;
 }
 
-export type BuildingCategory = 'edificio' | 'laboratorio' | 'deporte' | 'otro';
+export type BuildingCategory = 'edificio' | 'laboratorio' | 'otro';
 
 export interface BuildingData {
   id: number;
   code: string;
   label: string;
+  aliases: string[];
   position: MapPosition;
   radius: number;
   category: BuildingCategory;

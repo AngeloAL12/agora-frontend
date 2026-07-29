@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, {
   useCallback,
   useMemo,
@@ -101,8 +100,6 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <StatusBar backgroundColor={colors.bluePrimary} style="light" />
-
       <ScreenHeader title="Mensajes" align="left" showNotificationBell />
 
       <ScrollView
