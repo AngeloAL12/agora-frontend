@@ -7,7 +7,14 @@ import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -229,7 +236,10 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* Botón: Ayuda y soporte */}
-        <Pressable style={styles.menuItem}>
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => Linking.openURL('https://lnk.bio/nexora')}
+        >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconBackground}>
               <ExpoImage
