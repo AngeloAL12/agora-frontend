@@ -1,7 +1,13 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import AppBottomSheet from '@/components/AppBottomSheet';
 import { colors, typography } from '@/constants/theme';
@@ -14,6 +20,8 @@ interface ConfirmBottomSheetProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   onDismiss?: () => void;
+  isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 const ConfirmBottomSheet = React.forwardRef<
@@ -29,6 +37,8 @@ const ConfirmBottomSheet = React.forwardRef<
       onConfirm,
       onCancel,
       onDismiss,
+      isLoading = false,
+      errorMessage,
     },
     ref,
   ) => {
@@ -46,23 +56,38 @@ const ConfirmBottomSheet = React.forwardRef<
 
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
+          {errorMessage ? (
+            <Text style={styles.errorMessage} accessibilityRole="alert">
+              {errorMessage}
+            </Text>
+          ) : null}
 
           <View style={styles.actions}>
             <Pressable
               onPress={onConfirm}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
               style={({ pressed }) => [
                 styles.confirmButton,
-                pressed && { opacity: 0.8 },
+                (pressed || isLoading) && { opacity: 0.8 },
               ]}
             >
-              <Text style={styles.confirmText}>{confirmLabel}</Text>
+              {isLoading ? (
+                <ActivityIndicator color={colors.errorText} />
+              ) : (
+                <Text style={styles.confirmText}>{confirmLabel}</Text>
+              )}
             </Pressable>
 
             <Pressable
               onPress={onCancel}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading }}
               style={({ pressed }) => [
                 styles.cancelButton,
-                pressed && { opacity: 0.6 },
+                (pressed || isLoading) && { opacity: 0.6 },
               ]}
             >
               <Text style={styles.cancelText}>{cancelLabel}</Text>
@@ -114,6 +139,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     color: colors.gray950,
+    fontFamily: typography.fontFamily.interMedium,
+  },
+  errorMessage: {
+    marginTop: 16,
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.errorText,
     fontFamily: typography.fontFamily.interMedium,
   },
   actions: {

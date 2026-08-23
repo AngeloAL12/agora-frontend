@@ -162,6 +162,27 @@ describe('AuthContext', () => {
     expect(result.current.isAuthenticating).toBe(false);
   });
 
+  it('logout resets state even when secure storage cleanup fails', async () => {
+    const fakeUser = { id: 1, email: 'test@itmexicali.edu.mx', name: 'Test' };
+    mockGetItemAsync
+      .mockResolvedValueOnce('jwt')
+      .mockResolvedValueOnce('refresh-jwt')
+      .mockResolvedValueOnce(JSON.stringify(fakeUser));
+    mockDeleteItemAsync.mockRejectedValue(new Error('SecureStore unavailable'));
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(result.current.token).toBeNull();
+    expect(result.current.refreshToken).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('handles SecureStore error gracefully and sets no auth', async () => {
     mockGetItemAsync.mockRejectedValue(new Error('SecureStore unavailable'));
 

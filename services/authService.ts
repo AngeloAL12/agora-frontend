@@ -111,3 +111,15 @@ export async function getMe(
     ...opts,
   });
 }
+
+export async function deleteMyAccount(
+  accessToken: string,
+  opts?: AuthOptions,
+): Promise<void> {
+  await apiRequest<void>({
+    method: 'DELETE',
+    path: '/users/me',
+    token: accessToken,
+    ...opts,
+  });
+}

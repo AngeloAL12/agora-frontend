@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clubChatManager.closeAll();
     chatSummaryStore.clear();
     CacheService.clearAll();
-    await Promise.all([
+    await Promise.allSettled([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),

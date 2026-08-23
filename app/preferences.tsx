@@ -15,6 +15,10 @@ import { Image as ExpoImage, type ImageSource } from 'expo-image';
 import { theme } from '@/constants/theme';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import ConfirmBottomSheet from '@/components/ConfirmBottomSheet';
+import { useAuth } from '@/context/AuthContext';
+import { deleteMyAccount } from '@/services/authService';
+import type { ApiError } from '@/services/api';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -55,11 +59,15 @@ const NAV_ICON_SIZE = 20;
 
 export default function PreferencesScreen() {
   const insets = useSafeAreaInsets();
+  const { token, refreshToken, logout, isDemoMode } = useAuth();
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [homeScreen, setHomeScreen] = useState<HomeScreenKey>('complaints');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const feedbackSheetRef = useRef<BottomSheetModal>(null);
+  const deleteSheetRef = useRef<BottomSheetModal>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [feedbackSheet, setFeedbackSheet] = useState<{
     title: string;
     message: string;
@@ -109,6 +117,38 @@ export default function PreferencesScreen() {
       setSaving(false);
     }
   }, [notificationsOn, homeScreen]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (!token) {
+      setDeleteError(
+        'No encontramos una sesión activa. Inicia sesión de nuevo.',
+      );
+      return;
+    }
+
+    setDeletingAccount(true);
+    setDeleteError(null);
+
+    try {
+      await deleteMyAccount(token, {
+        refreshToken: refreshToken ?? undefined,
+        // No persistimos tokens renovados: esta operación termina la sesión.
+        onTokenRefreshed: () => undefined,
+      });
+      deleteSheetRef.current?.dismiss();
+      await logout();
+      router.replace('/');
+    } catch (error) {
+      const apiError = error as ApiError | null;
+      setDeleteError(
+        apiError?.detail ||
+          apiError?.message ||
+          'No pudimos eliminar tu cuenta. Inténtalo de nuevo.',
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [logout, refreshToken, token]);
 
   if (loading) {
     return <CustomLoadingScreen message="Cargando preferencias..." />;
@@ -224,6 +264,47 @@ export default function PreferencesScreen() {
             );
           })}
         </View>
+
+        {!isDemoMode ? (
+          <>
+            <Text style={[styles.sectionLabel, styles.accountSectionLabel]}>
+              CUENTA
+            </Text>
+            <View style={styles.card}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar cuenta"
+                style={({ pressed }) => [
+                  styles.optionRow,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={() => {
+                  setDeleteError(null);
+                  deleteSheetRef.current?.present();
+                }}
+              >
+                <View style={[styles.iconBox, styles.deleteIconBox]}>
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={theme.colors.errorText}
+                  />
+                </View>
+                <View style={styles.deleteCopy}>
+                  <Text style={styles.deleteTitle}>Eliminar cuenta</Text>
+                  <Text style={styles.deleteSubtitle}>
+                    Borra tus datos personales y cierra todas tus sesiones.
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={theme.colors.gray700}
+                />
+              </Pressable>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -251,6 +332,22 @@ export default function PreferencesScreen() {
         primaryLabel="Entendido"
         secondaryLabel=""
         onPrimaryPress={() => feedbackSheetRef.current?.dismiss()}
+      />
+
+      <ConfirmBottomSheet
+        ref={deleteSheetRef}
+        title="¿Eliminar tu cuenta?"
+        message="Tu perfil, foto, datos personales y sesiones se eliminarán. Tus reportes y actividad institucional se conservarán de forma anónima. Esta acción no se puede deshacer."
+        confirmLabel="Sí, eliminar cuenta"
+        cancelLabel="Conservar mi cuenta"
+        isLoading={deletingAccount}
+        errorMessage={deleteError}
+        onConfirm={() => void handleDeleteAccount()}
+        onCancel={() => {
+          setDeleteError(null);
+          deleteSheetRef.current?.dismiss();
+        }}
+        onDismiss={() => setDeleteError(null)}
       />
     </SafeAreaView>
   );
@@ -336,6 +433,28 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.gray100,
     marginLeft: 54,
+  },
+  accountSectionLabel: {
+    marginTop: 24,
+  },
+  deleteIconBox: {
+    backgroundColor: theme.colors.errorContainer,
+  },
+  deleteCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  deleteTitle: {
+    fontSize: 15,
+    fontFamily: theme.typography.fontFamily.interSemiBold,
+    color: theme.colors.errorText,
+  },
+  deleteSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: theme.typography.fontFamily.interRegular,
+    color: theme.palette.textSecondary,
   },
   footer: { paddingHorizontal: 20, paddingVertical: 16 },
   saveButton: {
