@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,17 +26,24 @@ import {
 import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import MessageActionsSheet from '@/components/contentSafety/MessageActionsSheet';
+import ReportContentSheet from '@/components/contentSafety/ReportContentSheet';
 import { ChatBubble } from '@/components/ia/ChatBubble';
 import { ChatInput } from '@/components/ia/ChatInput';
 import { TypingIndicator } from '@/components/ia/TypingIndicator';
 import { colors, typography } from '@/constants/theme';
 import { useClubChat } from '@/hooks/useClubChat';
+import { useAuth } from '@/context/AuthContext';
+import type { ClubMessage } from '@/hooks/useClubChat';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function ClubChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const resolvedId = Array.isArray(id) ? id[0] : (id ?? '');
   const chatName = Array.isArray(name) ? name[0] : (name ?? 'Chat');
@@ -52,6 +60,7 @@ export default function ClubChatScreen() {
     handleSend,
     loadMoreMessages,
     clearError,
+    hideReportedMessage,
   } = useClubChat(resolvedId);
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -59,6 +68,45 @@ export default function ClubChatScreen() {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [chatInputHeight, setChatInputHeight] = useState(58);
   const initialScrollDoneRef = useRef(false);
+  const reportSheetRef = useRef<BottomSheetModal>(null);
+  const messageActionsSheetRef = useRef<BottomSheetModal>(null);
+  const reportSuccessSheetRef = useRef<BottomSheetModal>(null);
+  const [selectedMessage, setSelectedMessage] = useState<ClubMessage | null>(
+    null,
+  );
+  const [actionMessage, setActionMessage] = useState<ClubMessage | null>(null);
+  const [reportSuccessMessage, setReportSuccessMessage] = useState('');
+
+  const openMessageActions = useCallback((message: ClubMessage) => {
+    setActionMessage(message);
+    void Haptics.selectionAsync();
+    requestAnimationFrame(() => messageActionsSheetRef.current?.present());
+  }, []);
+
+  const startMessageReport = useCallback(() => {
+    if (!actionMessage) return;
+    setSelectedMessage(actionMessage);
+    messageActionsSheetRef.current?.dismiss();
+    setTimeout(() => reportSheetRef.current?.present(), 250);
+  }, [actionMessage]);
+
+  const handleMessageReported = useCallback(
+    (blocked: boolean) => {
+      if (!selectedMessage) return;
+      hideReportedMessage(
+        selectedMessage.id,
+        selectedMessage.senderId,
+        blocked,
+      );
+      setReportSuccessMessage(
+        blocked
+          ? `El mensaje fue denunciado y bloqueaste a ${selectedMessage.senderName}.`
+          : 'El mensaje fue denunciado y ya no aparecerá para ti.',
+      );
+      setTimeout(() => reportSuccessSheetRef.current?.present(), 250);
+    },
+    [hideReportedMessage, selectedMessage],
+  );
 
   const scrollToEnd = useCallback((animated = true) => {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated }), 100);
@@ -157,6 +205,18 @@ export default function ClubChatScreen() {
               style={styles.loadingMore}
             />
           )}
+          {messages.some((message) => !message.isMe) ? (
+            <View style={styles.gestureHint}>
+              <Ionicons
+                name="hand-left-outline"
+                size={14}
+                color={colors.activityGray}
+              />
+              <Text style={styles.gestureHintText}>
+                Mantén presionado un mensaje para ver opciones
+              </Text>
+            </View>
+          ) : null}
           {messages.map((msg) => (
             <ChatBubble
               key={msg.id}
@@ -165,6 +225,9 @@ export default function ClubChatScreen() {
               timestamp={msg.timestamp}
               senderName={msg.isMe ? 'Tú' : msg.senderName}
               senderAvatar={msg.isMe ? undefined : (msg.senderAvatar ?? null)}
+              onMessageLongPress={
+                msg.isMe ? undefined : () => openMessageActions(msg)
+              }
             />
           ))}
 
@@ -231,6 +294,42 @@ export default function ClubChatScreen() {
           {renderContent(0)}
         </Animated.View>
       )}
+
+      {actionMessage ? (
+        <MessageActionsSheet
+          ref={messageActionsSheetRef}
+          authorName={actionMessage.senderName}
+          onReport={startMessageReport}
+          onCancel={() => messageActionsSheetRef.current?.dismiss()}
+          onDismiss={() => setActionMessage(null)}
+        />
+      ) : null}
+
+      {selectedMessage ? (
+        <ReportContentSheet
+          ref={reportSheetRef}
+          targetType="MESSAGE"
+          targetId={Number(selectedMessage.id)}
+          authorId={Number(selectedMessage.senderId)}
+          authorName={selectedMessage.senderName}
+          token={token ?? ''}
+          onSubmitted={handleMessageReported}
+          onDismiss={() => setSelectedMessage(null)}
+        />
+      ) : null}
+
+      <SuccessBottomSheet
+        ref={reportSuccessSheetRef}
+        title="Gracias por avisarnos"
+        message={reportSuccessMessage}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => {
+          reportSuccessSheetRef.current?.dismiss();
+          setSelectedMessage(null);
+        }}
+        onDismiss={() => setSelectedMessage(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -263,6 +362,22 @@ const styles = StyleSheet.create({
   },
   loadingMore: {
     marginBottom: 8,
+  },
+  gestureHint: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 20,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    marginBottom: 4,
+    backgroundColor: colors.gray100,
+  },
+  gestureHintText: {
+    fontSize: 10,
+    color: colors.activityGray,
+    fontFamily: typography.fontFamily.interMedium,
   },
   errorContainer: {
     flexDirection: 'row',

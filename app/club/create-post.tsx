@@ -90,8 +90,12 @@ export default function CreatePostScreen() {
       await createClubPost(Number(id), content.trim(), images, token);
       delete clubPostsCache[String(id)];
       router.back();
-    } catch {
-      setError('No se pudo crear la publicación. Intenta de nuevo.');
+    } catch (requestError) {
+      const apiError = requestError as { detail?: string };
+      setError(
+        apiError?.detail ??
+          'No se pudo crear la publicación. Intenta de nuevo.',
+      );
     } finally {
       setSubmitting(false);
     }

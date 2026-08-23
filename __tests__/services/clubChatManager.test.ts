@@ -220,6 +220,23 @@ describe('ClubChatManager', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it('envía los frames de error al listener correspondiente', () => {
+    clubChatManager.init(['club-1'], 'token', 42);
+    const ws = MockWebSocket.instances[0];
+    const errorListener = jest.fn();
+    clubChatManager.addErrorListener('club-1', errorListener);
+
+    ws.onmessage!({
+      data: JSON.stringify({
+        detail: 'El mensaje infringe las normas de comunidad.',
+      }),
+    });
+
+    expect(errorListener).toHaveBeenCalledWith(
+      'El mensaje infringe las normas de comunidad.',
+    );
+  });
+
   it('ignores malformed JSON frames silently', () => {
     clubChatManager.init(['club-1'], 'token', 42);
     const ws = MockWebSocket.instances[0];

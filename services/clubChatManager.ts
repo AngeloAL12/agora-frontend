@@ -11,6 +11,7 @@ export interface ManagedClubMessage {
 }
 
 type MessageListener = (msg: ManagedClubMessage) => void;
+type ErrorListener = (message: string) => void;
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -45,9 +46,10 @@ interface ConnState {
   active: boolean;
 }
 
-class ClubChatManager {
+export class ClubChatManager {
   private conns = new Map<string, ConnState>();
   private listeners = new Map<string, Set<MessageListener>>();
+  private errorListeners = new Map<string, Set<ErrorListener>>();
   private token = '';
   private userId: number | null = null;
 
@@ -89,7 +91,12 @@ class ClubChatManager {
     ws.onmessage = (event) => {
       try {
         const raw = JSON.parse(event.data as string);
-        if ('detail' in raw) return;
+        if ('detail' in raw) {
+          this.errorListeners
+            .get(clubId)
+            ?.forEach((listener) => listener(String(raw.detail)));
+          return;
+        }
         const msg: ManagedClubMessage = {
           id: String(raw.id),
           text: raw.content,
@@ -149,6 +156,17 @@ class ClubChatManager {
 
   removeListener(clubId: string, listener: MessageListener) {
     this.listeners.get(clubId)?.delete(listener);
+  }
+
+  addErrorListener(clubId: string, listener: ErrorListener) {
+    if (!this.errorListeners.has(clubId)) {
+      this.errorListeners.set(clubId, new Set());
+    }
+    this.errorListeners.get(clubId)!.add(listener);
+  }
+
+  removeErrorListener(clubId: string, listener: ErrorListener) {
+    this.errorListeners.get(clubId)?.delete(listener);
   }
 
   send(clubId: string, content: string): boolean {

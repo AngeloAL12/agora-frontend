@@ -38,12 +38,17 @@ const mockIsReady = jest.fn();
 const mockSend = jest.fn();
 const mockAddListener = jest.fn();
 const mockRemoveListener = jest.fn();
+const mockAddErrorListener = jest.fn();
+const mockRemoveErrorListener = jest.fn();
 jest.mock('../../services/clubChatManager', () => ({
   clubChatManager: {
     isReady: (...args: unknown[]) => mockIsReady(...args),
     send: (...args: unknown[]) => mockSend(...args),
     addListener: (...args: unknown[]) => mockAddListener(...args),
     removeListener: (...args: unknown[]) => mockRemoveListener(...args),
+    addErrorListener: (...args: unknown[]) => mockAddErrorListener(...args),
+    removeErrorListener: (...args: unknown[]) =>
+      mockRemoveErrorListener(...args),
   },
   formatIncomingTimestamp: () => '10:00 AM',
 }));
@@ -122,8 +127,16 @@ describe('useClubChat', () => {
       'club-10',
       expect.any(Function),
     );
+    expect(mockAddErrorListener).toHaveBeenCalledWith(
+      'club-10',
+      expect.any(Function),
+    );
     unmount();
     expect(mockRemoveListener).toHaveBeenCalledWith(
+      'club-10',
+      expect.any(Function),
+    );
+    expect(mockRemoveErrorListener).toHaveBeenCalledWith(
       'club-10',
       expect.any(Function),
     );
@@ -289,6 +302,38 @@ describe('useClubChat', () => {
     act(() => onMessage(msg));
 
     expect(result.current.messages).toHaveLength(1);
+  });
+
+  it('oculta el mensaje denunciado o todos los del usuario bloqueado', async () => {
+    mockAuthRequest.mockResolvedValue(serverMessages);
+    const { result } = renderHook(() => useClubChat('club-10'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.hideReportedMessage('1', '99', false));
+    expect(result.current.messages.map((message) => message.id)).toEqual(['2']);
+
+    act(() => result.current.hideReportedMessage('2', '42', true));
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it('muestra el error del servidor y retira el último mensaje optimista', async () => {
+    mockAuthRequest.mockResolvedValue([]);
+    mockIsReady.mockReturnValue(true);
+    mockSend.mockReturnValue(true);
+    const { result } = renderHook(() => useClubChat('club-10'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.setInput('contenido bloqueado'));
+    await act(async () => result.current.handleSend());
+    expect(result.current.messages).toHaveLength(1);
+
+    const onError = mockAddErrorListener.mock.calls[0][1];
+    act(() => onError('El mensaje infringe las normas de comunidad.'));
+
+    expect(result.current.chatError).toBe(
+      'El mensaje infringe las normas de comunidad.',
+    );
+    expect(result.current.messages).toHaveLength(0);
   });
 
   it('clearSessionMessageCache forces re-fetch on next mount', async () => {
