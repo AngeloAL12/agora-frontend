@@ -1,5 +1,7 @@
 import { Image as ExpoImage } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import React, {
   useCallback,
   useEffect,
@@ -31,6 +33,8 @@ import CustomLoadingScreen from '@/components/CustomLoadingScreen';
 
 import ImageViewer from '@/components/ImageViewer';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import ReportContentSheet from '@/components/contentSafety/ReportContentSheet';
 import { colors, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLikes } from '@/context/LikesContext';
@@ -68,6 +72,8 @@ interface PostHeaderProps {
   liked: boolean;
   onLike: () => void;
   onCommentPress: () => void;
+  onReportPress?: () => void;
+  canReport?: boolean;
   onImagePress?: (index: number) => void;
 }
 
@@ -82,6 +88,8 @@ function PostHeader({
   liked,
   onLike,
   onCommentPress,
+  onReportPress,
+  canReport = false,
   onImagePress,
 }: PostHeaderProps) {
   const [avatarError, setAvatarError] = useState(false);
@@ -146,36 +154,46 @@ function PostHeader({
 
       {/* Actions row */}
       <View style={headerStyles.actions}>
-        <Pressable
-          style={headerStyles.actionBtn}
-          onPress={onLike}
-          activeOpacity={0.7}
-        >
-          <ExpoImage
-            source={require('@/assets/icons/clubs/like_heart.svg')}
-            style={headerStyles.actionIcon}
-            contentFit="contain"
-            tintColor={liked ? colors.error : colors.gray700}
-          />
-          <Text
-            style={[headerStyles.actionCount, liked && { color: colors.error }]}
+        <View style={headerStyles.actionsLeft}>
+          <Pressable style={headerStyles.actionBtn} onPress={onLike}>
+            <ExpoImage
+              source={require('@/assets/icons/clubs/like_heart.svg')}
+              style={headerStyles.actionIcon}
+              contentFit="contain"
+              tintColor={liked ? colors.error : colors.gray700}
+            />
+            <Text
+              style={[
+                headerStyles.actionCount,
+                liked && { color: colors.error },
+              ]}
+            >
+              {likeCount}
+            </Text>
+          </Pressable>
+          <Pressable style={headerStyles.actionBtn} onPress={onCommentPress}>
+            <ExpoImage
+              source={require('@/assets/icons/clubs/comment_post.svg')}
+              style={headerStyles.actionIcon}
+              contentFit="contain"
+              tintColor={colors.gray700}
+            />
+            <Text style={headerStyles.actionCount}>{commentCount}</Text>
+          </Pressable>
+        </View>
+        {canReport ? (
+          <Pressable
+            onPress={onReportPress}
+            accessibilityRole="button"
+            accessibilityLabel="Denunciar publicación"
+            style={({ pressed }) => [
+              headerStyles.reportButton,
+              pressed && { opacity: 0.7 },
+            ]}
           >
-            {likeCount}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={headerStyles.actionBtn}
-          onPress={onCommentPress}
-          activeOpacity={0.7}
-        >
-          <ExpoImage
-            source={require('@/assets/icons/clubs/comment_post.svg')}
-            style={headerStyles.actionIcon}
-            contentFit="contain"
-            tintColor={colors.gray700}
-          />
-          <Text style={headerStyles.actionCount}>{commentCount}</Text>
-        </Pressable>
+            <Ionicons name="flag-outline" size={18} color={colors.errorText} />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Comments divider */}
@@ -193,6 +211,7 @@ export default function PostCommentsScreen() {
     clubId,
     postId,
     authorName,
+    authorId,
     authorPhoto,
     content,
     createdAt,
@@ -201,13 +220,15 @@ export default function PostCommentsScreen() {
     clubId: string;
     postId: string;
     authorName: string;
+    authorId: string;
     authorPhoto: string;
     content: string;
     createdAt: string;
     images: string;
   }>();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { getPost, setLike, setPost } = useLikes();
   const { toggleLike } = useDebouncedLike();
 
@@ -219,6 +240,16 @@ export default function PostCommentsScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(58);
   const listRef = useRef<FlatList>(null);
+  const reportSheetRef = useRef<BottomSheetModal>(null);
+  const reportSuccessSheetRef = useRef<BottomSheetModal>(null);
+  const [reportTarget, setReportTarget] = useState<{
+    type: 'POST' | 'COMMENT';
+    id: number;
+    authorId: number;
+    authorName: string;
+  } | null>(null);
+  const [reportSuccessMessage, setReportSuccessMessage] = useState('');
+  const [commentError, setCommentError] = useState('');
 
   // Mirror exactly the chat screen keyboard tracking
   const keyboard = useAnimatedKeyboard();
@@ -293,6 +324,7 @@ export default function PostCommentsScreen() {
     const trimmed = text.trim();
     if (!trimmed || !token || !clubId || !postId) return;
     try {
+      setCommentError('');
       const newComment = await createPostComment(
         Number(clubId),
         Number(postId),
@@ -309,13 +341,34 @@ export default function PostCommentsScreen() {
       );
       setText('');
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch {
-      // silently ignore
+    } catch (requestError) {
+      const apiError = requestError as { detail?: string };
+      setCommentError(apiError?.detail ?? 'No se pudo publicar el comentario.');
     }
   }
 
   function handleCommentPress() {
     listRef.current?.scrollToEnd({ animated: true });
+  }
+
+  function openReport(target: NonNullable<typeof reportTarget>) {
+    setReportTarget(target);
+    requestAnimationFrame(() => reportSheetRef.current?.present());
+  }
+
+  function handleReportSubmitted(blocked: boolean) {
+    if (!reportTarget) return;
+    if (reportTarget.type === 'COMMENT') {
+      setComments((current) =>
+        current.filter((comment) => comment.id !== reportTarget.id),
+      );
+    }
+    setReportSuccessMessage(
+      blocked
+        ? `El contenido fue denunciado y bloqueaste a ${reportTarget.authorName}.`
+        : 'El contenido fue denunciado y ya no aparecerá para ti.',
+    );
+    setTimeout(() => reportSuccessSheetRef.current?.present(), 250);
   }
 
   function handleAvatarError(userId: number) {
@@ -335,6 +388,15 @@ export default function PostCommentsScreen() {
         liked={postState.liked}
         onLike={handleLike}
         onCommentPress={handleCommentPress}
+        canReport={Number(authorId) !== user?.id}
+        onReportPress={() =>
+          openReport({
+            type: 'POST',
+            id: Number(postId),
+            authorId: Number(authorId),
+            authorName: authorName ?? '',
+          })
+        }
         onImagePress={(index) => {
           setSelectedImageIndex(index);
           setImageModalVisible(true);
@@ -351,6 +413,9 @@ export default function PostCommentsScreen() {
       comments.length,
       postState.likeCount,
       postState.liked,
+      authorId,
+      postId,
+      user?.id,
     ],
   );
 
@@ -376,7 +441,30 @@ export default function PostCommentsScreen() {
           )}
         </View>
         <View style={styles.commentBubble}>
-          <Text style={styles.commentAuthor}>{item.user.name}</Text>
+          <View style={styles.commentHeaderRow}>
+            <Text style={styles.commentAuthor}>{item.user.name}</Text>
+            {item.user.id !== user?.id ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Denunciar comentario de ${item.user.name}`}
+                onPress={() =>
+                  openReport({
+                    type: 'COMMENT',
+                    id: item.id,
+                    authorId: item.user.id,
+                    authorName: item.user.name,
+                  })
+                }
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="flag-outline"
+                  size={15}
+                  color={colors.activityGray}
+                />
+              </Pressable>
+            ) : null}
+          </View>
           <Text style={styles.commentText}>{item.content}</Text>
           <Text style={styles.commentTime}>{timeAgo(item.created_at)}</Text>
         </View>
@@ -415,6 +503,16 @@ export default function PostCommentsScreen() {
         ]}
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
       >
+        {commentError ? (
+          <View style={styles.commentErrorBox}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={16}
+              color={colors.errorText}
+            />
+            <Text style={styles.commentErrorText}>{commentError}</Text>
+          </View>
+        ) : null}
         <ChatInput
           value={text}
           onChangeText={setText}
@@ -455,6 +553,32 @@ export default function PostCommentsScreen() {
         images={parsedImages}
         selectedIndex={selectedImageIndex}
         onClose={() => setImageModalVisible(false)}
+      />
+
+      {reportTarget ? (
+        <ReportContentSheet
+          ref={reportSheetRef}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          authorId={reportTarget.authorId}
+          authorName={reportTarget.authorName}
+          token={token ?? ''}
+          onSubmitted={handleReportSubmitted}
+        />
+      ) : null}
+
+      <SuccessBottomSheet
+        ref={reportSuccessSheetRef}
+        title="Gracias por avisarnos"
+        message={reportSuccessMessage}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => {
+          reportSuccessSheetRef.current?.dismiss();
+          if (reportTarget?.type === 'POST') router.back();
+          setReportTarget(null);
+        }}
+        onDismiss={() => setReportTarget(null)}
       />
     </View>
   );
@@ -533,8 +657,13 @@ const headerStyles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  actionsLeft: {
+    flexDirection: 'row',
     gap: 20,
   },
   actionBtn: {
@@ -550,6 +679,15 @@ const headerStyles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
     color: colors.gray700,
+  },
+  reportButton: {
+    width: 36,
+    height: 36,
+    marginVertical: -8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.errorContainer,
   },
   divider: {
     borderTopWidth: 1,
@@ -571,6 +709,23 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   inputContainer: {
     zIndex: 10,
+  },
+  commentErrorBox: {
+    marginHorizontal: 25,
+    marginBottom: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.errorContainer,
+  },
+  commentErrorText: {
+    flex: 1,
+    fontSize: 11,
+    color: colors.errorText,
+    fontFamily: typography.fontFamily.interMedium,
   },
 
   listContent: {
@@ -640,6 +795,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.interSemiBold,
     color: colors.gray950,
+  },
+  commentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   commentText: {
     fontSize: 14,

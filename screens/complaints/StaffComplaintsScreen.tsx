@@ -27,7 +27,11 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-export function StaffComplaintsScreen() {
+export function StaffComplaintsScreen({
+  isAdmin = false,
+}: {
+  isAdmin?: boolean;
+}) {
   const router = useRouter();
   const {
     reports,
@@ -91,8 +95,38 @@ export function StaffComplaintsScreen() {
       <ScreenHeader
         title="Reporte de mejoras"
         align="left"
-        showNotificationBell
+        showNotificationBell={!isAdmin}
         onNotificationPress={() => setNotificationsVisible(true)}
+        rightAction={
+          isAdmin ? (
+            <View style={styles.adminActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir moderación de contenido"
+                onPress={() => router.push('/moderation')}
+                style={styles.headerAction}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={24}
+                  color={colors.white}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir notificaciones"
+                onPress={() => setNotificationsVisible(true)}
+                style={styles.headerAction}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color={colors.white}
+                />
+              </Pressable>
+            </View>
+          ) : undefined
+        }
         containerStyle={styles.header}
       />
 
@@ -201,6 +235,13 @@ const styles = StyleSheet.create({
   header: {
     shadowOpacity: 0,
     elevation: 0,
+  },
+  adminActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerAction: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   staffFiltersWrap: {
     height: 58,

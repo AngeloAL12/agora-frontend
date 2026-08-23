@@ -12,7 +12,7 @@ export default function ComplaintsScreen() {
   }
 
   if (isStaffRole(role)) {
-    return <StaffComplaintsScreen />;
+    return <StaffComplaintsScreen isAdmin={role?.toLowerCase() === 'admin'} />;
   }
 
   return <UserComplaintsScreen />;

@@ -1,7 +1,7 @@
 import { colors, typography } from '@/constants/theme';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 
 interface ChatBubbleProps {
@@ -10,6 +10,7 @@ interface ChatBubbleProps {
   timestamp?: string;
   senderName?: string;
   senderAvatar?: string | null;
+  onMessageLongPress?: () => void;
 }
 
 function AvatarCircle({
@@ -41,6 +42,7 @@ export const ChatBubble = React.memo(function ChatBubble({
   timestamp,
   senderName,
   senderAvatar,
+  onMessageLongPress,
 }: ChatBubbleProps) {
   const isAssistant = sender === 'assistant';
 
@@ -56,7 +58,34 @@ export const ChatBubble = React.memo(function ChatBubble({
           {senderName ? (
             <Text style={styles.senderNameAssistant}>{senderName}</Text>
           ) : null}
-          <View style={[styles.bubble, styles.bubbleAssistant]}>
+          <Pressable
+            disabled={!onMessageLongPress}
+            delayLongPress={350}
+            onLongPress={onMessageLongPress}
+            accessible={Boolean(onMessageLongPress)}
+            accessibilityRole={onMessageLongPress ? 'button' : undefined}
+            accessibilityLabel={`Mensaje de ${senderName ?? 'usuario'}: ${message}`}
+            accessibilityHint={
+              onMessageLongPress
+                ? 'Mantén presionado para ver opciones del mensaje'
+                : undefined
+            }
+            accessibilityActions={
+              onMessageLongPress
+                ? [{ name: 'activate', label: 'Abrir opciones del mensaje' }]
+                : undefined
+            }
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'activate') {
+                onMessageLongPress?.();
+              }
+            }}
+            style={({ pressed }) => [
+              styles.bubble,
+              styles.bubbleAssistant,
+              pressed && onMessageLongPress && styles.bubblePressed,
+            ]}
+          >
             <Markdown
               style={{
                 body: {
@@ -140,7 +169,7 @@ export const ChatBubble = React.memo(function ChatBubble({
             >
               {message}
             </Markdown>
-          </View>
+          </Pressable>
           {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
         </View>
       </View>
@@ -244,6 +273,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
+  },
+  bubblePressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.985 }],
   },
   messageText: {
     fontSize: 14,

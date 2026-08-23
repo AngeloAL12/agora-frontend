@@ -265,6 +265,103 @@ export default function PreferencesScreen() {
           })}
         </View>
 
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
+          SEGURIDAD Y COMUNIDAD
+        </Text>
+        <View style={styles.card}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.optionRow,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push('/my-content-reports')}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons
+                name="flag-outline"
+                size={20}
+                color={theme.palette.primary}
+              />
+            </View>
+            <Text style={styles.rowLabel}>Mis denuncias</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.gray700}
+            />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.optionRow,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push('/blocked-users')}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons
+                name="person-remove-outline"
+                size={20}
+                color={theme.palette.primary}
+              />
+            </View>
+            <Text style={styles.rowLabel}>Usuarios bloqueados</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.gray700}
+            />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.optionRow,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push('/community-guidelines')}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={20}
+                color={theme.palette.primary}
+              />
+            </View>
+            <Text style={styles.rowLabel}>Normas de comunidad</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.gray700}
+            />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.optionRow,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push('/support')}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons
+                name="help-buoy-outline"
+                size={20}
+                color={theme.palette.primary}
+              />
+            </View>
+            <Text style={styles.rowLabel}>Contacto y soporte</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.gray700}
+            />
+          </Pressable>
+        </View>
+
         {!isDemoMode ? (
           <>
             <Text style={[styles.sectionLabel, styles.accountSectionLabel]}>

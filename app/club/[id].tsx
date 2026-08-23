@@ -27,6 +27,7 @@ import AppBottomSheet from '@/components/AppBottomSheet';
 import PrivateClubBottomSheet from '@/components/PrivateClubBottomSheet';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import ReportContentSheet from '@/components/contentSafety/ReportContentSheet';
 import EventCard from '@/components/clubs/EventCard';
 import PostCard from '@/components/clubs/PostCard';
 import { colors, typography } from '@/constants/theme';
@@ -85,6 +86,12 @@ export default function ClubDetailScreen() {
   const privateClubSheetRef = useRef<BottomSheetModal>(null);
   const requestSentSheetRef = useRef<BottomSheetModal>(null);
   const errorSheetRef = useRef<BottomSheetModal>(null);
+  const reportSheetRef = useRef<BottomSheetModal>(null);
+  const reportSuccessSheetRef = useRef<BottomSheetModal>(null);
+  const [selectedReportPost, setSelectedReportPost] = useState<ClubPost | null>(
+    null,
+  );
+  const [reportSuccessMessage, setReportSuccessMessage] = useState('');
 
   const isLeader = club && user ? club.id_leader === user.id : false;
 
@@ -259,6 +266,29 @@ export default function ClubDetailScreen() {
     [activeTab, posts, events],
   );
 
+  const handleReportPress = useCallback((post: ClubPost) => {
+    setSelectedReportPost(post);
+    requestAnimationFrame(() => reportSheetRef.current?.present());
+  }, []);
+
+  const handlePostReported = useCallback(
+    (blocked: boolean) => {
+      if (!selectedReportPost || !id) return;
+      const filtered = posts.filter(
+        (post) => post.id !== selectedReportPost.id,
+      );
+      setPosts(filtered);
+      clubPostsCache[String(id)] = filtered;
+      setReportSuccessMessage(
+        blocked
+          ? `La publicación fue denunciada y bloqueaste a ${selectedReportPost.author.name}.`
+          : 'La publicación fue denunciada y ya no aparecerá para ti.',
+      );
+      setTimeout(() => reportSuccessSheetRef.current?.present(), 250);
+    },
+    [id, posts, selectedReportPost],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: ClubPost | ClubEvent }) => {
       if ('user_has_liked' in item) {
@@ -267,6 +297,7 @@ export default function ClubDetailScreen() {
             post={item as ClubPost}
             clubId={Number(id)}
             token={token ?? ''}
+            onReportPress={handleReportPress}
           />
         );
       }
@@ -283,7 +314,7 @@ export default function ClubDetailScreen() {
         />
       );
     },
-    [id, token, router, club?.id],
+    [id, token, router, club?.id, handleReportPress],
   );
 
   const ListHeader = useMemo(() => {
@@ -576,6 +607,31 @@ export default function ClubDetailScreen() {
           </View>
         </View>
       </AppBottomSheet>
+
+      {selectedReportPost ? (
+        <ReportContentSheet
+          ref={reportSheetRef}
+          targetType="POST"
+          targetId={selectedReportPost.id}
+          authorId={selectedReportPost.author.id}
+          authorName={selectedReportPost.author.name}
+          token={token ?? ''}
+          onSubmitted={handlePostReported}
+        />
+      ) : null}
+
+      <SuccessBottomSheet
+        ref={reportSuccessSheetRef}
+        title="Gracias por avisarnos"
+        message={reportSuccessMessage}
+        primaryLabel="Entendido"
+        secondaryLabel=""
+        onPrimaryPress={() => {
+          reportSuccessSheetRef.current?.dismiss();
+          setSelectedReportPost(null);
+        }}
+        onDismiss={() => setSelectedReportPost(null)}
+      />
     </View>
   );
 }

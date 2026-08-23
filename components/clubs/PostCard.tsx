@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useDebouncedLike } from '@/hooks/useDebouncedLike';
 import { useLikes } from '@/context/LikesContext';
 import { ClubPost } from '@/types/club';
@@ -19,6 +21,7 @@ interface PostCardProps {
   post: ClubPost;
   clubId: number;
   token: string;
+  onReportPress?: (post: ClubPost) => void;
 }
 
 function getInitials(name: string): string {
@@ -38,8 +41,14 @@ function timeAgo(dateStr: string): string {
   return `Hace ${days} día${days !== 1 ? 's' : ''}`;
 }
 
-export default function PostCard({ post, clubId, token }: PostCardProps) {
+export default function PostCard({
+  post,
+  clubId,
+  token,
+  onReportPress,
+}: PostCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [avatarError, setAvatarError] = useState(false);
   const { toggleLike } = useDebouncedLike();
   const { getPost, setPost, setLike } = useLikes();
@@ -111,6 +120,7 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
         postId: post.id,
         clubId,
         authorName: post.author.name,
+        authorId: post.author.id,
         authorPhoto: post.author.photo ?? '',
         content: post.content,
         createdAt: post.created_at,
@@ -192,13 +202,26 @@ export default function PostCard({ post, clubId, token }: PostCardProps) {
             </View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.7}>
-            <ExpoImage
-              source={require('@/assets/icons/clubs/share.svg')}
-              style={styles.actionIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
+          {post.author.id !== user?.id ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Denunciar publicación de ${post.author.name}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                onReportPress?.(post);
+              }}
+              style={styles.reportButton}
+            >
+              <Ionicons
+                name="flag-outline"
+                size={18}
+                color={colors.errorText}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.actionIcon} />
+          )}
         </View>
       </View>
     </Pressable>
@@ -298,5 +321,14 @@ const styles = StyleSheet.create({
   },
   actionCountLiked: {
     color: colors.error,
+  },
+  reportButton: {
+    width: 36,
+    height: 36,
+    marginVertical: -10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.errorContainer,
   },
 });

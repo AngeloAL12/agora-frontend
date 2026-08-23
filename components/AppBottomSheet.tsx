@@ -20,6 +20,8 @@ interface AppBottomSheetProps {
   onDismiss?: () => void;
   minBottomPadding?: number;
   contentStyle?: ViewStyle;
+  enableDynamicSizing?: boolean;
+  snapPoints?: (string | number)[];
 }
 
 interface InnerContentProps {
@@ -75,7 +77,17 @@ function InnerContent({
 }
 
 const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetProps>(
-  ({ children, onDismiss, minBottomPadding = 24, contentStyle }, ref) => {
+  (
+    {
+      children,
+      onDismiss,
+      minBottomPadding = 24,
+      contentStyle,
+      enableDynamicSizing = true,
+      snapPoints,
+    },
+    ref,
+  ) => {
     const renderBackdrop = useCallback(
       (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
         <BottomSheetBackdrop
@@ -103,7 +115,11 @@ const AppBottomSheet = React.forwardRef<BottomSheetModal, AppBottomSheetProps>(
     return (
       <BottomSheetModal
         ref={ref}
-        enableDynamicSizing
+        enableDynamicSizing={enableDynamicSizing}
+        snapPoints={snapPoints}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
         onDismiss={onDismiss}
         onAnimate={(fromIndex, toIndex) => {

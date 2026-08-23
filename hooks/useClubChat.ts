@@ -40,12 +40,16 @@ interface UseClubChatReturn {
   handleSend: () => void;
   loadMoreMessages: () => Promise<void>;
   clearError: () => void;
+  hideReportedMessage: (
+    messageId: string,
+    senderId: string,
+    blocked: boolean,
+  ) => void;
 }
 
 const LIMIT = 50;
 const sessionPageByClub: Record<string, number> = {};
 const sessionHasMoreByClub: Record<string, boolean> = {};
-
 
 export function clearSessionMessageCache() {
   for (const key of Object.keys(sessionMessagesByClub)) {
@@ -179,9 +183,24 @@ export function useClubChat(clubId: string): UseClubChatReturn {
         });
       };
 
+      const onMessageError = (message: string) => {
+        setChatError(message);
+        setMessages((current) => {
+          const optimisticIndex = current.findLastIndex((item) =>
+            item.id.startsWith('opt_'),
+          );
+          if (optimisticIndex === -1) return current;
+          const next = current.filter((_, index) => index !== optimisticIndex);
+          sessionMessagesByClub[clubId] = next;
+          return next;
+        });
+      };
+
       clubChatManager.addListener(clubId, onMessage);
+      clubChatManager.addErrorListener(clubId, onMessageError);
       return () => {
         clubChatManager.removeListener(clubId, onMessage);
+        clubChatManager.removeErrorListener(clubId, onMessageError);
       };
     }, [clubId]),
   );
@@ -227,6 +246,25 @@ export function useClubChat(clubId: string): UseClubChatReturn {
 
   const clearError = () => setChatError(null);
 
+  const hideReportedMessage = useCallback(
+    (messageId: string, senderId: string, blocked: boolean) => {
+      setMessages((current) => {
+        const next = current.filter((message) =>
+          blocked ? message.senderId !== senderId : message.id !== messageId,
+        );
+        sessionMessagesByClub[clubId] = next;
+        const last = next[next.length - 1];
+        chatSummaryStore.update(
+          clubId,
+          last?.text ?? '',
+          last?.timestamp ?? '',
+        );
+        return next;
+      });
+    },
+    [clubId],
+  );
+
   return {
     messages,
     input,
@@ -239,5 +277,6 @@ export function useClubChat(clubId: string): UseClubChatReturn {
     handleSend,
     loadMoreMessages,
     clearError,
+    hideReportedMessage,
   };
 }
