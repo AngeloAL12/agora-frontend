@@ -1,5 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
+import { Linking } from 'react-native';
 
 import { loginWithGoogle, loginWithMicrosoft } from '@/services/authService';
 import { exchangeCodeAsync } from 'expo-auth-session';
@@ -29,7 +30,7 @@ let mockMicrosoftRequest: unknown = { codeVerifier: 'msVerifier123' };
 
 jest.mock('expo-auth-session', () => ({
   ResponseType: { Code: 'code' },
-  makeRedirectUri: jest.fn((_options?: unknown) => 'agorafrontend://auth'),
+  makeRedirectUri: jest.fn((_options?: unknown) => 'ag0ra://auth'),
   // Distinguish Google vs Microsoft by the discovery tokenEndpoint
   useAuthRequest: jest.fn(
     (_config: unknown, discovery: { tokenEndpoint?: string }) => {
@@ -115,6 +116,26 @@ describe('Onboarding Screen', () => {
     const { getByText } = renderOnboarding();
     expect(getByText('Continuar con Google')).toBeTruthy();
     expect(getByText('Continuar con Microsoft')).toBeTruthy();
+  });
+
+  it('opens support, terms, and privacy links', () => {
+    const openURLSpy = jest
+      .spyOn(Linking, 'openURL')
+      .mockResolvedValue(true as never);
+    const { getByText } = renderOnboarding();
+
+    fireEvent.press(getByText('¿Problemas para iniciar sesión?'));
+    fireEvent.press(getByText('Términos de Servicio'));
+    fireEvent.press(getByText('Privacidad'));
+
+    expect(openURLSpy).toHaveBeenNthCalledWith(1, 'https://ag0ra.pro/soporte');
+    expect(openURLSpy).toHaveBeenNthCalledWith(2, 'https://ag0ra.pro/terminos');
+    expect(openURLSpy).toHaveBeenNthCalledWith(
+      3,
+      'https://ag0ra.pro/privacidad',
+    );
+
+    openURLSpy.mockRestore();
   });
 
   it('pressing Google button calls promptGoogle and shows loading only on Google button', () => {
