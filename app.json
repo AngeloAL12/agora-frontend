@@ -1,25 +1,75 @@
 {
   "expo": {
-    "name": "agora-frontend",
+    "name": "Agora",
     "slug": "agora-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "agorafrontend",
+    "scheme": "ag0ra",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7221beb9-0d4a-45b2-af74-9d1f32dec2e0"
+      }
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "pro.ag0ra.app",
+      "icon": {
+        "dark": "./assets/images/appicon/ios-dark.png",
+        "light": "./assets/images/appicon/ios-default.png",
+        "tinted": "./assets/images/appicon/ios-tinted.png"
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.693837597429-5rllt8r0ksqnjje35bf8g4ohvn5ajdek"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "ag0ra"
+            ]
+          }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "pro.ag0ra.app",
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+            },
+            {
+              "scheme": "com.googleusercontent.apps.93837597429-cba0e642fc22383ti1bvfc6o17crehqh"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#1C3058",
+        "foregroundImage": "./assets/images/appicon/android-foreground.png",
+        "backgroundImage": "./assets/images/appicon/android-background.png",
+        "monochromeImage": "./assets/images/appicon/android-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -27,19 +77,54 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withFmtXcode264Fix",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/appicon/android-splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
+          "backgroundColor": "#E6F4FE",
+          "ios": {
+            "image": "./assets/images/appicon/ios-splash.png",
+            "imageWidth": 200,
+            "resizeMode": "contain",
+            "backgroundColor": "#208AEF"
+          }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1E488F",
+          "iosDisplayInForeground": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Se requiere acceso a la galería para adjuntar fotos a los reportes.",
+          "cameraPermission": "Se requiere acceso a la cámara para tomar fotos para los reportes."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Se requiere acceso a tu ubicación para mostrarte en el mapa del campus."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
           }
         }
       ]
     ],
+    "newArchEnabled": false,
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

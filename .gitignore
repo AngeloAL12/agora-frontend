@@ -13,6 +13,7 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+google-services.json
 *.p8
 *.p12
 *.key
@@ -45,3 +46,9 @@ app-example
 coverage
 
 .env
+
+.idea
+.vscode
+
+# Local agent permissions
+.claude/settings.local.json

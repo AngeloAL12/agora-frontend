@@ -1,0 +1,323 @@
+import { ClubCard } from '@/components/ClubCard';
+import { ClubDiscoveryItem } from '@/components/ClubDiscoveryItem';
+import { NotificationsModal } from '@/components/NotificationsModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SearchInput } from '@/components/SearchInput';
+import SuccessBottomSheet from '@/components/SuccessBottomSheet';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+import { colors, typography } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useClubs } from '@/hooks/useClubs';
+import { useRecentClubIds } from '@/hooks/useRecentClubIds';
+import { useSearch } from '@/hooks/useSearch';
+import { joinClub } from '@/services/clubService';
+import { ClubResponse } from '@/types/club';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+export default function ClubsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { token } = useAuth();
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markRead,
+  } = useNotificationsContext();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [joinedClubName, setJoinedClubName] = useState('');
+  const [joinErrorMessage, setJoinErrorMessage] = useState('');
+  const joinSuccessSheetRef = useRef<BottomSheetModal>(null);
+  const joinAlreadyMemberSheetRef = useRef<BottomSheetModal>(null);
+  const joinErrorSheetRef = useRef<BottomSheetModal>(null);
+  const { myClubs, discoverClubs, loading, refetch } = useClubs();
+  const recentIds = useRecentClubIds();
+
+  const sortedMyClubs = useMemo(() => {
+    const recentSet = new Set(recentIds);
+    const recent = recentIds
+      .map((id) => myClubs.find((c) => c.id === id))
+      .filter((c): c is ClubResponse => c !== undefined);
+    const rest = myClubs.filter((c) => !recentSet.has(c.id));
+    return [...recent, ...rest];
+  }, [myClubs, recentIds]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(true);
+    setRefreshing(false);
+  }, [refetch]);
+
+  const handleJoin = async (id: number, name: string) => {
+    if (!token) return;
+    try {
+      await joinClub(id, token);
+      setJoinedClubName(name);
+      joinSuccessSheetRef.current?.present();
+      await refetch(true);
+    } catch (error: unknown) {
+      const e = error as { status?: number; detail?: string; message?: string };
+      if (e?.status === 400 || e?.detail?.toLowerCase().includes('miembro')) {
+        joinAlreadyMemberSheetRef.current?.present();
+      } else {
+        setJoinErrorMessage(e?.detail || 'No pudimos procesar tu solicitud.');
+        joinErrorSheetRef.current?.present();
+      }
+    }
+  };
+
+  const filteredDiscoverClubs = useSearch(searchQuery, discoverClubs, 'name');
+  const filteredMyClubs = useSearch(searchQuery, sortedMyClubs, 'name');
+
+  const scrollPaddingBottom = insets.bottom + 130;
+  const fabBottom = insets.bottom + 96;
+
+  if (loading && !refreshing) {
+    return <CustomLoadingScreen message="Conectando con Agora..." />;
+  }
+
+  return (
+    <SafeAreaView edges={['left', 'right']} style={styles.mainContainer}>
+      <ScreenHeader
+        align="left"
+        showNotificationBell
+        onNotificationPress={() => setNotificationsVisible(true)}
+        searchInput={
+          <SearchInput
+            placeholder="Buscar clubes..."
+            withShadow={false}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        }
+      />
+
+      <View style={styles.content}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: scrollPaddingBottom },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.bluePrimary]}
+              tintColor={colors.bluePrimary}
+            />
+          }
+        >
+          {/* ── Mis clubes ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
+                <Text style={styles.sectionTitle}>Mis clubes</Text>
+              </View>
+              <Pressable
+                onPress={() => router.push('/my-clubs' as never)}
+                hitSlop={8}
+              >
+                <Text style={styles.seeAllText}>Ver todos</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.cardList}>
+              {filteredMyClubs
+                .slice(0, searchQuery ? undefined : 2)
+                .map((club) => (
+                  <ClubCard
+                    key={club.id}
+                    name={club.name}
+                    imageSource={
+                      club.profile_image
+                        ? { uri: club.profile_image }
+                        : undefined
+                    }
+                    onPress={() =>
+                      router.push({
+                        pathname: '/club/[id]' as never,
+                        params: { id: club.id },
+                      })
+                    }
+                  />
+                ))}
+              {filteredMyClubs.length === 0 && (
+                <Text style={styles.emptyText}>
+                  No estás en ningún club aún
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* ── Descubrir ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={styles.sectionLabel}>EXPLORAR NUEVOS CLUBES</Text>
+              <Text style={styles.sectionTitle}>Descubrir</Text>
+            </View>
+
+            <View style={styles.discoverList}>
+              {filteredDiscoverClubs.map((club) => (
+                <Pressable
+                  key={club.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/club/[id]' as never,
+                      params: { id: club.id },
+                    })
+                  }
+                >
+                  <ClubDiscoveryItem
+                    name={club.name}
+                    memberCount={club.members_count ?? 0}
+                    imageSource={
+                      club.profile_image
+                        ? { uri: club.profile_image }
+                        : undefined
+                    }
+                    onJoin={() => handleJoin(club.id, club.name)}
+                  />
+                </Pressable>
+              ))}
+              {filteredDiscoverClubs.length === 0 && (
+                <Text style={styles.emptyText}>Sin resultados</Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+
+      <Pressable
+        style={[styles.fab, { bottom: fabBottom }]}
+        onPress={() => router.push('/create-club' as never)}
+      >
+        <Ionicons name="add" size={32} color={colors.gray900} />
+      </Pressable>
+      <NotificationsModal
+        visible={notificationsVisible}
+        onDismiss={() => setNotificationsVisible(false)}
+        notifications={notifications}
+        loading={notificationsLoading}
+        onNotificationPress={markRead}
+      />
+
+      <SuccessBottomSheet
+        ref={joinSuccessSheetRef}
+        title="¡Excelente!"
+        message={`Te has unido al club: ${joinedClubName}`}
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinSuccessSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+
+      <SuccessBottomSheet
+        ref={joinAlreadyMemberSheetRef}
+        variant="error"
+        title="Aviso"
+        message="¡Ya formas parte de este club!"
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinAlreadyMemberSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+
+      <SuccessBottomSheet
+        ref={joinErrorSheetRef}
+        variant="error"
+        title="Ups"
+        message={joinErrorMessage}
+        primaryLabel="Entendido"
+        onPrimaryPress={() => joinErrorSheetRef.current?.dismiss()}
+        secondaryLabel=""
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  mainContainer: { flex: 1, backgroundColor: colors.whiteSoft },
+  content: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 24 },
+  section: { marginBottom: 16 },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+  },
+  sectionHeaderCol: { marginBottom: 16 },
+  sectionLabel: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.blueDark,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: typography.fontFamily.manropeExtraBold,
+    color: colors.gray950,
+    letterSpacing: -0.6,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interSemiBold,
+    color: colors.blueDark,
+    marginBottom: 4,
+  },
+  cardList: { gap: 16 },
+  discoverList: { gap: 12 },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  loadingCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.whiteSoft,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.gray700,
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    backgroundColor: colors.yellow,
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+});

@@ -1,0 +1,187 @@
+import { useRouter } from 'expo-router';
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+import {
+  FLOATING_TAB_BAR_BOTTOM_OFFSET,
+  FLOATING_TAB_BAR_HEIGHT,
+} from '@/components/FloatingTabBar';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { ChatListItem } from '@/components/chats/ChatListItem';
+import { ChatFilter, FilterChips } from '@/components/chats/FilterChips';
+import { chatSummaryStore } from '@/services/chatSummaryStore';
+import { colors, typography } from '@/constants/theme';
+import { useMyChats } from '@/hooks/useMyChats';
+import CustomLoadingScreen from '@/components/CustomLoadingScreen';
+
+export default function MessagesScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
+
+  const { chats, isLoading, error, refetch } = useMyChats();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(true);
+    setRefreshing(false);
+  }, [refetch]);
+
+  const summaries = useSyncExternalStore(
+    chatSummaryStore.subscribe,
+    chatSummaryStore.getSnapshot,
+  );
+
+  const chatsWithSummaries = useMemo(() => {
+    const mapped = chats.map((chat) => {
+      const summary = summaries[chat.id];
+      if (!summary) return chat;
+      return {
+        ...chat,
+        lastMessage: summary.lastMessage || chat.lastMessage,
+        timestamp: summary.timestamp || chat.timestamp,
+        unreadCount: summary.unreadCount,
+        sortKey: summary.sortKey,
+      };
+    });
+
+    return mapped.sort((a, b) => {
+      if (a.type === 'ia') return -1;
+      if (b.type === 'ia') return 1;
+      const skA = a.sortKey ?? 0;
+      const skB = b.sortKey ?? 0;
+      return skB - skA;
+    });
+  }, [summaries, chats]);
+
+  const filteredChats = useMemo(() => {
+    if (activeFilter === 'unread') {
+      return chatsWithSummaries.filter(
+        (chat) => !!chat.unreadCount && chat.unreadCount > 0,
+      );
+    }
+    return chatsWithSummaries;
+  }, [activeFilter, chatsWithSummaries]);
+
+  const scrollPaddingBottom =
+    insets.bottom +
+    FLOATING_TAB_BAR_BOTTOM_OFFSET +
+    FLOATING_TAB_BAR_HEIGHT +
+    16;
+
+  const handleChatPress = (id: string, type: 'ia' | 'club', name?: string) => {
+    if (type === 'ia') {
+      router.push('/chat/ia');
+      return;
+    }
+    const params = name ? `?name=${encodeURIComponent(name)}` : '';
+    router.push(`/chat/${id}${params}`);
+  };
+
+  if (isLoading) {
+    return <CustomLoadingScreen message="Cargando mensajes..." />;
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <ScreenHeader title="Mensajes" align="left" showNotificationBell />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: scrollPaddingBottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.bluePrimary]}
+            tintColor={colors.bluePrimary}
+          />
+        }
+      >
+        <FilterChips
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+
+        {error ? (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <View style={styles.chatCard}>
+            {filteredChats.map((chat, index) => (
+              <ChatListItem
+                key={chat.id}
+                name={chat.name}
+                type={chat.type}
+                avatarSource={chat.avatarSource}
+                lastMessage={chat.lastMessage}
+                timestamp={chat.timestamp}
+                unreadCount={chat.unreadCount}
+                isLast={index === filteredChats.length - 1}
+                onPress={() => handleChatPress(chat.id, chat.type, chat.name)}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.whiteSoft,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 16,
+  },
+  chatCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.blueSecondary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 24,
+    elevation: 2,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 48,
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.interRegular,
+    color: colors.error,
+    textAlign: 'center',
+  },
+});
