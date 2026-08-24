@@ -15,6 +15,7 @@ export interface ClubChat {
   lastMessage: string;
   timestamp: string;
   unreadCount?: number;
+  sortKey?: number;
 }
 
 export const CLUB_CHATS_MOCK: ClubChat[] = [

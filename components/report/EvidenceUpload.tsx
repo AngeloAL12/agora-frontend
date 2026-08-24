@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
-import type { LocalImageFile } from '@/services/reportService';
+import type { LocalImageFile } from '@/types/report';
 
 type EvidenceUploadProps = {
   images: LocalImageFile[];
