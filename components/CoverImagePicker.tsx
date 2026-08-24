@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import {
   Image,
+  type ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
@@ -13,7 +14,7 @@ type Props = {
   asset: ImagePickerAsset | null;
   onPick: () => void;
   onRemove: () => void;
-  placeholder: ReturnType<typeof require>;
+  placeholder: ImageSourcePropType;
 };
 
 export default function CoverImagePicker({

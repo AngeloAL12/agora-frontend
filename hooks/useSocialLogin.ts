@@ -70,7 +70,7 @@ export function useSocialLogin(): UseSocialLoginReturn {
     googleDiscovery,
   );
 
-  const microsoftRedirectUri = 'agorafrontend://auth';
+  const microsoftRedirectUri = 'ag0ra://auth';
   const [microsoftRequest, microsoftResponse, promptMicrosoft] = useAuthRequest(
     {
       clientId: MICROSOFT_CLIENT_ID,

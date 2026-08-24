@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "agorafrontend",
+    "scheme": "ag0ra",
     "userInterfaceStyle": "automatic",
     "extra": {
       "router": {},
@@ -15,8 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.agora.frontend",
-      "deploymentTarget": "17.0",
+      "bundleIdentifier": "pro.ag0ra.app",
       "icon": {
         "dark": "./assets/images/appicon/ios-dark.png",
         "light": "./assets/images/appicon/ios-default.png",
@@ -29,12 +28,12 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+              "com.googleusercontent.apps.693837597429-5rllt8r0ksqnjje35bf8g4ohvn5ajdek"
             ]
           },
           {
             "CFBundleURLSchemes": [
-              "com.googleusercontent.apps.693837597429-hds0b9m79q1b6uvboleqd4458lq1731a"
+              "ag0ra"
             ]
           }
         ],
@@ -42,7 +41,7 @@
       }
     },
     "android": {
-      "package": "com.agora.frontend",
+      "package": "pro.ag0ra.app",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
@@ -78,6 +77,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withFmtXcode264Fix",
       [
         "expo-splash-screen",
         {

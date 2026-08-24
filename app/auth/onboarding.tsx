@@ -2,6 +2,7 @@ import { colors, typography } from '@/constants/theme';
 import { useSocialLogin } from '@/hooks/useSocialLogin';
 import { Image as ExpoImage } from 'expo-image';
 import {
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -9,6 +10,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const PRIVACY_URL = 'https://ag0ra.pro/privacidad';
+const SUPPORT_URL = 'https://ag0ra.pro/soporte';
+const TERMS_URL = 'https://ag0ra.pro/terminos';
 
 export default function Onboarding() {
   const { height } = useWindowDimensions();
@@ -84,8 +89,10 @@ export default function Onboarding() {
           </Pressable>
         </View>
 
-        {/* TODO: implementar navegación de ayuda */}
         <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Abrir soporte para problemas de inicio de sesión"
+          onPress={() => void Linking.openURL(SUPPORT_URL)}
           style={({ pressed }) => [
             styles.helpButton,
             pressed && { opacity: 0.8 },
@@ -101,8 +108,22 @@ export default function Onboarding() {
 
         <Text style={styles.termsText}>
           Al continuar, aceptas nuestros{' '}
-          <Text style={styles.linkText}>Términos de Servicio</Text> y{' '}
-          <Text style={styles.linkText}>Privacidad</Text>.
+          <Text
+            accessibilityRole="link"
+            onPress={() => void Linking.openURL(TERMS_URL)}
+            style={styles.linkText}
+          >
+            Términos de Servicio
+          </Text>{' '}
+          y{' '}
+          <Text
+            accessibilityRole="link"
+            onPress={() => void Linking.openURL(PRIVACY_URL)}
+            style={styles.linkText}
+          >
+            Privacidad
+          </Text>
+          .
         </Text>
       </View>
     </SafeAreaView>

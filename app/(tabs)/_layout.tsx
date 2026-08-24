@@ -20,10 +20,7 @@ export default function TabsLayout() {
         screenOptions={{ headerShown: false }}
         tabBar={(props) => <FloatingTabBar {...props} />}
       >
-        <Tabs.Screen
-          name="map"
-          options={{ title: 'Mapa', unmountOnBlur: true }}
-        />
+        <Tabs.Screen name="map" options={{ title: 'Mapa' }} />
         <Tabs.Screen name="complaints" options={{ title: 'Quejas' }} />
         <Tabs.Screen name="messages" options={{ title: 'Mensajes' }} />
         <Tabs.Screen name="clubs" options={{ title: 'Clubs' }} />

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -16,17 +17,34 @@ import {
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, typography } from '@/constants/theme';
 
-const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL?.trim();
-const SUPPORT_URL = 'https://lnk.bio/nexora';
+const SUPPORT_EMAIL =
+  process.env.EXPO_PUBLIC_SUPPORT_EMAIL?.trim() || 'support@ag0ra.pro';
+const SUPPORT_URL = 'https://ag0ra.pro/soporte';
 
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
+
+  async function openSupportChannels() {
+    try {
+      await Linking.openURL(SUPPORT_URL);
+    } catch {
+      Alert.alert(
+        'No se pudo abrir el enlace',
+        `Escríbenos directamente a ${SUPPORT_EMAIL}.`,
+      );
+    }
+  }
 
   async function contactSupport() {
     const url = SUPPORT_EMAIL
       ? `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Soporte Agora')}`
       : SUPPORT_URL;
-    await Linking.openURL(url);
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      await openSupportChannels();
+    }
   }
 
   return (
@@ -107,7 +125,7 @@ export default function SupportScreen() {
 
         <Pressable
           accessibilityRole="link"
-          onPress={() => void Linking.openURL(SUPPORT_URL)}
+          onPress={() => void openSupportChannels()}
           style={styles.secondaryButton}
         >
           <Text style={styles.secondaryText}>Ver canales oficiales</Text>
